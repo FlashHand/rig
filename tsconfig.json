@@ -1,0 +1,50 @@
+{
+	"compilerOptions": {
+		"target": "es2015",
+		"module": "CommonJS",
+		"strict": true,
+		"importHelpers": true,
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"experimentalDecorators": true,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"baseUrl": ".",
+		"resolveJsonModule": true,
+		"outDir": "./built",
+		"allowJs": true,
+		"types": [
+			"node"
+		],
+		"paths": {
+			"@/*": [
+				"./lib/*"
+			],
+			"@root/*": [
+				"./*"
+			],
+			"@static/*": [
+				"static/*"
+			],
+			"tslib": [
+				"node_modules/tslib/tslib.d.ts"
+			]
+		},
+		"lib": [
+			"es2015"
+		]
+	},
+	"include": [
+		"index.ts",
+		"rigs/**/*.ts",
+		"src/**/*.ts",
+		"lib/**/*.ts",
+		"lib/**/*.d.ts",
+		"lib/**/*.js",
+		"test/**/*.ts",
+		"typings/**/*.ts",
+	],
+	"exclude": [
+		"node_modules"
+	]
+}

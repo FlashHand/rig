@@ -1,0 +1,49 @@
+{
+  "name": "rigjs",
+  "version": "2.0.0-alpha",
+  "description": "A multi-repos dev tool based on yarn and git.Rig is inspired by cocoapods. Not like those monorepo solutions,rig is a tool for organizing multi-repos.",
+  "keywords": [
+    "modular",
+    "lerna",
+    "monorepo",
+    "multirepos",
+    "cocoapods",
+    "symlink",
+    "npm link",
+    "workspaces"
+  ],
+  "main": "index.js",
+  "repository": "https://github.com/FlashHand/rig",
+  "author": "ralwayne",
+  "license": "MIT",
+  "bin": {
+    "rig": "bin/rig.js"
+  },
+  "scripts": {
+    "init": "cd demo && node ../lib/rig/index.js init",
+    "i": "cd demo && node ../lib/rig/index.js install",
+    "p": "cd demo && node ../lib/rig/index.js publish",
+    "prei": "cd demo && node ../lib/rig/index.js preinstall",
+    "posti": "cd demo && node ../lib/rig/index.js postinstall",
+    "c": "d demo && node ../lib/rig/index.js check",
+    "envmake": "cd demo && node ../lib/rig/index.js --env prod_view_zhs",
+    "t": "node lib/rig/index.js tag",
+    "deliver": "npm publish --registry=https://registry.npmjs.org",
+    "build": "esbuild lib/rig/index.ts --platform=node --bundle --minify --outfile=built/index.js --external:shelljs"
+  },
+  "dependencies": {
+    "@types/ali-oss": "^6.16.3",
+    "@types/json5": "^2.2.0",
+    "@types/shelljs": "^0.8.11",
+    "ali-oss": "^6.17.1",
+    "chalk": "^4.1.0",
+    "commander": "6.1.0",
+    "inquirer": "7.3.3",
+    "json5": "2.1.3",
+    "ora": "^5.1.0",
+    "shelljs": "^0.8.4"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.21"
+  }
+}

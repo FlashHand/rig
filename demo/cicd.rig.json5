@@ -1,0 +1,50 @@
+{
+  tree_schema: '{env}/{oem}/demo',
+  source: {
+    root_path: 'dist',
+  },
+  target: [{
+    id: 'alicloud',
+    type: 'alicloud',
+    bucket: '',
+    access_key: '{ak}',
+    access_secret: '{as}',
+    root_path: '/',
+    domain: '',
+  },{
+    id: 'huawei',
+    type: 'huawei',
+    bucket: '',
+    access_token: '%at',
+    access_secret: '%as',
+    root_path: '/',
+  }],
+  defines: {
+    test: {
+      NGINX_REPLACE_B: 'http://',
+      NGINX_REPLACE_A: '替换了',
+    },
+  },
+  endpoints: {
+    'test/oem1/demo': {
+      build: 'esbuild test.js --platform=node --bundle --minify --outfile=dist/test/oem1/demo/index.js',
+      define: 'test',
+      domain: '',
+
+    },
+    'test/oem2/demo': {
+      build: 'yarn build:test:oem2',
+      domain: ''
+    },
+  },
+  alias: [
+    {
+      name: '%all',
+      level: 'env',
+      includes: [
+        'test',
+        'test2',
+      ],
+    },
+  ],
+}

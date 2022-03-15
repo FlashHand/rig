@@ -1,0 +1,17 @@
+{
+  tree_schema: '',//tree_schema help to indicate every level of directory's meaning
+  source: {
+    path: 'dist',
+  },
+  target: {
+    type: '',
+    bucket: '',
+    access_token: '',
+    root_path: '/',
+  },
+  predefines: {},//relpace special string in your bundle,so you can use the same bundle in different enviroments without building multiple times.
+  endpoints: [],
+  alias: []
+}
+
+
