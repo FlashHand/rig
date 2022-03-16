@@ -6,7 +6,8 @@
   target: {
     id: 'alicloud',
     type: 'alicloud',
-    bucket: '',
+    bucket: 'cdn-rys-com',
+    region: 'oss-cn-beijing',
     access_key: '${ak}',
     access_secret: '${as}',
     root_path: '/',

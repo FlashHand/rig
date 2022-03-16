@@ -25,6 +25,7 @@ interface DeployTarget {
 	id: string;
 	type: CloudType;
 	bucket: string;
+	region: string;
 	access_key: string;
 	access_secret: string;
 	root_path: '/';

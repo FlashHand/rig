@@ -31,7 +31,7 @@ export default async (cmd: any) => {
       ? cicdCmd.cicd.target[0]
       : cicdCmd.cicd.target;
 
-    const aliOss = new AliOSS(target.access_key, target.access_secret);
+    const aliOss = new AliOSS(target.access_key, target.access_secret, target.region, target.bucket);
     const cdn = new CDN(target.access_key, target.access_secret);
     for (let i = 0; i < cicdCmd.endpoints.length; i++) {
       const distPath = path.join(
@@ -52,7 +52,6 @@ export default async (cmd: any) => {
     //     [""],
     //     ["break"]
     //   );
-
       filesList = [];
     }
   } catch (e) {
