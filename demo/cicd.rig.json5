@@ -13,20 +13,22 @@
   },
   endpoints: {
     'ykp/test/oem1': {
-      build: 'esbuild test.js --platform=node --bundle --minify --outfile=dist/test/oem1/demo/index.js',
+      // build: 'esbuild test.js --platform=node --bundle --minify --outfile=dist/test/oem1/demo/index.js',
+      build: 'yarn build:oem1',
       defines: {
           NGINX_REPLACE_B: 'http://',
           NGINX_REPLACE_A: '替换了',
       },
-      domain: '',
+      domain: 'ci-test.rys.com',
     },
     'ykp/test/oem2': {
-      build: 'yarn build:test:oem2',
+      // build: 'yarn build:test:oem2',
+      build: 'yarn build:oem2',
       defines: {
         NGINX_REPLACE_B: 'http://',
         NGINX_REPLACE_A: '替换了',
       },
-      domain: ''
+      domain: 'ci-test.rys.com'
     },
   },
   groups: [
