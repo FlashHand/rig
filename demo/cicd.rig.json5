@@ -13,11 +13,10 @@
   },
   endpoints: {
     'ykp/test/oem1': {
-      // build: 'esbuild test.js --platform=node --bundle --minify --outfile=dist/test/oem1/demo/index.js',
       build: 'yarn build:oem1',
       defines: {
-          NGINX_REPLACE_B: 'http://',
-          NGINX_REPLACE_A: '替换了',
+        NGINX_REPLACE_B: 'http://',
+        NGINX_REPLACE_A: '替换了',
       },
       domain: 'ci-test.rys.com',
     },

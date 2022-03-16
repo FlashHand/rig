@@ -21,3 +21,9 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+rigs/*
+rigs_dev/*
+.env.rig
+!rigs/.gitkeep
+!rigs_dev/.gitkeep
