@@ -1,6 +1,8 @@
 import Endpoint from '@/classes/cicd/Endpoint';
-import CICD from '@/classes/cicd/CICD';
+import CICD, {CICDConfig} from '@/classes/cicd/CICD';
 import qs, {ParsedUrlQuery} from 'querystring';
+import path from 'path'
+import fsHelper from '@/utils/fsHelper';
 
 /**
  * @class CICDCmd
@@ -18,7 +20,7 @@ class CICDCmd {
 	 *
 	 * @type {string[]}
 	 */
-	dirSchemaStrArr: string[];
+	dirInSchemaStrArr: string[];
 	dirStrArr: string[];
 	endpoints: Endpoint[] = [];
 	cicd: CICD;
@@ -26,28 +28,37 @@ class CICDCmd {
 	constructor(cmd: any, cicd: CICD) {
 		const cmdArgs = cmd.args;
 		this.dir = cmdArgs[0];
-		const paramKeys = this.dir.match(/(?<=\{)[a-zA-Z]+(?=\})/g) || [];
-		let params: ParsedUrlQuery = qs.parse(cmd.params);
-		for (let key of paramKeys) {
-			const val = params[key];
+		//获取需要被设置的schema变量
+		const schemaKeys = this.dir.match(/(?<=\{)[a-zA-Z]+(?=\})/g) || [];
+		//解析schema变量
+		let schema: ParsedUrlQuery = qs.parse(cmd.schema);
+		for (let key of schemaKeys) {
+			const val = schema[key];
 			if (val) {
 				this.dir = this.dir.replace(`{${key}}`, val as string);
 			} else {
 				throw new Error(`${key} is not set`);
 			}
 		}
+		//whole user's target dir
 		this.dirStrArr = this.dir.split('/').filter((dirStr, index) => dirStr.length > 0);
-		this.dirSchemaStrArr = this.dir.split('/').filter((dirStr, index) => dirStr.length > 0 && index < cicd.schema.length);
-		if (this.dirStrArr.length > this.dirSchemaStrArr.length) {
-
-		}
+		//dir within the schema
+		this.dirInSchemaStrArr = this.dir.split('/').filter((dirStr, index) => dirStr.length > 0 && index < cicd.schema.length);
 		this.cicd = cicd;
 		this.createTargetEndpoints();
 	}
 
 	private createTargetEndpoints() {
 		const allEndpints = this.cicd.endpoints;
-		this.endpoints = allEndpints.filter(endpoint => endpoint.matchCmd(this.dirSchemaStrArr, this.cicd.groups));
+		this.endpoints = allEndpints.filter(endpoint => endpoint.matchCmd(this.dirInSchemaStrArr, this.cicd.groups));
+		if (this.dirStrArr.length > this.dirInSchemaStrArr.length) {
+			const sufDir = this.dirStrArr.slice(this.dirInSchemaStrArr.length, this.dirStrArr.length).join('/');
+			this.endpoints = this.endpoints.map(ep => {
+				ep.deployDir = path.join(ep.deployDir, sufDir);
+				return ep;
+			});
+		}
+
 	}
 }
 

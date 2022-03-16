@@ -2,7 +2,6 @@
   "name": "demo",
   "version": "1.0.0",
   "dependencies": {
-    "r-foundation": "git+ssh://git@git.rys.cn:f2e-common/r-foundation.git#1.0.1"
   },
   "private": true,
   "workspaces": [

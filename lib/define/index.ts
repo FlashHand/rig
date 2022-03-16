@@ -3,7 +3,6 @@ import CICD, {Define} from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
 import fs from 'fs';
 import path from 'path';
-import {cat} from 'shelljs';
 const replaceDefine = (target:string,define?:Define)=>{
 	const dirs = fs.readdirSync(target);
 	for (let dir of dirs){
@@ -27,21 +26,22 @@ const replaceDefine = (target:string,define?:Define)=>{
 	}
 }
 export default async (cmd: any) => {
-	let phase = 'start define';
-	try{
-		const cicdConfigJson = fsHelper.readCICDConfig();
-		const cicdConfig = new CICD(cicdConfigJson);
-		const args: string[] = cmd.args;
-		const define = cicdConfig.defines[args[1]];
-		//construct cmd object
-		const cicdCmd = new CICDCmd(cmd, cicdConfig);
-		//define by cicdCmd and cicdConfig
-		phase = 'start replacement';
-		for (let i = 0; i < cicdCmd.endpoints.length; i++) {
-			const ep = cicdCmd.endpoints[i];
-			replaceDefine(path.join(cicdConfig.source.root_path, ep.dir),define);
-		}
-	}catch (e) {
-		throw new Error(`${phase}:${e.message}`)
-	}
+	// let phase = 'start define';
+	// try{
+	// 	const cicdConfigJson = fsHelper.readCICDConfig();
+	// 	const cicdConfig = new CICD(cicdConfigJson);
+	// 	const args: string[] = cmd.args;
+	// 	const define = cicdConfig.defines[args[1]];
+	// 	//construct cmd object
+	// 	const cicdCmd = new CICDCmd(cmd, cicdConfig);
+	// 	console.log(cicdCmd);
+	// 	//define by cicdCmd and cicdConfig
+	// 	phase = 'start replacement';
+	// 	for (let i = 0; i < cicdCmd.endpoints.length; i++) {
+	// 		const ep = cicdCmd.endpoints[i];
+	// 		replaceDefine(path.join(cicdConfig.source.root_path, ep.dir),define);
+	// 	}
+	// }catch (e) {
+	// 	throw new Error(`${phase}:${e.message}`)
+	// }
 }

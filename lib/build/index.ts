@@ -4,12 +4,12 @@ import CICDCmd from '@/classes/cicd/CICDCmd';
 import shell from 'shelljs';
 
 export default async (cmd: any) => {
-	const cicdConfigJson = fsHelper.readCICDConfig();
-	const cicdConfig = new CICD(cicdConfigJson);
-	const args: string[] = cmd.args;
+	//create cicd object
+	const cicd = CICD.createByDefault(cmd);
 	//construct cmd object
-	const cicdCmd = new CICDCmd(cmd, cicdConfig);
+	const cicdCmd = new CICDCmd(cmd, cicd);
 	//build by cicdCmd and cicdConfig
+	console.log(cicdCmd.endpoints);
 	for (let i = 0; i < cicdCmd.endpoints.length; i++) {
 		const ep = cicdCmd.endpoints[i];
 		shell.exec(ep.build);
