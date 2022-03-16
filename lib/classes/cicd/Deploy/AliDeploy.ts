@@ -2,12 +2,12 @@ import aliOSS from "ali-oss";
 import fs from "fs";
 class AliOSS {
   ossClient: aliOSS;
-  constructor(accessKeyId: string, accessKeySecret: string) {
+  constructor(accessKeyId: string, accessKeySecret: string, region: string, bucket: string) {
     this.ossClient = new aliOSS({
-      region: "oss-cn-hangzhou",
+      region,
       accessKeyId: accessKeyId,
       accessKeySecret: accessKeySecret,
-      bucket: "rys-deploy",
+      bucket,
       timeout: 600000,
     });
   }
@@ -21,10 +21,15 @@ class AliOSS {
     );
   }
 
-  public async putStreamFiles(filesList: string[], ossBasePath: string, dir: string) {
+  public async putStreamFiles(
+    filesList: string[],
+    ossBasePath: string,
+    dir: string
+  ) {
     for (let i = 0; i < filesList.length; i++) {
       const filePath = filesList[i].split("dist\\")[1];
-      const ossPath = ossBasePath + filePath.replace(/\\/g, "/").replace(dir, '');
+      const ossPath =
+        ossBasePath + filePath.replace(/\\/g, "/").replace(dir, "");
       const fileResult = await this.ossClient.putStream(
         ossPath,
         fs.createReadStream(filesList[i])
