@@ -1,21 +1,43 @@
 {
-  "name": "demo",
-  "version": "1.0.0",
-  "dependencies": {
-  },
+  "name": "demo2",
+  "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "rigs/*",
-    "rigs_dev/*"
-  ],
   "scripts": {
-    "preinstall": "rig preinstall",
-    "postinstall": "rig postinstall",
-    "build:test:oem1": "esbuild test.js --platform=node --bundle --minify --outfile=dist/test/oem1/demo/index.js",
-    "build:test:oem2": "esbuild test.js --platform=node --bundle --minify --outfile=dist/test/oem2/demo/index.js"
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
   },
-  "info": "test",
+  "dependencies": {
+    "core-js": "^3.8.3",
+    "vue": "^2.6.14"
+  },
   "devDependencies": {
-    "json5": "2.1.3"
-  }
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.0.3",
+    "vue-template-compiler": "^2.6.14"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
 }
