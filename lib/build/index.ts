@@ -8,10 +8,13 @@ export default async (cmd: any) => {
 	const cicd = CICD.createByDefault(cmd);
 	//construct cmd object
 	const cicdCmd = new CICDCmd(cmd, cicd);
+	console.log(cicd)
 	//build by cicdCmd and cicdConfig
 	console.log(cicdCmd.endpoints);
 	for (let i = 0; i < cicdCmd.endpoints.length; i++) {
 		const ep = cicdCmd.endpoints[i];
-		shell.exec(ep.build);
+		const cmdStr = `cross-env PUBLIC_PATH=${ep.deployDir} ${ep.build}`;
+		console.log(cmdStr);
+		shell.exec(cmdStr);
 	}
 }

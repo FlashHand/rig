@@ -35,7 +35,6 @@ export default async (cmd: any) => {
 		const cicd = CICD.createByDefault(cmd);
 		//construct cmd object
 		const cicdCmd = new CICDCmd(cmd, cicd);
-
 	}catch (e) {
 		throw e;
 	}

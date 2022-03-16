@@ -1,7 +1,8 @@
 import {Command} from 'commander';
 
 const program = new Command();
-console.log('Hello rigjs');
+console.log('Hello');
+
 import check from '../check';
 
 program.command('check').action(check.load);
