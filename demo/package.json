@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
+    "build:oem1": "vue-cli-service build --mode oem1",
+    "build:oem2": "vue-cli-service build --mode oem2",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "preinstall": "rig preinstall",
