@@ -1,50 +1,9 @@
 {
-  tree_schema: 'ykp/{env}/{oem}',
+  tree_schema: '{app}/{env}/{oem}',
   source: {
     root_path: 'dist',
   },
-  target: {
-    id: 'alicloud',
-    type: 'alicloud',
-    bucket: '',
-    access_key: '${ak}',
-    access_secret: '${as}',
-    root_path: '/',
-  },
-  endpoints: {
-    'ykp/test/oem1': {
-      build: 'esbuild test.js --platform=node --bundle --minify --outfile=dist/test/oem1/demo/index.js',
-      defines: {
-          NGINX_REPLACE_B: 'http://',
-          NGINX_REPLACE_A: '替换了',
-      },
-      domain: '',
-    },
-    'ykp/test/oem2': {
-      build: 'yarn build:test:oem2',
-      defines: {
-        NGINX_REPLACE_B: 'http://',
-        NGINX_REPLACE_A: '替换了',
-      },
-      domain: ''
-    },
-  },
-  groups: [
-    {
-      name: '%group1',
-      level: 'oem',
-      includes: [
-        'rys',
-        'zhs',
-      ],
-    },
-    {
-      name: '%group1',
-      level: 'oem',
-      includes: [
-        'zhs',
-        'cy',
-      ],
-    }
-  ],
+  target: {},
+  endpoints: {},
+  groups: [],
 }
