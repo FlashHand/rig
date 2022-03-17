@@ -15,7 +15,7 @@ class AliOSS {
 
   private async progress(p: number, filePath: string, ossPath: string) {
     // 上传进度。
-    process.stdout.clearLine(-1);
+    process.stdout.clearLine(1);
     process.stdout.cursorTo(0);
     process.stdout.write(
       `progress: ${p.toFixed(2)}%, Upload '${filePath}' To OSS_PATH:${ossPath}`
@@ -35,10 +35,13 @@ class AliOSS {
         ossPath,
         fs.createReadStream(filesList[i])
       );
-      if (fileResult.res.status === 200) {
-        const p = ((i + 1) * 100) / filesList.length;
-        this.progress(p, filesList[i], ossPath);
+      if (fileResult.res.status !== 200) {
+        throw new Error('Upload OSS Error')
       }
+      // if (fileResult.res.status === 200) {
+      //   const p = ((i + 1) * 100) / filesList.length;
+      //   this.progress(p, filesList[i], ossPath);
+      // }
     }
     console.log("\n");
   }

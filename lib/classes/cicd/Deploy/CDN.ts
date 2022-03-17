@@ -44,7 +44,16 @@ class CDN {
     const hmacSha1 = crypto.createHmac('sha1', `${this.AccessKeySecret}&`);
     hmacSha1.update(strSign);
     const signature = hmacSha1.digest('base64');
-    paramConfig += `&Signature=${signature}`;
+    config = Object.assign(config, {
+      Signature: signature,
+    });
+    paramConfig = qs.stringify(config, {
+      sort: (a, b) => {
+        return a < b ? -1 : 1;
+      },
+      charset: 'utf-8',
+      format: 'RFC3986',
+    });
 
     const url = `http://cdn.aliyuncs.com?${paramConfig}`;
 
@@ -97,8 +106,10 @@ class CDN {
       });
       return data;
     } catch (e) {
-      console.error(`Error: ${e.response ? JSON.stringify(e.response.data.Message) : e}`);
-      throw new Error(e);
+      console.error(
+        `Error: ${e.response ? JSON.stringify(e.response.data.Message) : e}`
+      );
+      throw new Error(e.response.data.Message);
     }
   }
 
@@ -107,12 +118,21 @@ class CDN {
    * @param {刷新URL, 格式为加速域名或刷新的文件或目录。多个URL之间使用换行符(\n)或(\r\n)分隔} objectPath
    * @param {刷新的类型 File: 文件; Directory: 目录} objectType
    */
-  public async refreshCache(objectPath: string, objectType: string) {
-    const data = await this.getCdnData('RefreshObjectCaches', {
-      ObjectPath: objectPath,
-      ObjectType: objectType ? objectType : undefined,
-    });
-    return data;
+  public async refreshCache(objectPath: string, objectType?: string) {
+    try {
+      let param = {
+        ObjectPath: objectPath,
+      };
+      if (objectType) {
+        param = Object.assign(param, { ObjectType: objectType });
+      }
+      const data = await this.getCdnData('RefreshObjectCaches', param);
+      return data;
+    } catch (e) {
+      console.error('Error:');
+      console.error(e.response.data.Message);
+      throw new Error(e.response.data.Message);
+    }
   }
 
   /**
@@ -125,6 +145,44 @@ class CDN {
       ObjectPath: objectPath,
     });
     return data;
+  }
+
+  /**
+   * 通过任务编号查询刷新预热任务信息
+   * @param {支持同时传入多个任务ID，多个任务ID之间用英文逗号（,）分隔，最多支持同时传入10个任务ID} taskIds
+   * @returns
+   */
+  async describeRefreshTaskById(taskIds: string) {
+    try {
+      const data = await this.getCdnData('DescribeRefreshTaskById', {
+        TaskId: taskIds,
+      });
+      return data;
+    } catch (e) {
+      console.error('Error:');
+      console.error(e.response.data.Message);
+      throw new Error(e.response.data.Message);
+    }
+  }
+
+  /**
+   * 刷新CDN节点
+   * @param {加速域名} domainName
+   * @param {功能配置ID} configId
+   * @returns
+   */
+  async describeCdnDomainConfigs(domainName: string, configId?: string) {
+    try {
+      const data = await this.getCdnData('DescribeCdnDomainConfigs', {
+        DomainName: domainName,
+        ConfigId: configId,
+      });
+      return data;
+    } catch (e) {
+      console.error('Error:');
+      console.error(e.response.data.Message);
+      throw new Error(e.response.data.Message);
+    }
   }
 }
 
