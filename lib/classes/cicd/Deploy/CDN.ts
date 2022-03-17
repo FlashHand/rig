@@ -1,17 +1,18 @@
-import moment from "dayjs";
-import qs from "qs";
-import crypto from "crypto";
-import axios from "axios";
-import * as uuid from "uuid";
+import moment from 'dayjs';
+import qs from 'qs';
+import crypto from 'crypto';
+import axios from 'axios';
+import * as uuid from 'uuid';
+import { DeployTarget } from '../CICD';
 
-type TFlag = "break" | "enhance_break" | null;
+type TFlag = 'break' | 'enhance_break' | null;
 
 class CDN {
   AccessKeySecret: string;
   AccessKeyId: string;
-  constructor(AccessKeyId: string, AccessKeySecret: string) {
-    this.AccessKeySecret = AccessKeySecret;
-    this.AccessKeyId = AccessKeyId;
+  constructor(target: DeployTarget) {
+    this.AccessKeyId = target.access_key;
+    this.AccessKeySecret = target.access_secret;
   }
   /**
    * 访问CDN通用接口
@@ -22,31 +23,30 @@ class CDN {
   private async getCdnData(actionName: string, paramObj: Object) {
     let config = {
       Action: actionName,
-      Format: "JSON",
-      Version: "2018-05-10",
+      Format: 'JSON',
+      Version: '2018-05-10',
       AccessKeyId: this.AccessKeyId,
-      SignatureMethod: "HMAC-SHA1",
+      SignatureMethod: 'HMAC-SHA1',
       Timestamp: moment().toDate().toISOString(),
-      SignatureVersion: "1.0",
+      SignatureVersion: '1.0',
       SignatureNonce: uuid.v1(),
     };
     config = Object.assign(config, paramObj);
     let paramConfig = qs.stringify(config, {
-      sort: (a: number, b: number) => {
+      sort: (a: any, b: any) => {
         return a < b ? -1 : 1;
       },
-      charset: "utf-8",
+      charset: 'utf-8',
     });
 
     const strSign = `GET&%2F&${encodeURIComponent(paramConfig)}`;
-    console.log(`strSign: ${strSign}`);
-    const hmacSha1 = crypto.createHmac("sha1", this.AccessKeySecret);
+    // console.log(`strSign: ${strSign}\n`);
+    const hmacSha1 = crypto.createHmac('sha1', `${this.AccessKeySecret}&`);
     hmacSha1.update(strSign);
-    const signature = hmacSha1.digest("base64");
+    const signature = hmacSha1.digest('base64');
     paramConfig += `&Signature=${signature}`;
 
     const url = `http://cdn.aliyuncs.com?${paramConfig}`;
-    console.log(url);
 
     const res = await axios.create().get(url);
     return res.data;
@@ -66,35 +66,40 @@ class CDN {
     targetUrls: string[],
     flags: TFlag[]
   ) {
-    if (sourceUrls.length !== targetUrls.length) {
-      throw new Error(`sourceUrls's length not equal targetUrls's length`);
-    }
-    const Functions: Object[] = [];
-    sourceUrls.forEach((item, index) => {
-      Functions.push({
-        functionArgs: [
-          {
-            argName: "source_url",
-            argValue: item,
-          },
-          {
-            argName: "target_url",
-            argValue: targetUrls[index],
-          },
-          {
-            argName: "flag",
-            argValue: flags[index],
-          },
-        ],
-        functionName: "back_to_origin_url_rewrite",
+    try {
+      if (sourceUrls.length !== targetUrls.length) {
+        throw new Error(`sourceUrls's length not equal targetUrls's length`);
+      }
+      const Functions: Object[] = [];
+      sourceUrls.forEach((item, index) => {
+        Functions.push({
+          functionArgs: [
+            {
+              argName: 'source_url',
+              argValue: item,
+            },
+            {
+              argName: 'target_url',
+              argValue: targetUrls[index],
+            },
+            {
+              argName: 'flag',
+              argValue: flags[index],
+            },
+          ],
+          functionName: 'back_to_origin_url_rewrite',
+        });
       });
-    });
 
-    const data = await this.getCdnData("BatchSetCdnDomainConfig", {
-      DomainNames: domainName,
-      Functions: JSON.stringify(Functions),
-    });
-    return data;
+      const data = await this.getCdnData('BatchSetCdnDomainConfig', {
+        DomainNames: domainName,
+        Functions: JSON.stringify(Functions),
+      });
+      return data;
+    } catch (e) {
+      console.error(`Error: ${e.response ? JSON.stringify(e.response.data.Message) : e}`);
+      throw new Error(e);
+    }
   }
 
   /**
@@ -103,7 +108,7 @@ class CDN {
    * @param {刷新的类型 File: 文件; Directory: 目录} objectType
    */
   public async refreshCache(objectPath: string, objectType: string) {
-    const data = await this.getCdnData("RefreshObjectCaches", {
+    const data = await this.getCdnData('RefreshObjectCaches', {
       ObjectPath: objectPath,
       ObjectType: objectType ? objectType : undefined,
     });
@@ -116,7 +121,7 @@ class CDN {
    * @returns
    */
   async pushCache(objectPath: string) {
-    const data = await this.getCdnData("PushObjectCache", {
+    const data = await this.getCdnData('PushObjectCache', {
       ObjectPath: objectPath,
     });
     return data;

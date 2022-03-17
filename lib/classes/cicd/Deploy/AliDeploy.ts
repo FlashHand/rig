@@ -1,13 +1,14 @@
 import aliOSS from "ali-oss";
 import fs from "fs";
+import { DeployTarget } from "../CICD";
 class AliOSS {
   ossClient: aliOSS;
-  constructor(accessKeyId: string, accessKeySecret: string, region: string, bucket: string) {
+  constructor(target: DeployTarget) {
     this.ossClient = new aliOSS({
-      region,
-      accessKeyId: accessKeyId,
-      accessKeySecret: accessKeySecret,
-      bucket,
+      region: target.region,
+      accessKeyId: target.access_key,
+      accessKeySecret: target.access_secret,
+      bucket: target.bucket,
       timeout: 600000,
     });
   }
