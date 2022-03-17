@@ -29,6 +29,10 @@ export interface DeployTarget {
 	access_key: string;
 	access_secret: string;
 	root_path: '/';
+	uri_rewrite: {
+		original: string;
+		final?: string;
+	};
 }
 
 /**

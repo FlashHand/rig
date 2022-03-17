@@ -11,6 +11,9 @@
     access_key: '${ak}',
     access_secret: '${as}',
     root_path: '/',
+    uri_rewrite: {
+      original: 'view-fp',
+    }
   },
   endpoints: {
     'ykp/test/oem1': {
