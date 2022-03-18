@@ -42,6 +42,14 @@ program.command('deploy')
 	.option('-s, --schema <schema>', 'specify params in tree_schema')
 	.option('-p , --params <params>', 'replace words in cicd.rig.json5, only words in ${} are replacable')
 	.action(deploy);
+
+import publish from '../publish';
+
+program.command('publish')
+	.option('-s, --schema <schema>', 'specify params in tree_schema')
+	.option('-p , --params <params>', 'replace words in cicd.rig.json5, only words in ${} are replacable')
+	.action(deploy);
+
 import env from '../env';
 
 program.option('-e, --env <env>', 'specify env').action(env.load);
