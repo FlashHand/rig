@@ -17,7 +17,7 @@
   },
   endpoints: {
     'ykp/test/oem1': {
-      build: 'yarn build:oem1',
+      build: 'cross-env PUBLIC_PATH=$public_path npx vue-cli-service build --mode oem1',
       defines: {
         NGINX_REPLACE_B: 'http://',
         NGINX_REPLACE_A: '替换了',
@@ -26,7 +26,7 @@
     },
     'ykp/test/oem2': {
       // build: 'yarn build:test:oem2',
-      build: 'yarn build:oem2',
+      build: 'cross-env PUBLIC_PATH=$public_path npx vue-cli-service build --mode oem2',
       defines: {
         NGINX_REPLACE_B: 'http://',
         NGINX_REPLACE_A: '替换了',
