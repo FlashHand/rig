@@ -2,6 +2,7 @@
   <div id="app">
     <img alt="Vue logo" src="./assets/logo.png">
     <HelloWorld msg="Welcome to Your Vue.js App"/>
+		<span>test_replace:{{ test_replace}}</span>
   </div>
 </template>
 
@@ -10,6 +11,11 @@ import HelloWorld from './components/HelloWorld.vue'
 
 export default {
   name: 'App',
+	data() {
+		return {
+			test_replace: 'NGINX_REPLACE_A'
+		}
+	},
   components: {
     HelloWorld
   }

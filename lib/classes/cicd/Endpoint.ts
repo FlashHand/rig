@@ -1,4 +1,4 @@
-import {CICDConfig, DefineDict, DirGroup} from './CICD';
+import {CICDConfig, Define, DefineDict, DeployTarget, DirGroup} from './CICD';
 import {mkdirSync} from 'fs';
 import DirLevel from '@/classes/cicd/DirLevel';
 
@@ -6,7 +6,7 @@ interface EndpointInfo {
 	build: string;
 	target: string;
 	domain: string;
-	define: DefineDict;
+	defines: Define;
 }
 
 export interface EndpointDict {
@@ -21,18 +21,20 @@ class Endpoint {
 	build: string;
 	domain: string;
 	deployDir: string;
-	define: DefineDict;
+	publicPath: string;
+	defines: Define;
 
 
 	constructor(dir: string, info: EndpointInfo, schema: DirLevel[]) {
 		this.dir = dir;
 		this.deployDir = dir;
+		this.publicPath = dir;
 		this.dirStrArr = dir.split('/').filter(d => d.length > 0);
 		this.dirArr = DirLevel.createDirArr(dir, schema);
 		this.target = info.target;
 		this.build = info.build;
 		this.domain = info.domain;
-		this.define = info.define;
+		this.defines = info.defines;
 	}
 
 	static createEndpointArr(cicdConfig: CICDConfig, schema: DirLevel[]) {
