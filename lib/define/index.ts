@@ -13,7 +13,7 @@ const replaceDefine = (target:string,define?:Define)=>{
 			if (define){
 				const namePieces = dir.split('.');
 				const fileType = namePieces[namePieces.length - 1];
-				if (['js','json','json5','yml','ts'].indexOf(fileType)>=0){
+				if (['js','ts'].indexOf(fileType)>=0){
 					let file = fs.readFileSync(path.join(target, dir)).toString();
 					const replaceArr = Object.keys(define);
 					for (let replace of replaceArr){
