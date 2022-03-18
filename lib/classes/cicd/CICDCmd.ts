@@ -55,6 +55,7 @@ class CICDCmd {
 			const sufDir = this.dirStrArr.slice(this.dirInSchemaStrArr.length, this.dirStrArr.length).join('/');
 			this.endpoints = this.endpoints.map(ep => {
 				ep.deployDir = path.join(ep.deployDir, sufDir);
+				ep.publicPath = ep.deployDir;
 				return ep;
 			});
 		}

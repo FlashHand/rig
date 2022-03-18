@@ -37,7 +37,8 @@ export default async (cmd: any) => {
 
 	for (let i = 0; i < cicdCmd.endpoints.length; i++) {
 		const ep = cicdCmd.endpoints[i];
-		ep.build = ep.build.replace('${public_path}', ep.publicPath);
+		ep.build = ep.build.replace('$public_path', ep.publicPath);
+		console.log('exec build:', ep.build);
 		shell.exec(ep.build);
 		replaceDefine(path.join(cicd.source.root_path, ep.dir), ep.defines);
 	}

@@ -20,8 +20,9 @@ class Endpoint {
 	target: string;
 	build: string;
 	domain: string;
-	deployDir: string;
-	publicPath: string;
+	deployDir: string = '';
+
+	publicPath: string = '';
 	defines: Define;
 
 
@@ -36,6 +37,7 @@ class Endpoint {
 		this.domain = info.domain;
 		this.defines = info.defines;
 	}
+
 
 	static createEndpointArr(cicdConfig: CICDConfig, schema: DirLevel[]) {
 		const endpointDict = cicdConfig.endpoints;
