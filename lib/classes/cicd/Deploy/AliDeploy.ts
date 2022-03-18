@@ -1,6 +1,6 @@
-import aliOSS from "ali-oss";
-import fs from "fs";
-import { DeployTarget } from "../CICD";
+import aliOSS from 'ali-oss';
+import fs from 'fs';
+import { DeployTarget } from '../CICD';
 class AliOSS {
   ossClient: aliOSS;
   constructor(target: DeployTarget) {
@@ -28,22 +28,31 @@ class AliOSS {
     dir: string
   ) {
     for (let i = 0; i < filesList.length; i++) {
-      const filePath = filesList[i].split("dist\\")[1];
+      const filePath = filesList[i].split('dist\\')[1];
       const ossPath =
-        ossBasePath + filePath.replace(/\\/g, "/").replace(dir, "");
+        ossBasePath + filePath.replace(/\\/g, '/').replace(dir, '');
+
+      //@ts-ignore
+      let options: aliOSS.PutStreamOptions = {
+        contentLength: fs.statSync(filesList[i]).size,
+      };
+      if (filesList[i].includes('index.html')) {
+        options = Object.assign({ headers: { 'Cache-Control': 'max-age=0' } });
+      }
       const fileResult = await this.ossClient.putStream(
         ossPath,
-        fs.createReadStream(filesList[i])
+        fs.createReadStream(filesList[i]),
+        options
       );
       if (fileResult.res.status !== 200) {
-        throw new Error('Upload OSS Error')
+        throw new Error('Upload OSS Error');
       }
-      // if (fileResult.res.status === 200) {
-      //   const p = ((i + 1) * 100) / filesList.length;
-      //   this.progress(p, filesList[i], ossPath);
-      // }
+      if (fileResult.res.status === 200) {
+        const p = ((i + 1) * 100) / filesList.length;
+        this.progress(p, filesList[i], ossPath);
+      }
     }
-    console.log("\n");
+    console.log('\n');
   }
 }
 
