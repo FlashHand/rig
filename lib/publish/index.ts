@@ -80,5 +80,5 @@ export default async (cmd: any) => {
 
   //刷新cdn
   await refreshCache(urls, cdn);
-  console.log('Start Publish-----');
+  console.log('Publish Done-----');
 };
