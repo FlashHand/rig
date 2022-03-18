@@ -48,7 +48,7 @@ import publish from '../publish';
 program.command('publish')
 	.option('-s, --schema <schema>', 'specify params in tree_schema')
 	.option('-p , --params <params>', 'replace words in cicd.rig.json5, only words in ${} are replacable')
-	.action(deploy);
+	.action(publish);
 
 import env from '../env';
 
