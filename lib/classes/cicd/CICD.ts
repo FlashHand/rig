@@ -18,7 +18,7 @@ interface DeploySource {
 /**
  * Deploy target
  */
-interface DeployTarget {
+export interface DeployTarget {
 	id: string;
 	type: CloudType;
 	bucket: string;
