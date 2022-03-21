@@ -12,7 +12,7 @@ const setRWriteUri = async (
     domain,
     [original],
     [deployDir],
-    ['enhance_break']
+    [null]
   );
 
   const configId = rwriteResult?.DomainConfigList.DomainConfigModel[0].ConfigId;
