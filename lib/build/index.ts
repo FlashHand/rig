@@ -38,6 +38,12 @@ export default async (cmd: any) => {
 	for (let i = 0; i < cicdCmd.endpoints.length; i++) {
 		const ep = cicdCmd.endpoints[i];
 		ep.build = ep.build.replace('$public_path', ep.publicPath);
+		try{
+			//替换define中的$public_path
+			ep.defines = JSON.parse(JSON.stringify(ep.defines).replace('$public_path', ep.publicPath));
+		}catch (e) {
+			console.log(e.message);
+		}
 		console.log('exec build:', ep.build);
 		shell.exec(ep.build);
 		replaceDefine(path.join(cicd.source.root_path, ep.dir), ep.defines);
