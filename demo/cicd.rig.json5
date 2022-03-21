@@ -21,6 +21,7 @@
       defines: {
         NGINX_REPLACE_B: 'http://',
         NGINX_REPLACE_A: '替换了',
+        RIG_REPLACE_PUBLIC: '$public_path',
       },
       domain: 'cdn.rys.com',
     },
