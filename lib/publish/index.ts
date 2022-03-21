@@ -68,7 +68,7 @@ export default async (cmd: any) => {
     setRWriteUriPromises.push(
       setRWriteUri(
         endpoint.domain,
-        `/${target.uri_rewrite.original}`,
+        `${target.uri_rewrite.original}`,
         `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
         cdn
       )
