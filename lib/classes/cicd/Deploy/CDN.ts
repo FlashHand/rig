@@ -7,6 +7,14 @@ import { DeployTarget } from '../CICD';
 
 type TFlag = 'break' | 'enhance_break' | null;
 
+enum CDNInterfaceEnum {
+  BatchSetCdnDomainConfig = 'BatchSetCdnDomainConfig', //批量修改域名信息
+  RefreshObjectCaches = 'RefreshObjectCaches', //刷新节点上的文件内容
+  PushObjectCache = 'PushObjectCache', //预热CDN节点
+  DescribeRefreshTaskById = 'DescribeRefreshTaskById', //通过任务编号查询刷新预热任务信息
+  DescribeCdnDomainConfigs = 'DescribeCdnDomainConfigs', // 获取加速域名的配置信息
+}
+
 class CDN {
   AccessKeySecret: string;
   AccessKeyId: string;
@@ -100,7 +108,7 @@ class CDN {
         });
       });
 
-      const data = await this.getCdnData('BatchSetCdnDomainConfig', {
+      const data = await this.getCdnData(CDNInterfaceEnum.BatchSetCdnDomainConfig, {
         DomainNames: domainName,
         Functions: JSON.stringify(Functions),
       });
@@ -126,7 +134,7 @@ class CDN {
       if (objectType) {
         param = Object.assign(param, { ObjectType: objectType });
       }
-      const data = await this.getCdnData('RefreshObjectCaches', param);
+      const data = await this.getCdnData(CDNInterfaceEnum.RefreshObjectCaches, param);
       return data;
     } catch (e) {
       console.error('Error:');
@@ -141,7 +149,7 @@ class CDN {
    * @returns
    */
   async pushCache(objectPath: string) {
-    const data = await this.getCdnData('PushObjectCache', {
+    const data = await this.getCdnData(CDNInterfaceEnum.PushObjectCache, {
       ObjectPath: objectPath,
     });
     return data;
@@ -154,7 +162,7 @@ class CDN {
    */
   async describeRefreshTaskById(taskIds: string) {
     try {
-      const data = await this.getCdnData('DescribeRefreshTaskById', {
+      const data = await this.getCdnData(CDNInterfaceEnum.DescribeRefreshTaskById, {
         TaskId: taskIds,
       });
       return data;
@@ -166,14 +174,14 @@ class CDN {
   }
 
   /**
-   * 刷新CDN节点
+   * 获取加速域名的配置信息
    * @param {加速域名} domainName
    * @param {功能配置ID} configId
    * @returns
    */
   async describeCdnDomainConfigs(domainName: string, configId?: string) {
     try {
-      const data = await this.getCdnData('DescribeCdnDomainConfigs', {
+      const data = await this.getCdnData(CDNInterfaceEnum.DescribeCdnDomainConfigs, {
         DomainName: domainName,
         ConfigId: configId,
       });

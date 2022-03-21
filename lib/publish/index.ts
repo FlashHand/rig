@@ -1,8 +1,5 @@
-import fsHelper from '../utils/fsHelper';
 import CICD from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
-import shell from 'shelljs';
-import path from 'path';
 import CDN from '@/classes/cicd/Deploy/CDN';
 
 const setRWriteUri = async (
@@ -19,7 +16,6 @@ const setRWriteUri = async (
   );
 
   const configId = rwriteResult?.DomainConfigList.DomainConfigModel[0].ConfigId;
-  console.log('Please Wait For Set RWrite URI...');
   while (true) {
     const configInfo = await cdn.describeCdnDomainConfigs(domain, configId);
     if (configInfo.DomainConfigs.DomainConfig[0].Status === 'success') {
@@ -29,7 +25,6 @@ const setRWriteUri = async (
       throw new Error('cdn rewrite fail');
     }
   }
-  console.log('Set RWrite URI Done');
 };
 
 const refreshCache = async (urls: string[], cdn: CDN) => {
@@ -67,16 +62,24 @@ export default async (cmd: any) => {
 
   const cdn = new CDN(target);
   const urls: string[] = [];
+  const setRWriteUriPromises: Promise<any>[] = [];
   for (const endpoint of cicdCmd.endpoints) {
     // 目前只支持set一个original
-    await setRWriteUri(
-      endpoint.domain,
-      `/${target.uri_rewrite.original}`,
-      `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
-      cdn
+    setRWriteUriPromises.push(
+      setRWriteUri(
+        endpoint.domain,
+        `/${target.uri_rewrite.original}`,
+        `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+        cdn
+      )
     );
     urls.push(`https://${endpoint.domain}/${target.uri_rewrite.original}`);
   }
+
+  // 回源URI改写
+  console.log('Please Wait For Set RWrite URI...');
+  await Promise.all(setRWriteUriPromises);
+  console.log('Set RWrite URI Done');
 
   //刷新cdn
   await refreshCache(urls, cdn);
