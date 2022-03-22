@@ -1,6 +1,7 @@
 import aliOSS from 'ali-oss';
 import fs from 'fs';
 import { DeployTarget } from '../CICD';
+import os from 'os';
 class AliOSS {
   ossClient: aliOSS;
   constructor(target: DeployTarget) {
@@ -25,10 +26,16 @@ class AliOSS {
   public async putStreamFiles(
     filesList: string[],
     ossBasePath: string,
-    dir: string
+    dir: string,
+    rootPath: string
   ) {
     for (let i = 0; i < filesList.length; i++) {
-      const filePath = filesList[i].split('dist\\')[1];
+      let filePath = '';
+      if (os.platform() === 'win32') {
+        filePath = filesList[i].split(`${rootPath}\\`)[1];
+      } else {
+        filePath = filesList[i].split(`${rootPath}/`)[1];
+      }
       const ossPath =
         ossBasePath + filePath.replace(/\\/g, '/').replace(dir, '');
 
