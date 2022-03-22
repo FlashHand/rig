@@ -5,6 +5,8 @@ import shell from 'shelljs';
 import path from 'path';
 import fs from 'fs';
 
+const JSON5 = require('json5');
+
 const replaceDefine = (target: string, defines?: Define) => {
 	const dirs = fs.readdirSync(target);
 	for (let dir of dirs) {
@@ -42,9 +44,11 @@ export default async (cmd: any) => {
 		ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
 		try {
 			//替换define中的$public_path
-			ep.defines = JSON.parse(JSON.stringify(ep.defines).replace(regexPublicPath, ep.publicPath));
+			Object.keys(ep.defines).forEach(key=>{
+				ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
+			})
 		} catch (e) {
-			console.log(e.message);
+			console.log('JSON5 error:', ep.defines,e.message);
 		}
 		console.log('exec build:', ep, ep.build, ep.defines);
 		shell.exec(ep.build);

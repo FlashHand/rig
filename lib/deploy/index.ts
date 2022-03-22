@@ -27,6 +27,7 @@ export default async (cmd: any) => {
     const cicd = CICD.createByDefault(cmd);
     //construct cmd object
     const cicdCmd = new CICDCmd(cmd, cicd);
+    console.log('cicdCmd:', cicdCmd.endpoints);
 
     const target = Array.isArray(cicdCmd.cicd.target)
       ? cicdCmd.cicd.target[0]
