@@ -28,6 +28,7 @@ export interface DeployTarget {
 	root_path: '/';
 	uri_rewrite: {
 		original: string;
+		original_regexp: string;
 		final?: string;
 	};
 }

@@ -68,12 +68,12 @@ export default async (cmd: any) => {
     setRWriteUriPromises.push(
       setRWriteUri(
         endpoint.domain,
-        `${target.uri_rewrite.original}`,
+        `${target.uri_rewrite.original_regexp ? target.uri_rewrite.original_regexp : target.uri_rewrite.original}`,
         `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
         cdn
       )
     );
-    urls.push(`https://${endpoint.domain}/${target.uri_rewrite.original}`);
+    urls.push(`https://${endpoint.domain}${target.uri_rewrite.original}`);
   }
 
   // 回源URI改写
