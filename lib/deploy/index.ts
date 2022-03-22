@@ -44,7 +44,8 @@ export default async (cmd: any) => {
       await aliOss.putStreamFiles(
         filesList,
         cicdCmd.endpoints[i].deployDir.replace(/\\/g, '/'),
-        cicdCmd.endpoints[i].dir
+        cicdCmd.endpoints[i].dir,
+        cicd.source.root_path,
       );
       filesList = [];
     }
