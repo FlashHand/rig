@@ -12,7 +12,7 @@
     access_secret: '${as}',
     root_path: '/',
     uri_rewrite: {
-      original: '/view-fp',
+      original: '/',
     }
   },
   endpoints: {
