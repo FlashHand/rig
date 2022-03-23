@@ -27,26 +27,13 @@ class Endpoint {
   domain: string;
   deployDir: string = '';
 
-  uri_rewrite: {
-    original: string;
-    original_regexp: string;
-    final?: string;
-  };
-  publicPath: string = '';
-  defines: Define;
-
-  constructor(dir: string, info: EndpointInfo, schema: DirLevel[]) {
-    this.dir = dir;
-    this.deployDir = dir;
-    this.publicPath = dir;
-    this.dirStrArr = dir.split('/').filter((d) => d.length > 0);
-    this.dirArr = DirLevel.createDirArr(dir, schema);
-    this.target = info.target;
-    this.build = info.build;
-    this.domain = info.domain;
-    this.defines = info.defines;
-    this.uri_rewrite = info.uri_rewrite;
-  }
+	publicPath: string = '';
+	defines: Define;
+	uri_rewrite: {
+		original: string,
+		original_regexp: string;
+		final?: string;
+	} | undefined ;
 
   static createEndpointArr(cicdConfig: CICDConfig, schema: DirLevel[]) {
     const endpointDict = cicdConfig.endpoints;
@@ -55,6 +42,18 @@ class Endpoint {
       return new Endpoint(dir, info, schema);
     });
   }
+	constructor(dir: string, info: EndpointInfo, schema: DirLevel[]) {
+		this.dir = dir;
+		this.deployDir = dir;
+		this.publicPath = dir;
+		this.dirStrArr = dir.split('/').filter(d => d.length > 0);
+		this.dirArr = DirLevel.createDirArr(dir, schema);
+		this.target = info.target;
+		this.build = info.build;
+		this.domain = info.domain;
+		this.defines = info.defines;
+		this.uri_rewrite = info.uri_rewrite;
+	}
 
   matchCmd(dirSchemaStrArr: string[], groups: DirGroup[]) {
     if (this.dirStrArr.length < dirSchemaStrArr.length) {

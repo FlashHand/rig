@@ -1,4 +1,3 @@
-import fsHelper from '../utils/fsHelper';
 import CICD, {Define} from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
 import shell from 'shelljs';

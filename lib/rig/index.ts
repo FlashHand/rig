@@ -50,8 +50,8 @@ program.command('publish')
 	.option('-p , --params <params>', 'replace words in cicd.rig.json5, only words in ${} are replacable')
 	.action(publish);
 
-import env from '../env';
+import env from '../vue-env';
 
-program.option('-e, --env <env>', 'specify env').action(env.load);
+program.option('--vueenv <vueenv>', 'specify vue env').action(env.load);
 program.version(require('../../package.json').version, '-v,--version');
 program.parse(process.argv);
