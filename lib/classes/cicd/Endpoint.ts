@@ -28,6 +28,10 @@ class Endpoint {
 
 	publicPath: string = '';
 	defines: Define;
+	uri_rewrite: {
+		original: string,
+		original_regexp: string;
+	} | undefined ;
 
 
 	constructor(dir: string, info: EndpointInfo, schema: DirLevel[]) {
@@ -40,6 +44,7 @@ class Endpoint {
 		this.build = info.build;
 		this.domain = info.domain;
 		this.defines = info.defines;
+		this.uri_rewrite = info.uri_rewrite;
 	}
 
 
