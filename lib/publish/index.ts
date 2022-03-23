@@ -64,16 +64,16 @@ export default async (cmd: any) => {
   const urls: string[] = [];
   const setRWriteUriPromises: Promise<any>[] = [];
   for (const endpoint of cicdCmd.endpoints) {
-    // 目前只支持set一个original
+    const uriRewrite = endpoint.uri_rewrite ? endpoint.uri_rewrite : target.uri_rewrite;
     setRWriteUriPromises.push(
       setRWriteUri(
         endpoint.domain,
-        `${target.uri_rewrite.original_regexp ? target.uri_rewrite.original_regexp : target.uri_rewrite.original}`,
+        `${uriRewrite.original_regexp ? uriRewrite.original_regexp : uriRewrite.original}`,
         `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
         cdn
       )
     );
-    urls.push(`https://${endpoint.domain}${target.uri_rewrite.original}`);
+    urls.push(`https://${endpoint.domain}${uriRewrite.original}`);
   }
 
   // 回源URI改写
