@@ -2,13 +2,13 @@ import CICD from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
 import CDN from '@/classes/cicd/Deploy/CDN';
 
-const setRWriteUri = async (
+const setRewriteUri = async (
   domain: string,
   original: string,
   deployDir: string,
   cdn: CDN
 ) => {
-  const rwriteResult = await cdn.setRWriteUri(
+  const rwriteResult = await cdn.setRewriteUri(
     domain,
     [original],
     [deployDir],
@@ -62,11 +62,11 @@ export default async (cmd: any) => {
 
   const cdn = new CDN(target);
   const urls: string[] = [];
-  const setRWriteUriPromises: Promise<any>[] = [];
+  const setRewriteUriPromises: Promise<any>[] = [];
   for (const endpoint of cicdCmd.endpoints) {
     const uriRewrite = endpoint.uri_rewrite ? endpoint.uri_rewrite : target.uri_rewrite;
-    setRWriteUriPromises.push(
-      setRWriteUri(
+    setRewriteUriPromises.push(
+      setRewriteUri(
         endpoint.domain,
         `${uriRewrite.original_regexp ? uriRewrite.original_regexp : uriRewrite.original}`,
         `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
@@ -78,7 +78,7 @@ export default async (cmd: any) => {
 
   // 回源URI改写
   console.log('Please Wait For Set RWrite URI...');
-  await Promise.all(setRWriteUriPromises);
+  await Promise.all(setRewriteUriPromises);
   console.log('Set RWrite URI Done');
 
   //刷新cdn

@@ -77,7 +77,7 @@ class CDN {
    * @param {改写操作执行规则 数组 值为null、break或enhance_break} flags
    * @returns
    */
-  public async setRWriteUri(
+  public async setRewriteUri(
     domainName: string,
     sourceUrls: string[],
     targetUrls: string[],
