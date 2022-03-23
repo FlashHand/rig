@@ -6,7 +6,8 @@ interface EndpointInfo {
   build: string;
   target: string;
   domain: string;
-  defines: Define;
+	domains: string[];
+	defines: Define;
   uri_rewrite: {
     original: string;
     original_regexp: string;
@@ -25,6 +26,7 @@ class Endpoint {
   target: string;
   build: string;
   domain: string;
+	domains: string[];
   deployDir: string = '';
 
 	publicPath: string = '';
@@ -51,6 +53,7 @@ class Endpoint {
 		this.target = info.target;
 		this.build = info.build;
 		this.domain = info.domain;
+		this.domains = info.domains
 		this.defines = info.defines;
 		this.uri_rewrite = info.uri_rewrite;
 	}
