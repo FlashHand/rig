@@ -7,6 +7,10 @@ interface EndpointInfo {
 	target: string;
 	domain: string;
 	defines: Define;
+	uri_rewrite: {
+		original: string,
+		original_regexp: string;
+	}
 }
 
 export interface EndpointDict {
