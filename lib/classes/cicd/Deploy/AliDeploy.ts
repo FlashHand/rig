@@ -53,7 +53,7 @@ class AliOSS {
       };
       if (filesList[i].includes('index.html')) {
         options = Object.assign({
-          headers: { 'Cache-Control': 'max-age=0', Expires: -1 },
+          headers: { 'Cache-Control': 'no-cache', Expires: -1 },
         });
       }
       const fileResult = await this.ossClient.putStream(
