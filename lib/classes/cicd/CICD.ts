@@ -4,6 +4,7 @@ import fs from 'fs';
 
 const JSON5 = require('json5');
 import qs from 'querystring';
+import util from 'util';
 export enum CloudType {
 	alicloud = 'alicloud',
 }
@@ -102,7 +103,10 @@ class CICD {
 			const regex = new RegExp(regStr, 'g');
 			cicdStr = cicdStr.replace(regex, params[key] as string);
 		});
-		return new CICD(JSON5.parse(cicdStr));
+		const cicd =  new CICD(JSON5.parse(cicdStr))
+		console.log(util.inspect(cicd, false, null, true))
+
+		return cicd;
 	}
 
 	matchEndpoints(cmdDirStrArr: string[]) {

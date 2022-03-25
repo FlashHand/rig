@@ -3,10 +3,11 @@ import CICDCmd from '@/classes/cicd/CICDCmd';
 import shell from 'shelljs';
 import path from 'path';
 import fs from 'fs';
-
+import util from 'util';
 const JSON5 = require('json5');
 
 const replaceDefine = (target: string, defines?: Define) => {
+	console.log('start replaceDefine');
 	const dirs = fs.readdirSync(target);
 	for (let dir of dirs) {
 		const stat = fs.statSync(path.join(target, dir));
@@ -33,9 +34,13 @@ export default async (cmd: any) => {
 	const cicd = CICD.createByDefault(cmd);
 	//construct cmd object
 	const cicdCmd = new CICDCmd(cmd, cicd);
-	console.log(cicd)
+
 	//build by cicdCmd and cicdConfig
-	console.log(cicdCmd.endpoints);
+
+	if (cicdCmd.endpoints.length===0){
+		console.error('Must have validate endpoints');
+		process.exit(1);
+	}
 	const regexPublicPath = new RegExp('\\$public_path', 'g');
 	for (let i = 0; i < cicdCmd.endpoints.length; i++) {
 		const ep = cicdCmd.endpoints[i];

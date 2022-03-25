@@ -3,6 +3,7 @@ import CICD, {CICDConfig} from '@/classes/cicd/CICD';
 import qs, {ParsedUrlQuery} from 'querystring';
 import path from 'path'
 import fsHelper from '@/utils/fsHelper';
+import util from 'util';
 
 /**
  * @class CICDCmd
@@ -46,6 +47,7 @@ class CICDCmd {
 		this.dirInSchemaStrArr = this.dir.split('/').filter((dirStr, index) => dirStr.length > 0 && index < cicd.schema.length);
 		this.cicd = cicd;
 		this.createTargetEndpoints();
+		console.log(util.inspect(this.endpoints, false, null, true))
 	}
 
 	private createTargetEndpoints() {
