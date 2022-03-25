@@ -104,7 +104,6 @@ class CICD {
 			cicdStr = cicdStr.replace(regex, params[key] as string);
 		});
 		const cicd =  new CICD(JSON5.parse(cicdStr))
-		console.log(util.inspect(cicd, false, null, true))
 		return cicd;
 	}
 
