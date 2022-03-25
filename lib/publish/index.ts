@@ -2,6 +2,12 @@ import CICD from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
 import CDN from '@/classes/cicd/Deploy/CDN';
 
+const delay = async (ms: number) => {
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};
+
 const setRewriteUri = async (
   domain: string,
   original: string,
@@ -24,6 +30,7 @@ const setRewriteUri = async (
     if (configInfo.DomainConfigs.DomainConfig[0].Status === 'failed') {
       throw new Error('cdn rewrite fail');
     }
+    await delay(3000);
   }
 };
 
@@ -45,6 +52,7 @@ const refreshCache = async (urls: string[], cdn: CDN) => {
     if (successCount === desResult.Tasks.length) {
       break;
     }
+    await delay(3000);
   }
   console.log('RefreshCache Done');
 };
