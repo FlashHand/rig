@@ -105,7 +105,6 @@ class CICD {
 		});
 		const cicd =  new CICD(JSON5.parse(cicdStr))
 		console.log(util.inspect(cicd, false, null, true))
-
 		return cicd;
 	}
 

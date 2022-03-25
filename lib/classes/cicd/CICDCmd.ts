@@ -28,6 +28,7 @@ class CICDCmd {
 
 	constructor(cmd: any, cicd: CICD) {
 		const cmdArgs = cmd.args;
+		console.log('build command:', cmdArgs[0]);
 		this.dir = cmdArgs[0];
 		//获取需要被设置的schema变量
 		const schemaKeys = this.dir.match(/(?<=\{)[a-zA-Z]+(?=\})/g) || [];

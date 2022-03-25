@@ -1,6 +1,6 @@
 import CICD, {Define} from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
-import shell from 'shelljs';
+import shell, {cat} from 'shelljs';
 import path from 'path';
 import fs from 'fs';
 import util from 'util';
@@ -30,32 +30,35 @@ const replaceDefine = (target: string, defines?: Define) => {
 	}
 }
 export default async (cmd: any) => {
-	//create cicd object
-	const cicd = CICD.createByDefault(cmd);
-	//construct cmd object
-	const cicdCmd = new CICDCmd(cmd, cicd);
-
-	//build by cicdCmd and cicdConfig
-
-	if (cicdCmd.endpoints.length===0){
-		console.error('Must have validate endpoints');
-		process.exit(1);
-	}
-	const regexPublicPath = new RegExp('\\$public_path', 'g');
-	for (let i = 0; i < cicdCmd.endpoints.length; i++) {
-		const ep = cicdCmd.endpoints[i];
-
-		ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
-		try {
-			//替换define中的$public_path
-			Object.keys(ep.defines).forEach(key=>{
-				ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
-			})
-		} catch (e) {
-			console.log('JSON5 error:', ep.defines,e.message);
+	try{
+		console.log('start building');
+		//create cicd object
+		const cicd = CICD.createByDefault(cmd);
+		//construct cmd object
+		const cicdCmd = new CICDCmd(cmd, cicd);
+		//build by cicdCmd and cicdConfig
+		if (cicdCmd.endpoints.length===0){
+			throw new Error('Must have validate endpoints')
 		}
-		console.log('exec build:', ep, ep.build, ep.defines);
-		shell.exec(ep.build);
-		replaceDefine(path.join(cicd.source.root_path, ep.dir), ep.defines);
+		const regexPublicPath = new RegExp('\\$public_path', 'g');
+		for (let i = 0; i < cicdCmd.endpoints.length; i++) {
+			const ep = cicdCmd.endpoints[i];
+
+			ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
+			try {
+				//替换define中的$public_path
+				Object.keys(ep.defines).forEach(key=>{
+					ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
+				})
+			} catch (e) {
+				console.log('JSON5 error:', ep.defines,e.message);
+			}
+			console.log('exec build:', ep, ep.build, ep.defines);
+			shell.exec(ep.build);
+			replaceDefine(path.join(cicd.source.root_path, ep.dir), ep.defines);
+		}
+	}catch (e) {
+		console.error(e.message);
+		process.exit(1);
 	}
 }

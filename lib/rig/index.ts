@@ -55,3 +55,4 @@ import env from '../vue-env';
 program.option('--vueenv <vueenv>', 'specify vue env').action(env.load);
 program.version(require('../../package.json').version, '-v,--version');
 program.parse(process.argv);
+
