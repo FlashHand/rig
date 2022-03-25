@@ -63,6 +63,10 @@ export default async (cmd: any) => {
   const cdn = new CDN(target);
   const urls: string[] = [];
   const setRewriteUriPromises: Promise<any>[] = [];
+  if (!cicdCmd.endpoints || cicdCmd.endpoints.length === 0) {
+    console.error('Endpoints.length Can Not Be 0!');
+    process.exit(0);
+  }
   for (const endpoint of cicdCmd.endpoints) {
     const uriRewrite = endpoint.uri_rewrite
       ? endpoint.uri_rewrite
