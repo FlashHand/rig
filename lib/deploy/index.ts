@@ -35,8 +35,7 @@ export default async (cmd: any) => {
     const aliOss = new AliOSS(target);
     console.log('Please Wait for Upload OSS...');
     if (!cicdCmd.endpoints || cicdCmd.endpoints.length === 0) {
-      console.error('Endpoints.length Can Not Be 0!');
-      process.exit(0);
+      throw new Error('Endpoints.length Can Not Be 0!');
     }
     for (let i = 0; i < cicdCmd.endpoints.length; i++) {
       const distPath = path.join(
@@ -55,7 +54,8 @@ export default async (cmd: any) => {
     }
     console.log('Upload OSS Done');
     console.log('Deploy Done-----');
-  } catch (e) {
-    throw e;
+  } catch (e: any) {
+    console.error(e.message);
+    process.exit(1);
   }
 };
