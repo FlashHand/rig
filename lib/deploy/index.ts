@@ -3,7 +3,6 @@ import path from 'path';
 import CICD from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
 import AliOSS from '@/classes/cicd/Deploy/AliDeploy';
-import CDN from '@/classes/cicd/Deploy/CDN';
 
 let filesList: string[] = [];
 const traverseFolder = (url: string) => {
@@ -35,6 +34,9 @@ export default async (cmd: any) => {
 
     const aliOss = new AliOSS(target);
     console.log('Please Wait for Upload OSS...');
+    if (!cicdCmd.endpoints || cicdCmd.endpoints.length === 0) {
+      throw new Error('Endpoints.length Can Not Be 0!');
+    }
     for (let i = 0; i < cicdCmd.endpoints.length; i++) {
       const distPath = path.join(
         process.cwd(),
@@ -46,13 +48,14 @@ export default async (cmd: any) => {
         filesList,
         cicdCmd.endpoints[i].deployDir.replace(/\\/g, '/'),
         cicdCmd.endpoints[i].dir,
-        cicd.source.root_path,
+        cicd.source.root_path
       );
       filesList = [];
     }
     console.log('Upload OSS Done');
     console.log('Deploy Done-----');
-  } catch (e) {
-    throw e;
+  } catch (e: any) {
+    console.error(e.message);
+    process.exit(1);
   }
 };
