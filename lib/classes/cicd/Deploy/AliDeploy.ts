@@ -2,6 +2,7 @@ import aliOSS from 'ali-oss';
 import fs from 'fs';
 import { DeployTarget } from '../CICD';
 import os from 'os';
+import path from 'path';
 
 class AliOSS {
   ossClient: aliOSS;
@@ -52,9 +53,13 @@ class AliOSS {
         contentLength: fs.statSync(filesList[i]).size,
       };
       if (filesList[i].includes('index.html')) {
-        options = Object.assign({
-          headers: { 'Cache-Control': 'no-cache', Expires: -1 },
-        });
+        options.headers = { 'Cache-Control': 'no-cache', Expires: -1 };
+      } else if (
+        path.extname(filesList[i]) === '.js' ||
+        path.extname(filesList[i]) === '.css' ||
+        path.extname(filesList[i]) === '.ico'
+      ) {
+        options.headers = { 'Cache-Control': 'max-age=3000000' };
       }
       const fileResult = await this.ossClient.putStream(
         ossPath,
