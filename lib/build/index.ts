@@ -55,6 +55,7 @@ export default async (cmd: any) => {
 			}
 			console.log('exec build:', ep, ep.build, ep.defines);
 			shell.exec(ep.build);
+			if (!ep.defines) ep.defines = {};
 			ep.defines['__DEPLOY_DIR__'] = ep.deployDir;
 			ep.defines['__PUBLIC_PATH__'] = ep.publicPath;
 			replaceDefine(path.join(cicd.source.root_path, ep.dir), ep.defines);
