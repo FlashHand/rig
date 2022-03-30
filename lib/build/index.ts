@@ -4,10 +4,11 @@ import shell from 'shelljs';
 import path from 'path';
 import fs from 'fs';
 import vueEnv from '../vue-env';
+
 const JSON5 = require('json5');
 
 const replaceDefine = (target: string, defines?: Define) => {
-	console.log('start replaceDefine');
+	console.log(`start replaceDefine:${target}`);
 	const dirs = fs.readdirSync(target);
 	for (let dir of dirs) {
 		const stat = fs.statSync(path.join(target, dir));
@@ -45,7 +46,6 @@ export default async (cmd: any) => {
 
 		for (let i = 0; i < cicdCmd.endpoints.length; i++) {
 			const ep = cicdCmd.endpoints[i];
-			ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
 			try {
 				//替换define中的$public_path
 				Object.keys(ep.defines).forEach(key => {
@@ -56,21 +56,23 @@ export default async (cmd: any) => {
 			}
 			let frameworktype: FrameworkType | undefined;
 			//判断是否要生成环境变量文件,以及生成环境变量的操作
-			if (ep.vue_env){
+			if (ep.vue_env) {
 				frameworktype = FrameworkType.vue;
+				if (!ep.build) ep.build = 'npx vue-cli-service build --mode rig';
 			}
-			if (!ep.extra_env)ep.extra_env = {};
+			if (!ep.extra_env) ep.extra_env = {};
 			ep.extra_env['PUBLIC_PATH'] = ep.publicPath;
 			ep.extra_env['OUTPUT_DIR'] = path.join(cicd.source.root_path, ep.dir);
 
-			switch (frameworktype){
-				case FrameworkType.vue:{
-					vueEnv.useEnv(ep.vue_env!,ep.extra_env);
+			switch (frameworktype) {
+				case FrameworkType.vue: {
+					vueEnv.useEnv(ep.vue_env!, ep.extra_env);
 				}
 					break;
 				default:
 					break;
 			}
+			ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
 			shell.exec(ep.build);
 
 			//setup default defines and replace text in built source.
