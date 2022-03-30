@@ -8,6 +8,8 @@ interface EndpointInfo {
   domain: string;
 	domains: string[];
 	defines: Define;
+	vue_env?: string;
+	extra_env?:{[env: string]: String};
   uri_rewrite: {
     original: string;
     original_regexp: string;
@@ -28,7 +30,8 @@ class Endpoint {
   domain: string;
 	domains: string[];
   deployDir: string = '';
-
+	vue_env?: string;
+	extra_env?:{[env: string]: String};
 	publicPath: string = '';
 	defines: Define;
 	uri_rewrite: {
@@ -56,6 +59,9 @@ class Endpoint {
 		this.domains = info.domains
 		this.defines = info.defines;
 		this.uri_rewrite = info.uri_rewrite;
+		this.vue_env = info.vue_env;
+		this.extra_env = info.extra_env;
+
 	}
 
   matchCmd(dirSchemaStrArr: string[], groups: DirGroup[]) {
