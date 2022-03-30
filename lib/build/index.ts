@@ -48,9 +48,11 @@ export default async (cmd: any) => {
 			const ep = cicdCmd.endpoints[i];
 			try {
 				//替换define中的$public_path
-				Object.keys(ep.defines).forEach(key => {
-					ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
-				})
+				if (ep.defines){
+					Object.keys(ep.defines).forEach(key => {
+						ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
+					});
+				}
 			} catch (e) {
 				console.log('JSON5 error:', ep.defines, e.message);
 			}
@@ -58,7 +60,6 @@ export default async (cmd: any) => {
 			//判断是否要生成环境变量文件,以及生成环境变量的操作
 			if (ep.vue_env) {
 				frameworktype = FrameworkType.vue;
-				if (!ep.build) ep.build = 'npx vue-cli-service build --mode rig';
 			}
 			if (!ep.extra_env) ep.extra_env = {};
 			ep.extra_env['PUBLIC_PATH'] = ep.publicPath;
@@ -67,6 +68,7 @@ export default async (cmd: any) => {
 			switch (frameworktype) {
 				case FrameworkType.vue: {
 					vueEnv.useEnv(ep.vue_env!, ep.extra_env);
+					if (!ep.build) ep.build = 'npx vue-cli-service build --mode rig';
 				}
 					break;
 				default:
