@@ -80,6 +80,10 @@ export default async (cmd: any) => {
         ? endpoint.uri_rewrite
         : target.uri_rewrite;
 
+      if (!uriRewrite) {
+        continue;
+      }
+
       for (const domain of endpoint.domains) {
         setRewriteUriPromises.push(
           setRewriteUri(
@@ -103,7 +107,11 @@ export default async (cmd: any) => {
     console.log('Set RWrite URI Done');
 
     //刷新cdn
-    await refreshCache(urls, cdn);
+    if (urls.length > 0) {
+      await refreshCache(urls, cdn);
+    } else {
+      console.log('Not Have To RefreshCache');
+    }
     console.log('Publish Done-----');
   } catch (e: any) {
     console.error(e.message);
