@@ -1,13 +1,14 @@
-import CICD, {Define} from '@/classes/cicd/CICD';
+import CICD, {Define, FrameworkType} from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
-import shell, {cat} from 'shelljs';
+import shell from 'shelljs';
 import path from 'path';
 import fs from 'fs';
-import util from 'util';
+import vueEnv from '../vue-env';
+
 const JSON5 = require('json5');
 
 const replaceDefine = (target: string, defines?: Define) => {
-	console.log('start replaceDefine');
+	console.log(`start replaceDefine:${target}`);
 	const dirs = fs.readdirSync(target);
 	for (let dir of dirs) {
 		const stat = fs.statSync(path.join(target, dir));
@@ -17,7 +18,7 @@ const replaceDefine = (target: string, defines?: Define) => {
 			if (defines) {
 				const namePieces = dir.split('.');
 				const fileType = namePieces[namePieces.length - 1];
-				if (['js', 'ts','html'].indexOf(fileType) >= 0) {
+				if (['js', 'ts', 'html'].indexOf(fileType) >= 0) {
 					let file = fs.readFileSync(path.join(target, dir)).toString();
 					const replaceArr = Object.keys(defines);
 					for (let replace of replaceArr) {
@@ -30,34 +31,60 @@ const replaceDefine = (target: string, defines?: Define) => {
 	}
 }
 export default async (cmd: any) => {
-	try{
+	try {
 		console.log('start building');
 		//create cicd object
 		const cicd = CICD.createByDefault(cmd);
 		//construct cmd object
 		const cicdCmd = new CICDCmd(cmd, cicd);
 		//build by cicdCmd and cicdConfig
-		if (cicdCmd.endpoints.length===0){
+		if (cicdCmd.endpoints.length === 0) {
 			throw new Error('Must have validate endpoints')
 		}
+		//替换build中的可替换变量
 		const regexPublicPath = new RegExp('\\$public_path', 'g');
+
 		for (let i = 0; i < cicdCmd.endpoints.length; i++) {
 			const ep = cicdCmd.endpoints[i];
-
-			ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
 			try {
 				//替换define中的$public_path
-				Object.keys(ep.defines).forEach(key=>{
-					ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
-				})
+				if (ep.defines){
+					Object.keys(ep.defines).forEach(key => {
+						ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
+					});
+				}
 			} catch (e) {
-				console.log('JSON5 error:', ep.defines,e.message);
+				console.log('JSON5 error:', ep.defines, e.message);
 			}
-			console.log('exec build:', ep, ep.build, ep.defines);
+			let frameworktype: FrameworkType | undefined;
+			//判断是否要生成环境变量文件,以及生成环境变量的操作
+			if (ep.vue_env) {
+				frameworktype = FrameworkType.vue;
+			}
+			if (!ep.extra_env) ep.extra_env = {};
+			ep.extra_env['PUBLIC_PATH'] = ep.publicPath;
+			ep.extra_env['OUTPUT_DIR'] = path.join(cicd.source.root_path, ep.dir);
+
+			switch (frameworktype) {
+				case FrameworkType.vue: {
+					vueEnv.useEnv(ep.vue_env!, ep.extra_env);
+					if (!ep.build) ep.build = 'npx vue-cli-service build --mode rig';
+				}
+					break;
+				default:
+					break;
+			}
+			ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
 			shell.exec(ep.build);
+
+			//setup default defines and replace text in built source.
+			if (!ep.defines) ep.defines = {};
+			ep.defines['__DEPLOY_DIR__'] = ep.deployDir;
+			ep.defines['__RIG_PUBLIC_PATH__'] = ep.publicPath;
+			ep.defines['__RIG_DEPLOY_DIR__'] = ep.publicPath;
 			replaceDefine(path.join(cicd.source.root_path, ep.dir), ep.defines);
 		}
-	}catch (e) {
+	} catch (e) {
 		console.error(e.message);
 		process.exit(1);
 	}

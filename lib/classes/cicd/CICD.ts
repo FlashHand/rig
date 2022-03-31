@@ -8,7 +8,9 @@ import util from 'util';
 export enum CloudType {
 	alicloud = 'alicloud',
 }
-
+export enum FrameworkType {
+	vue = 'vue',
+}
 /**
  * Bundle source
  */
@@ -55,8 +57,12 @@ export interface DefineDict{
 
 /**
  * Whole CI/CD config
+ * @property tree_schema string fafafa
  */
 export interface CICDConfig {
+	/**
+	 * fafafafa
+	 */
 	tree_schema: string;
 	source: DeploySource;
 	target: DeployTarget | DeployTarget[];
@@ -98,6 +104,7 @@ class CICD {
 		let cicdStr = fs.readFileSync(`${process.cwd()}/cicd.rig.json5`).toString();
 		const paramsStr = cmd.params;
 		const params = qs.parse(paramsStr);
+		//替换动态变量
 		Object.keys(params).forEach(key => {
 			const regStr = `\\$\\{${key}\\}`;
 			const regex = new RegExp(regStr, 'g');

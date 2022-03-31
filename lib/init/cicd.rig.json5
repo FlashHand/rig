@@ -4,6 +4,8 @@
     root_path: 'dist',
   },
   target: {},
-  endpoints: {},
+  endpoints: {
+
+  },
   groups: [],
 }
