@@ -76,7 +76,6 @@ export default async (cmd: any) => {
 			}
 			ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
 			shell.exec(ep.build);
-
 			//setup default defines and replace text in built source.
 			if (!ep.defines) ep.defines = {};
 			ep.defines['__DEPLOY_DIR__'] = ep.deployDir;
