@@ -33,7 +33,7 @@ export interface DeployTarget {
 		original: string;
 		original_regexp: string;
 		final?: string;
-	};
+	} | undefined;
 }
 
 /**
