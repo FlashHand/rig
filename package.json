@@ -28,8 +28,8 @@
     "c": "d demo && node ../lib/rig/index.js check",
     "envmake": "cd demo && node ../lib/rig/index.js --env prod_view_zhs",
     "t": "node lib/rig/index.js tag",
-    "deliver": "yarn build & npm publish --registry=https://registry.npmjs.org",
-    "deliver:alpha": "yarn build & npm publish --registry=https://registry.npmjs.org --tag alpha",
+    "deliver": "rig tag & yarn build & npm publish --registry=https://registry.npmjs.org",
+    "deliver:alpha": "rig tag & yarn build & npm publish --registry=https://registry.npmjs.org --tag alpha",
     "build": "esbuild lib/rig/index.ts --platform=node --bundle --minify --outfile=built/index.js --external:shelljs"
   },
   "dependencies": {
