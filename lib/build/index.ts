@@ -4,6 +4,7 @@ import shell from 'shelljs';
 import path from 'path';
 import fs from 'fs';
 import vueEnv from '../vue-env';
+const print = require('../print');
 
 const JSON5 = require('json5');
 
@@ -68,6 +69,7 @@ export default async (cmd: any) => {
 			switch (frameworktype) {
 				case FrameworkType.vue: {
 					vueEnv.useEnv(ep.vue_env!, ep.extra_env);
+					//推测vue脚本
 					if (!ep.build) ep.build = 'npx vue-cli-service build --mode rig';
 				}
 					break;
@@ -75,6 +77,7 @@ export default async (cmd: any) => {
 					break;
 			}
 			ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
+			print.info(`using build script:${ep.build}`);
 			shell.exec(ep.build);
 			//setup default defines and replace text in built source.
 			if (!ep.defines) ep.defines = {};
