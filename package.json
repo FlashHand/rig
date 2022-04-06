@@ -20,6 +20,7 @@
     "rig": "bin/rig.js"
   },
   "scripts": {
+    "test": "jest",
     "init": "cd demo && node ../lib/rig/index.js init",
     "i": "cd demo && node ../lib/rig/index.js install",
     "p": "cd demo && node ../lib/rig/index.js publish",
