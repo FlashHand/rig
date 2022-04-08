@@ -7,6 +7,6 @@
   {
     name: "rig-test-2",
     source: "git@github.com:FlashHand/rig-test-2.git",
-    version: "1.0.1",
+    version: "1.0.2",
   },
 ]
