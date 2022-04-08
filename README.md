@@ -84,8 +84,10 @@ rig-test-2 will be cloned to rigs/.A shortcut of rig-test-2 will be created in n
 
 ## Main Features
 ###Intergrating and reusing codes really fast.
-1. Git is enough.No need to publish to npm or private registry.
-2. Much simpler than git submodule.
+1. Git is enough.No need to publish to npm or private registry.Much simpler than git submodule.
+2. Easily configurable.After configuration in  simply use 'yarn install' and import/require your modules just like npm modules.
+3. Support modules in any scale: from a simple js file to many web page files.
+4. 
 
 ###Easily develop and debug modules inside your project.
 
