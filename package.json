@@ -31,7 +31,7 @@
     "t": "node lib/rig/index.js tag",
     "deliver": "rig tag & yarn build & npm publish --registry=https://registry.npmjs.org",
     "deliver:alpha": "rig tag & yarn build & npm publish --registry=https://registry.npmjs.org --tag alpha",
-    "build": "esbuild lib/rig/index.ts --platform=node --bundle --minify --outfile=built/index.js --external:shelljs"
+    "build": "esbuild lib/rig/index.ts --platform=node --bundle --sourcemap=inline --outfile=built/index.js --external:shelljs"
   },
   "dependencies": {
     "@types/ali-oss": "^6.16.3",
