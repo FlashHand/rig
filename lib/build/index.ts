@@ -84,7 +84,7 @@ export default async (cmd: any) => {
 			ep.defines['__DEPLOY_DIR__'] = ep.deployDir;
 			ep.defines['__RIG_PUBLIC_PATH__'] = ep.publicPath;
 			ep.defines['__RIG_DEPLOY_DIR__'] = ep.publicPath;
-			replaceDefine(path.join(cicd.source.root_path, ep.dir), ep.defines);
+			replaceDefine(path.join(cicd.source.root_path, ep.deployDir), ep.defines);
 		}
 	} catch (e) {
 		console.error(e.message);
