@@ -41,13 +41,13 @@ export default async (cmd: any) => {
       const distPath = path.join(
         process.cwd(),
         cicd.source.root_path,
-        cicdCmd.endpoints[i].dir
+        cicdCmd.endpoints[i].deployDir
       );
       traverseFolder(distPath);
       await aliOss.putStreamFiles(
         filesList,
         cicdCmd.endpoints[i].deployDir.replace(/\\/g, '/'),
-        cicdCmd.endpoints[i].dir,
+        cicdCmd.endpoints[i].deployDir,
         cicd.source.root_path
       );
       filesList = [];

@@ -64,7 +64,7 @@ export default async (cmd: any) => {
 			}
 			if (!ep.extra_env) ep.extra_env = {};
 			ep.extra_env['PUBLIC_PATH'] = ep.publicPath;
-			ep.extra_env['OUTPUT_DIR'] = path.join(cicd.source.root_path, ep.dir);
+			ep.extra_env['OUTPUT_DIR'] = path.join(cicd.source.root_path, ep.deployDir);
 
 			switch (frameworktype) {
 				case FrameworkType.vue: {
