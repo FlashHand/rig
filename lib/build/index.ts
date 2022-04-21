@@ -70,7 +70,7 @@ export default async (cmd: any) => {
 				case FrameworkType.vue: {
 					vueEnv.useEnv(ep.vue_env!, ep.extra_env);
 					//推测vue脚本
-					if (!ep.build) ep.build = 'npx vue-cli-service build --mode rig';
+					if (!ep.build) ep.build = `npx vue-cli-service build --mode rig --dest ${ep.extra_env['OUTPUT_DIR']}`;
 				}
 					break;
 				default:
