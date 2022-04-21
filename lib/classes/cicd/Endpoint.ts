@@ -42,6 +42,7 @@ class Endpoint {
 
   static createEndpointArr(cicdConfig: CICDConfig, schema: DirLevel[]) {
     const endpointDict = cicdConfig.endpoints;
+    if (!endpointDict) throw new Error('No endpoints found');
     return Object.keys(endpointDict).map((dir) => {
       const info = endpointDict[dir];
       return new Endpoint(dir, info, schema);
