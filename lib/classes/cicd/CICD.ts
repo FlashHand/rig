@@ -71,7 +71,7 @@ export interface CICDConfig {
 	 * fafafafa
 	 */
 	tree_schema: string;
-	web_type: 'spa';
+	web_type: 'spa'|'mpa';
 	source: DeploySource;
 	target: DeployTarget | DeployTarget[];
 	endpoints: EndpointDict;
