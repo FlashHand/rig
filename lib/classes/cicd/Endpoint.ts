@@ -1,7 +1,7 @@
 import { CICDConfig, Define, DefineDict, DeployTarget, DirGroup } from './CICD';
 import { mkdirSync } from 'fs';
 import DirLevel from '@/classes/cicd/DirLevel';
-
+//Mapping endpoints in cicd.rig.json5
 interface EndpointInfo {
   build: string;
   target: string;
@@ -10,6 +10,7 @@ interface EndpointInfo {
 	defines: Define;
 	vue_env?: string;
 	extra_env?:{[env: string]: String};
+	web_entry_path: string;
   uri_rewrite: {
     original: string;
     original_regexp: string;
@@ -34,6 +35,7 @@ class Endpoint {
 	extra_env?:{[env: string]: String};
 	publicPath: string = '';
 	defines: Define;
+	web_entry_path: string = '/';//effective when no validate uri_rewrite
 	uri_rewrite: {
 		original: string,
 		original_regexp: string;
@@ -60,6 +62,7 @@ class Endpoint {
 		this.domains = info.domains
 		this.defines = info.defines;
 		this.uri_rewrite = info.uri_rewrite;
+		this.web_entry_path = info.web_entry_path || '/';
 		this.vue_env = info.vue_env;
 		this.extra_env = info.extra_env;
 
