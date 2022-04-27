@@ -1,16 +1,19 @@
 import DirLevel from '@/classes/cicd/DirLevel';
-import Endpoint, { EndpointDict} from '@/classes/cicd/Endpoint';
+import Endpoint, {EndpointDict} from '@/classes/cicd/Endpoint';
 import fs from 'fs';
 
 const JSON5 = require('json5');
 import qs from 'querystring';
 import util from 'util';
+
 export enum CloudType {
 	alicloud = 'alicloud',
 }
+
 export enum FrameworkType {
 	vue = 'vue',
 }
+
 /**
  * Bundle source
  */
@@ -29,9 +32,11 @@ export interface DeployTarget {
 	access_key: string;
 	access_secret: string;
 	root_path: '/';
+	bucket_root_path: '/';//equals to root_path
+	web_entry_path: '/';
 	uri_rewrite: {
-		original: string;
-		original_regexp: string;
+		original?: string;
+		original_regexp?: string;
 		final?: string;
 	} | undefined;
 }
@@ -48,10 +53,12 @@ export interface DirGroup {
 	level: string,
 	includes: string[],
 }
-export interface Define{
+
+export interface Define {
 	[replace: string]: String;
 }
-export interface DefineDict{
+
+export interface DefineDict {
 	[group: string]: Define;
 }
 
@@ -64,6 +71,7 @@ export interface CICDConfig {
 	 * fafafafa
 	 */
 	tree_schema: string;
+	web_type: 'spa';
 	source: DeploySource;
 	target: DeployTarget | DeployTarget[];
 	endpoints: EndpointDict;
@@ -77,6 +85,7 @@ class CICD {
 	 * @type {string}
 	 */
 	treeSchema: string;
+	web_type: 'spa' | 'mpa' = 'spa';
 	/**
 	 * DirLevel shows every level of the directory structure
 	 * @type {DirLevel[]}
@@ -93,13 +102,15 @@ class CICD {
 
 	constructor(config: CICDConfig) {
 		this.treeSchema = config.tree_schema;
+		this.web_type = config.web_type || 'spa';
 		this.schema = DirLevel.createSchema(this.treeSchema);
-		this.endpoints = Endpoint.createEndpointArr(config,this.schema);
+		this.endpoints = Endpoint.createEndpointArr(config, this.schema);
 		this.source = config.source;
 		this.target = config.target;
 		this.groups = config.groups;
 	}
-	static createByDefault(cmd:any){
+
+	static createByDefault(cmd: any) {
 		//replace params
 		let cicdStr = fs.readFileSync(`${process.cwd()}/cicd.rig.json5`).toString();
 		const paramsStr = cmd.params;
@@ -110,7 +121,7 @@ class CICD {
 			const regex = new RegExp(regStr, 'g');
 			cicdStr = cicdStr.replace(regex, params[key] as string);
 		});
-		const cicd =  new CICD(JSON5.parse(cicdStr))
+		const cicd = new CICD(JSON5.parse(cicdStr))
 		return cicd;
 	}
 

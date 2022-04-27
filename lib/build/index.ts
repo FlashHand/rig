@@ -44,6 +44,8 @@ export default async (cmd: any) => {
 		}
 		//替换build中的可替换变量
 		const regexPublicPath = new RegExp('\\$public_path', 'g');
+		const regexPublicPath2 = new RegExp('__PUBLIC_PATH__', 'g');
+		const regexDomain = new RegExp('__DOMAIN__', 'g');
 
 		for (let i = 0; i < cicdCmd.endpoints.length; i++) {
 			const ep = cicdCmd.endpoints[i];
@@ -52,6 +54,9 @@ export default async (cmd: any) => {
 				if (ep.defines){
 					Object.keys(ep.defines).forEach(key => {
 						ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
+						ep.defines[key] = ep.defines[key].replace(regexPublicPath2, ep.publicPath);
+						ep.defines[key] = ep.defines[key].replace(regexDomain, ep.domains[0]);
+
 					});
 				}
 			} catch (e) {
@@ -64,7 +69,7 @@ export default async (cmd: any) => {
 			}
 			if (!ep.extra_env) ep.extra_env = {};
 			ep.extra_env['PUBLIC_PATH'] = ep.publicPath;
-			ep.extra_env['OUTPUT_DIR'] = path.join(cicd.source.root_path, ep.deployDir);
+			ep.extra_env['OUTPUT_DIR'] = path.join(cicd.source.root_path, ep.publicPath);
 
 			switch (frameworktype) {
 				case FrameworkType.vue: {
@@ -81,10 +86,11 @@ export default async (cmd: any) => {
 			shell.exec(ep.build);
 			//setup default defines and replace text in built source.
 			if (!ep.defines) ep.defines = {};
-			ep.defines['__DEPLOY_DIR__'] = ep.deployDir;
+			ep.defines['__PUBLIC_PATH__'] = ep.publicPath;
+			ep.defines['__DEPLOY_DIR__'] = ep.publicPath;
 			ep.defines['__RIG_PUBLIC_PATH__'] = ep.publicPath;
 			ep.defines['__RIG_DEPLOY_DIR__'] = ep.publicPath;
-			replaceDefine(path.join(cicd.source.root_path, ep.deployDir), ep.defines);
+			replaceDefine(path.join(cicd.source.root_path, ep.publicPath), ep.defines);
 		}
 	} catch (e) {
 		console.error(e.message);
