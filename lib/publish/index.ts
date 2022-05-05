@@ -103,7 +103,7 @@ export default async (cmd: any) => {
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
-                '^/([w-/]*w+)(/$|w+|?)(?!.*.w+)',
+                '^\\/([\\w-]+)($|\\/$|\\?)(?!.*.\\w+)',
                 `/$1.html`,
                 cdn
               )
