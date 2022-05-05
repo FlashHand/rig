@@ -91,15 +91,29 @@ export default async (cmd: any) => {
             : target.web_entry_path || '/';
         }
         for (const domain of endpoint.domains) {
-          setRewriteUriPromises.push(
-            setRewriteUri(domain, '^\\/(.*\\.\\w+)($|\\?)', `/$1`, cdn)
-          );
           if (cicd.web_type === 'mpa') {
+            setRewriteUriPromises.push(
+              setRewriteUri(
+                domain,
+                '^\\/(.*\\.\\w+)($|\\?)',
+                `/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
+                cdn
+              )
+            );
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
                 '^/([w-/]*w+)(/$|w+|?)(?!.*.w+)',
                 `/$1.html`,
+                cdn
+              )
+            );
+          } else {
+            setRewriteUriPromises.push(
+              setRewriteUri(
+                domain,
+                '^\\/(.*\\.\\w+)($|\\?)',
+                `/$1`,
                 cdn
               )
             );
