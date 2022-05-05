@@ -6,8 +6,6 @@ import fs from 'fs';
 import vueEnv from '../vue-env';
 const print = require('../print');
 
-const JSON5 = require('json5');
-
 const replaceDefine = (target: string, defines?: Define) => {
 	console.log(`start replaceDefine:${target}`);
 	const dirs = fs.readdirSync(target);
@@ -56,7 +54,6 @@ export default async (cmd: any) => {
 						ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
 						ep.defines[key] = ep.defines[key].replace(regexPublicPath2, ep.publicPath);
 						ep.defines[key] = ep.defines[key].replace(regexDomain, ep.domains[0]);
-
 					});
 				}
 			} catch (e) {
