@@ -18,7 +18,7 @@ const setRewriteUri = async (
     domain,
     [original],
     [deployDir],
-    [null]
+    ['enhance_break']
   );
 
   const configId = rwriteResult?.DomainConfigList.DomainConfigModel[0].ConfigId;
@@ -76,34 +76,78 @@ export default async (cmd: any) => {
       throw new Error('Endpoints.length Can Not Be 0!');
     }
     for (const endpoint of cicdCmd.endpoints) {
-      const uriRewrite = endpoint.uri_rewrite
-        ? endpoint.uri_rewrite
-        : target.uri_rewrite;
+      if (
+        !endpoint.uri_rewrite &&
+        (!target.uri_rewrite ||
+          !target.uri_rewrite.original ||
+          !target.uri_rewrite.original_regexp)
+      ) {
+        let webEntryPath: string;
+        if (cicd.web_type === 'mpa') {
+          webEntryPath = '/';
+        } else {
+          webEntryPath = endpoint.web_entry_path
+            ? endpoint.web_entry_path
+            : target.web_entry_path || '/';
+        }
+        for (const domain of endpoint.domains) {
+          setRewriteUriPromises.push(
+            setRewriteUri(domain, '^\\/(.*\\.\\w+)($|\\?)', `/$1`, cdn)
+          );
+          if (cicd.web_type === 'mpa') {
+            setRewriteUriPromises.push(
+              setRewriteUri(
+                domain,
+                '^/([w-/]*w+)(/$|w+|?)(?!.*.w+)',
+                `/$1.html`,
+                cdn
+              )
+            );
+          }
+          setRewriteUriPromises.push(
+            setRewriteUri(
+              domain,
+              `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
+              `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+              cdn
+            )
+          );
+          urls.push(`https://${domain}${webEntryPath}`);
+        }
+      } else {
+        const uriRewrite = endpoint.uri_rewrite
+          ? endpoint.uri_rewrite
+          : target.uri_rewrite;
 
-      if (!uriRewrite) {
-        continue;
-      }
+        if (!uriRewrite) {
+          continue;
+        }
 
-      for (const domain of endpoint.domains) {
-        setRewriteUriPromises.push(
-          setRewriteUri(
-            domain,
-            `${
-              uriRewrite.original_regexp
-                ? uriRewrite.original_regexp
-                : uriRewrite.original
-            }`,
-            `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
-            cdn
-          )
-        );
-        urls.push(`https://${domain}${uriRewrite.original}`);
+        for (const domain of endpoint.domains) {
+          setRewriteUriPromises.push(
+            setRewriteUri(
+              domain,
+              `${
+                uriRewrite.original_regexp
+                  ? uriRewrite.original_regexp
+                  : uriRewrite.original
+              }`,
+              `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+              cdn
+            )
+          );
+          urls.push(`https://${domain}${uriRewrite.original}`);
+        }
       }
     }
 
     // 回源URI改写
     console.log('Please Wait For Set RWrite URI...');
-    await Promise.all(setRewriteUriPromises);
+    if (setRewriteUriPromises.length > 0) {
+      await Promise.all(setRewriteUriPromises);
+    } else {
+      console.log('Not Have To Set RWrite URI');
+    }
     console.log('Set RWrite URI Done');
 
     //刷新cdn

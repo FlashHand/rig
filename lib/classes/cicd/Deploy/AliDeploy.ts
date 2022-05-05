@@ -32,12 +32,7 @@ class AliOSS {
     } catch (e) {}
   }
 
-  public async putStreamFiles(
-    filesList: string[],
-    ossBasePath: string,
-    dir: string,
-    rootPath: string
-  ) {
+  public async putStreamFiles(filesList: string[], rootPath: string) {
     for (let i = 0; i < filesList.length; i++) {
       let filePath = '';
       if (os.platform() === 'win32') {
@@ -45,8 +40,7 @@ class AliOSS {
       } else {
         filePath = filesList[i].split(`${rootPath}/`)[1];
       }
-      const ossPath =
-        ossBasePath + filePath.replace(/\\/g, '/').replace(dir, '');
+      const ossPath = filePath.replace(/\\/g, '/');
 
       //@ts-ignore
       let options: aliOSS.PutStreamOptions = {

@@ -44,12 +44,7 @@ export default async (cmd: any) => {
         cicdCmd.endpoints[i].deployDir
       );
       traverseFolder(distPath);
-      await aliOss.putStreamFiles(
-        filesList,
-        cicdCmd.endpoints[i].deployDir.replace(/\\/g, '/'),
-        cicdCmd.endpoints[i].deployDir,
-        cicd.source.root_path
-      );
+      await aliOss.putStreamFiles(filesList, cicd.source.root_path);
       filesList = [];
     }
     console.log('Upload OSS Done');
