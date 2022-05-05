@@ -104,7 +104,7 @@ export default async (cmd: any) => {
               setRewriteUri(
                 domain,
                 '^\\/([\\w-]+)($|\\/$|\\?)(?!.*.\\w+)',
-                `/$1.html`,
+                `/${endpoint.deployDir.replace(/\\/g, '/')}/$1.html`,
                 cdn
               )
             );
