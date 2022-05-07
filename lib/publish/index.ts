@@ -92,27 +92,30 @@ export default async (cmd: any) => {
         }
         for (const domain of endpoint.domains) {
           if (cicd.web_type === 'mpa') {
+            //文件
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
-                '^\\/([\\w-/%]*\\.[a-zA-Z0-9]+)($|\\?)',
+                '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
                 `/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
                 cdn
               )
             );
+            //非首页
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
-                '^\\/([\\w-/]*\\w+)([/?#]*)',
+                '^\\/([\\w-/]*\\w+)(?![^?]*\\.\\w+)',
                 `/${endpoint.deployDir.replace(/\\/g, '/')}/$1.html`,
                 cdn
               )
             );
           } else {
+            //文件
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
-                '^\\/([\\w-/%]*\\.[a-zA-Z0-9]+)($|\\?)',
+                '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
                 `/$1`,
                 cdn
               )
