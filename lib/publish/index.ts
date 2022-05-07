@@ -95,7 +95,7 @@ export default async (cmd: any) => {
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
-                '^\\/(.*\\.(?!(com|cn))\\w+)($|\\?)',
+                '^\\/([\\w-/%]*\\.[a-zA-Z0-9]+)($|\\?)',
                 `/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
                 cdn
               )
@@ -103,7 +103,7 @@ export default async (cmd: any) => {
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
-                '^\\/([\\w-]+)($|\\/$|\\?)(?!.*.\\w+)',
+                '^\\/([\\w-/]+\\w+)([/?#]*)',
                 `/${endpoint.deployDir.replace(/\\/g, '/')}/$1.html`,
                 cdn
               )
@@ -112,7 +112,7 @@ export default async (cmd: any) => {
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
-                '^\\/(.*\\.(?!(com|cn))\\w+)($|\\?)',
+                '^\\/([\\w-/%]*\\.[a-zA-Z0-9]+)($|\\?)',
                 `/$1`,
                 cdn
               )
