@@ -10,7 +10,7 @@ interface EndpointInfo {
 	defines: Define;
 	vue_env?: string;
 	extra_env?:{[env: string]: String};
-	web_entry_path: string;
+	web_entry_path?: string;
   uri_rewrite: {
     original: string;
     original_regexp: string;
