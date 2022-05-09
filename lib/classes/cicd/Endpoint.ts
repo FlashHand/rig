@@ -62,7 +62,7 @@ class Endpoint {
 		this.domains = info.domains
 		this.defines = info.defines;
 		this.uri_rewrite = info.uri_rewrite;
-		this.web_entry_path = info.web_entry_path || '/';
+		this.web_entry_path = info.web_entry_path;
 		this.vue_env = info.vue_env;
 		this.extra_env = info.extra_env;
 
