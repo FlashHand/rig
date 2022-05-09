@@ -35,7 +35,7 @@ class Endpoint {
 	extra_env?:{[env: string]: String};
 	publicPath: string = '';
 	defines: Define;
-	web_entry_path: string = '/';//effective when no validate uri_rewrite
+	web_entry_path?: string;//effective when no validate uri_rewrite
 	uri_rewrite: {
 		original: string,
 		original_regexp: string;
