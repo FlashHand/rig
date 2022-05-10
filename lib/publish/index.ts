@@ -94,7 +94,7 @@ export default async (cmd: any) => {
         }
         for (const domain of endpoint.domains) {
           if (cicd.web_type === 'mpa') {
-            //文件
+            //mpa匹配文件
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
@@ -103,7 +103,7 @@ export default async (cmd: any) => {
                 cdn
               )
             );
-            //非首页
+            //mpa匹配非首页
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
@@ -112,24 +112,8 @@ export default async (cmd: any) => {
                 cdn
               )
             );
-            setRewriteUriPromises.push(
-              setRewriteUri(
-                domain,
-                `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
-                `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
-                cdn
-              )
-            );
           } else if (cicd.web_type === 'history'){
-            //文件
-            setRewriteUriPromises.push(
-              setRewriteUri(
-                domain,
-                '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
-                `/$1`,
-                cdn
-              )
-            );
+            //spa/history匹配非首页
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
@@ -138,16 +122,17 @@ export default async (cmd: any) => {
                 cdn
               )
             );
+            //spa/history匹配文件
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
-                `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
-                `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+                '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
+                `/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
                 cdn
               )
             );
-          }else {
-            //文件
+          }else if (cicd.web_type === 'hash') {
+            //hash模式匹配文件
             setRewriteUriPromises.push(
               setRewriteUri(
                 domain,
@@ -156,15 +141,16 @@ export default async (cmd: any) => {
                 cdn
               )
             );
-            setRewriteUriPromises.push(
-              setRewriteUri(
-                domain,
-                `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
-                `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
-                cdn
-              )
-            );
           }
+          //首页匹配正则，hash,history,mpa三个模式通用
+          setRewriteUriPromises.push(
+            setRewriteUri(
+              domain,
+              `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
+              `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+              cdn
+            )
+          );
           urls.push(`https://${domain}${webEntryPath}`);
         }
       } else {
