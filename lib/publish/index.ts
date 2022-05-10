@@ -94,15 +94,6 @@ export default async (cmd: any) => {
         }
         for (const domain of endpoint.domains) {
           if (cicd.web_type === 'mpa') {
-            //mpa匹配文件
-            setRewriteUriPromises.push(
-              setRewriteUri(
-                domain,
-                '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
-                `/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
-                cdn
-              )
-            );
             //mpa匹配非首页
             setRewriteUriPromises.push(
               setRewriteUri(
@@ -122,26 +113,15 @@ export default async (cmd: any) => {
                 cdn
               )
             );
-            //spa/history匹配文件
-            setRewriteUriPromises.push(
-              setRewriteUri(
-                domain,
-                '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
-                `/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
-                cdn
-              )
-            );
-          }else if (cicd.web_type === 'hash') {
-            //hash模式匹配文件
-            setRewriteUriPromises.push(
-              setRewriteUri(
-                domain,
-                '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
-                `/$1`,
-                cdn
-              )
-            );
           }
+          setRewriteUriPromises.push(
+            setRewriteUri(
+              domain,
+              '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
+              `/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
+              cdn
+            )
+          );
           //首页匹配正则，hash,history,mpa三个模式通用
           setRewriteUriPromises.push(
             setRewriteUri(
