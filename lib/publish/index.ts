@@ -85,6 +85,8 @@ export default async (cmd: any) => {
         let webEntryPath: string;
         if (cicd.web_type === 'mpa') {
           webEntryPath = '/';
+        } else if (cicd.web_type === 'history'){
+          webEntryPath = '/';
         } else {
           webEntryPath = endpoint.web_entry_path
             ? endpoint.web_entry_path
@@ -110,7 +112,15 @@ export default async (cmd: any) => {
                 cdn
               )
             );
-          } else {
+            setRewriteUriPromises.push(
+              setRewriteUri(
+                domain,
+                `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
+                `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+                cdn
+              )
+            );
+          } else if (cicd.web_type === 'history'){
             //文件
             setRewriteUriPromises.push(
               setRewriteUri(
@@ -120,15 +130,41 @@ export default async (cmd: any) => {
                 cdn
               )
             );
+            setRewriteUriPromises.push(
+              setRewriteUri(
+                domain,
+                '^\\/([\\w-/]*\\w+)(?![^?]*\\.\\w+)',
+                `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+                cdn
+              )
+            );
+            setRewriteUriPromises.push(
+              setRewriteUri(
+                domain,
+                `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
+                `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+                cdn
+              )
+            );
+          }else {
+            //文件
+            setRewriteUriPromises.push(
+              setRewriteUri(
+                domain,
+                '^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
+                `/$1`,
+                cdn
+              )
+            );
+            setRewriteUriPromises.push(
+              setRewriteUri(
+                domain,
+                `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
+                `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
+                cdn
+              )
+            );
           }
-          setRewriteUriPromises.push(
-            setRewriteUri(
-              domain,
-              `^(${webEntryPath})($|\\?|#|\\/\\?|\\/$)`,
-              `/${endpoint.deployDir.replace(/\\/g, '/')}/index.html`,
-              cdn
-            )
-          );
           urls.push(`https://${domain}${webEntryPath}`);
         }
       } else {
