@@ -115,10 +115,11 @@ export default async (cmd: any) => {
 						);
 					}
 					//匹配文件，3个模式通用
+					const divide = webEntryPath === '/' ? '' : '/';
 					setRewriteUriPromises.push(
 						setRewriteUri(
 							domain,
-							'^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
+							`^${webEntryPath}${divide}([^?]*\\.[a-zA-Z0-9]+)($|\\?)`,
 							`/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
 							cdn
 						)
