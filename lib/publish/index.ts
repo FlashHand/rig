@@ -103,6 +103,15 @@ export default async (cmd: any) => {
 								cdn
 							)
 						);
+						//mpa匹配文件
+						setRewriteUriPromises.push(
+							setRewriteUri(
+								domain,
+								`^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)`,
+								`/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
+								cdn
+							)
+						);
 					} else if (cicd.web_type === 'history') {
 						//spa/history匹配非首页
 						setRewriteUriPromises.push(
@@ -113,17 +122,28 @@ export default async (cmd: any) => {
 								cdn
 							)
 						);
+						//spa-history匹配文件
+						setRewriteUriPromises.push(
+							setRewriteUri(
+								domain,
+								`^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)`,
+								`/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
+								cdn
+							)
+						);
+					}else{
+						//spa-hash匹配文件
+						//hash模式支持一个域名支持多个网页应用的入口路径，如/,/app1,/app2,都是不同的网页应用
+						//需要替换webpack中的publicPath为实际OSS的目录
+						setRewriteUriPromises.push(
+							setRewriteUri(
+								domain,
+								`^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)`,
+								`/$1`,
+								cdn
+							)
+						);
 					}
-					//匹配文件，3个模式通用
-					const divide = webEntryPath === '/' ? '' : '/';
-					setRewriteUriPromises.push(
-						setRewriteUri(
-							domain,
-							`^${webEntryPath}${divide}([^?]*\\.[a-zA-Z0-9]+)($|\\?)`,
-							`/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
-							cdn
-						)
-					);
 					//首页匹配正则，hash,history,mpa三个模式通用
 					setRewriteUriPromises.push(
 						setRewriteUri(
