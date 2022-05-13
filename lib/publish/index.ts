@@ -165,14 +165,25 @@ export default async (cmd: any) => {
 				}
 
 				for (const domain of endpoint.domains) {
-					setRewriteUriPromises.push(
-						setRewriteUri(
-							domain,
-							'^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
-							`/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
-							cdn
-						)
-					);
+					if (cicd.web_type !== 'hash'){
+						setRewriteUriPromises.push(
+							setRewriteUri(
+								domain,
+								'^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
+								`/${endpoint.deployDir.replace(/\\/g, '/')}/$1`,
+								cdn
+							)
+						);
+					}else{
+						setRewriteUriPromises.push(
+							setRewriteUri(
+								domain,
+								'^\\/([^?]*\\.[a-zA-Z0-9]+)($|\\?)',
+								`/$1`,
+								cdn
+							)
+						);
+					}
 					setRewriteUriPromises.push(
 						setRewriteUri(
 							domain,
