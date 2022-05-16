@@ -22,13 +22,15 @@ const setRewriteUri = async (
   );
 
   const configId = rwriteResult?.DomainConfigList.DomainConfigModel[0].ConfigId;
-  while (true) {
+  for (let i = 0; i <= 200; i++) {
     const configInfo = await cdn.describeCdnDomainConfigs(domain, configId);
     if (configInfo.DomainConfigs.DomainConfig[0].Status === 'success') {
       break;
-    }
-    if (configInfo.DomainConfigs.DomainConfig[0].Status === 'failed') {
+    } else if (configInfo.DomainConfigs.DomainConfig[0].Status === 'failed') {
       throw new Error('cdn rewrite fail');
+    }
+    if (i === 200) {
+      throw new Error('cdn rewrite timeout 10min');
     }
     await delay(3000);
   }
