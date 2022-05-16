@@ -39,7 +39,7 @@ const setRewriteUri = async (
 const refreshCache = async (urls: string[], cdn: CDN) => {
   const refreshResult = await cdn.refreshCache(urls.join('\n'));
   console.log('Please Wait For RefreshCache...');
-  while (true) {
+  for (let i = 0; i <= 200; i++) {
     const desResult = await cdn.describeRefreshTaskById(
       refreshResult.RefreshTaskId
     );
@@ -53,6 +53,9 @@ const refreshCache = async (urls: string[], cdn: CDN) => {
     }
     if (successCount === desResult.Tasks.length) {
       break;
+    }
+    if (i === 200) {
+      throw new Error('refresh cache timeout 10min');
     }
     await delay(3000);
   }
