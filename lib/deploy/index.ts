@@ -16,6 +16,8 @@ const traverseFolder = (url: string) => {
         filesList.push(curPath);
       }
     });
+  } else {
+    throw new Error(`Not Found FilePath: ${url}`);
   }
 };
 

@@ -21,40 +21,45 @@ const setRewriteUri = async (
 		['enhance_break']
 	);
 
-	const configId = rwriteResult?.DomainConfigList.DomainConfigModel[0].ConfigId;
-	while (true) {
-		const configInfo = await cdn.describeCdnDomainConfigs(domain, configId);
-		if (configInfo.DomainConfigs.DomainConfig[0].Status === 'success') {
-			break;
-		}
-		if (configInfo.DomainConfigs.DomainConfig[0].Status === 'failed') {
-			throw new Error('cdn rewrite fail');
-		}
-		await delay(3000);
-	}
+  const configId = rwriteResult?.DomainConfigList.DomainConfigModel[0].ConfigId;
+  for (let i = 0; i <= 200; i++) {
+    const configInfo = await cdn.describeCdnDomainConfigs(domain, configId);
+    if (configInfo.DomainConfigs.DomainConfig[0].Status === 'success') {
+      break;
+    } else if (configInfo.DomainConfigs.DomainConfig[0].Status === 'failed') {
+      throw new Error('cdn rewrite fail');
+    }
+    if (i === 200) {
+      throw new Error('cdn rewrite timeout 10min');
+    }
+    await delay(3000);
+  }
 };
 
 const refreshCache = async (urls: string[], cdn: CDN) => {
-	const refreshResult = await cdn.refreshCache(urls.join('\n'));
-	console.log('Please Wait For RefreshCache...');
-	while (true) {
-		const desResult = await cdn.describeRefreshTaskById(
-			refreshResult.RefreshTaskId
-		);
-		let successCount = 0;
-		for (const item of desResult.Tasks) {
-			if (item.Status === 'Complete') {
-				successCount++;
-			} else if (item.Status === 'Failed') {
-				throw new Error('RefreshCache Failed');
-			}
-		}
-		if (successCount === desResult.Tasks.length) {
-			break;
-		}
-		await delay(3000);
-	}
-	console.log('RefreshCache Done');
+  const refreshResult = await cdn.refreshCache(urls.join('\n'));
+  console.log('Please Wait For RefreshCache...');
+  for (let i = 0; i <= 200; i++) {
+    const desResult = await cdn.describeRefreshTaskById(
+      refreshResult.RefreshTaskId
+    );
+    let successCount = 0;
+    for (const item of desResult.Tasks) {
+      if (item.Status === 'Complete') {
+        successCount++;
+      } else if (item.Status === 'Failed') {
+        throw new Error('RefreshCache Failed');
+      }
+    }
+    if (successCount === desResult.Tasks.length) {
+      break;
+    }
+    if (i === 200) {
+      throw new Error('refresh cache timeout 10min');
+    }
+    await delay(3000);
+  }
+  console.log('RefreshCache Done');
 };
 
 export default async (cmd: any) => {
