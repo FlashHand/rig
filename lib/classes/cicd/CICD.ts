@@ -71,7 +71,7 @@ export interface CICDConfig {
 	 * fafafafa
 	 */
 	tree_schema: string;
-	web_type: 'spa'|'mpa';
+	web_type: 'hash'|'history'|'mpa';
 	source: DeploySource;
 	target: DeployTarget | DeployTarget[];
 	endpoints: EndpointDict;
@@ -85,7 +85,7 @@ class CICD {
 	 * @type {string}
 	 */
 	treeSchema: string;
-	web_type: 'spa' | 'mpa' = 'spa';
+	web_type: 'hash' | 'history'|'mpa' = 'hash';
 	/**
 	 * DirLevel shows every level of the directory structure
 	 * @type {DirLevel[]}
@@ -102,7 +102,7 @@ class CICD {
 
 	constructor(config: CICDConfig) {
 		this.treeSchema = config.tree_schema;
-		this.web_type = config.web_type || 'spa';
+		this.web_type = config.web_type || 'hash';
 		this.schema = DirLevel.createSchema(this.treeSchema);
 		this.endpoints = Endpoint.createEndpointArr(config, this.schema);
 		this.source = config.source;
