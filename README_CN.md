@@ -9,14 +9,25 @@
 
 
 ## 快速开始
-**0.必要前提**
-必须安装yarn,rig采用yarn workspaces实现依赖晋升。
+### 0.必要前提
+#### 0.1必须安装yarn,
+rig采用yarn workspaces实现依赖晋升 。
 
-**1.init rig**
+[关于yarn workspaces](https://classic.yarnpkg.com/en/docs/workspaces)
+#### 0.2 node 版本不低于14
+使用 [n](https://github.com/tj/n) 更新node
+```shell
+yarn global add n
+sudo n lts 
+#或指定版本
+sudo n 14.19.1
+```
+
+### 1.在项目中初始化rig配置。
 
 ```shell script
-npm i -g yarn 
 yarn global add rigjs
+#在你的项目根目录中（和package.json同级）
 rig init
 ```
 package.rig.json5 会被添加到工程根目录
