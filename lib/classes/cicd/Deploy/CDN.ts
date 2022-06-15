@@ -101,7 +101,7 @@ class CDN {
             },
             {
               argName: 'flag',
-              argValue: flags[index] || null,
+              argValue: flags[index] || 'enhance_break',
             },
           ],
           functionName: 'back_to_origin_url_rewrite',
