@@ -1,14 +1,20 @@
+import semver from 'semver';
+import print from '../print';
+const nodeMin = '14.0.0';
+if (semver.gte(nodeMin,process.version)){
+	print.error('NodeJS version must be at least 14.');
+	process.exit(0);
+}
 import {Command} from 'commander';
 
 const program = new Command();
-console.log('Hello');
 
 import check from '../check';
 
 program.command('check').action(check.load);
 import init from '../init';
 
-program.command('init').action(init.load);
+program.command('init').action(init);
 import install from '../install';
 
 program.command('install').action(install.load);
@@ -51,6 +57,7 @@ program.command('publish')
 	.action(publish);
 
 import env from '../vue-env';
+import {exists} from 'fs';
 
 program.option('--vueenv <vueenv>', 'specify vue env').action(env.load);
 program.version(require('../../package.json').version, '-v,--version');

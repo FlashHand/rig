@@ -15,7 +15,8 @@
 		"outDir": "./built",
 		"allowJs": true,
 		"types": [
-			"node"
+			"node",
+			"jest",
 		],
 		"paths": {
 			"@/*": [
@@ -38,9 +39,10 @@
 	"include": [
 		"index.ts",
 		"rigs/**/*.ts",
-		"src/**/*.ts",
 		"lib/**/*.ts",
 		"lib/**/*.d.ts",
+		"lib/**/*.test.ts",
+		"lib/**/*.spec.ts",
 		"lib/**/*.js",
 		"test/**/*.ts",
 		"typings/**/*.ts",
