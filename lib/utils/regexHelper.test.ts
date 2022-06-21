@@ -1,17 +1,12 @@
-// const checkDepsValid = require('./index').checkDepsValid;
-// const testRigPkgArr = [
-// 	{
-// 		name: "rig-test-1",
-// 		source: "git@github.com:FlashHand/rig-test-1.git",
-// 		version: "1.0.1",
-// 	},
-// 	{
-// 		name: "rig-test-2",
-// 		source: "git@github.com:FlashHand/rig-test-2.git",
-// 		version: "1.0.2",
-// 	},
-// ];
-test('checkDepsValid', () => {
-	expect(checkDepsValid(testRigPkgArr)).toBe(true);
+import regexHelper from '@/utils/regexHelper';
+test('matchGitName', () => {
+	const retGit = 'git@git.domain.com:f2e-common/r-test.git'.match(regexHelper.matchGitName);
+	const retHttp = 'https://git.domain.com/f2e-common/r-test.git'.match(regexHelper.matchGitName);
+	if (retGit) {
+		expect(retGit[2]).toContain('r-test');
+	}
+	if (retHttp) {
+		expect(retHttp[2]).toContain('r-test');
+	}
 });
 
