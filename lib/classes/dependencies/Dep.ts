@@ -1,5 +1,3 @@
-import fsHelper from '@/utils/fsHelper';
-
 export class Dep {
 	version?: string
 	name: string;
@@ -19,24 +17,4 @@ export class Dep {
 		this.dev = props.dev || false;
 	}
 
-}
-type DepDict ={ [name: string]: Dep; }
-export class DepCollection {
-	dependencies: DepDict= {};
-	constructor(dependencies:DepDict) {
-		this.dependencies = dependencies;
-	}
-
-	checkDepExists(name:string){
-		return Object.keys(this.dependencies).find((key) => {
-			return name === key;
-		}) == undefined;
-	}
-	static createFromConfig(){
-		const config = fsHelper.readConfig();
-		return new DepCollection(config.dependencies);
-	}
-	findDepByName(name:string){
-
-	}
 }

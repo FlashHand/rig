@@ -1,9 +1,7 @@
 import print from '../print';
 import regexHelper from '../utils/regexHelper';
-const overwriteDep = ()=>{
-
-}
-import {Dep,DepCollection} from '@/classes/dependencies/Dep';
+import {Dep} from '@/classes/dependencies/Dep';
+import RigConfig from '@/classes/RigConfig';
 
 /**
  * @desc dev
@@ -13,19 +11,17 @@ import {Dep,DepCollection} from '@/classes/dependencies/Dep';
  */
 export default async (cmd:any) => {
 	try{
-		const depCollection = DepCollection.createFromConfig();
+		const rigConfig = RigConfig.createFromCWD();
 		const cmdArgs = cmd.args;
 		if (regexHelper.gitURL.test(cmdArgs[0])){
 			//传入git url,模式2处理
 			const source = cmdArgs[0];
-
 			const gitName = source.match(regexHelper.matchGitName)[2];
-			const dep =  new Dep({name:gitName,source, dev: true});
-			if (depCollection.checkDepExists(gitName)) {
-				depCollection.dependencies[gitName].dev = true;
-			}else{
-				depCollection.dependencies[gitName] = dep;
-			}
+			const dep = new Dep({name:gitName,source, dev: true});
+			/**
+			 * 查找依赖配置，若已存在
+			 */
+			rigConfig.findOrUpsertDep(gitName, dep);
 		}else{
 			//传入git名称，模式1处理
 
