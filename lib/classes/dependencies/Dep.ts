@@ -1,4 +1,5 @@
 import print from '@/print';
+import semver from 'semver';
 let gitUrlReg = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$/;
 
 export class Dep {
@@ -41,22 +42,14 @@ export class Dep {
 		return isValid;
 	}
 	 validateVersion(){
-		let isValid;
-		try {
-			isValid = this.dev?true:!!this.version?.length;
-		} catch (e) {
-			isValid = false;
-			print.error(e.message);
-		}
+		let isValid = this.dev?true:!!semver.valid(this.version);
 		if (!isValid) {
-			print.error(`version value(${this.version}) invalid！`);
+			print.error(`version field must follow Semantic Versioning 2.0.0(https://semver.org/)`);
 		}
 		return isValid;
 	}
 	validate(){
-		let isValid = true;
-		this.validateName();
-		this.validateSource();
+		return  this.validateName() && this.validateSource() && this.validateVersion();
 	}
 
 
