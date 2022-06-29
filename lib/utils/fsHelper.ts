@@ -1,4 +1,5 @@
 import fs from 'fs';
+import RigConfig from '@/classes/RigConfig';
 
 const JSON5 = require('json5');
 const readCICDConfig = () => {
@@ -16,13 +17,27 @@ const readConfig = (path: string = '') => {
 			const rigJson5Str = fs.readFileSync(path);
 			return JSON5.parse(rigJson5Str);
 		}
-		const rigJson5Str = fs.readFileSync(`${process.cwd()}/cicd.rig.json5`);
+		const rigJson5Str = fs.readFileSync(`${process.cwd()}/package.rig.json5`);
 		return JSON5.parse(rigJson5Str);
 	} catch (e) {
 		throw new Error(`readConfig failed:${e.message}`);
 	}
 }
+
+const writeConfig = (config: RigConfig, path: string = '') => {
+	try {
+		if (path) {
+			fs.writeFileSync(path,config.toString());
+		}else{
+			fs.writeFileSync(`${process.cwd()}/package.rig.json5`,config.toString());
+		}
+	} catch (e) {
+		throw new Error(`rig writeConfig failed:${e.message}`);
+	}
+}
+
 export default {
 	readCICDConfig,
-	readConfig
+	readConfig,
+	writeConfig
 }

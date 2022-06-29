@@ -4,24 +4,25 @@
  * @author Wang Bo (ralwayne@163.com)
  * @date 2020/10/9 6:14 PM
  */
-const shell = require('shelljs');
-const fs = require('fs');
-const json5 = require('json5');
-const print = require('../print');
-const path = require('path');
+import shell from 'shelljs';
+import fs from 'fs';
+const JSON5 = require('json5');
+import print from '../print';
+import path from 'path';
+import RigConfig from '@/classes/RigConfig';
 const compareVersions = require('compare-versions');
 
 // let semverReg = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/;
 let gitUrlReg = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$/;
-const validateName = (name) => {
+const validateName = (name:string) => {
 	if (name) {
 		return true;
 	} else {
-		print.error(`name value(${name}) invalidate！`);
+		print.error(`name value(${name}) invalid！`);
 		return false;
 	}
 }
-const validateSource = (source) => {
+const validateSource = (source:string) => {
 	let isValidate;
 	try {
 		isValidate = gitUrlReg.test(source);
@@ -30,11 +31,11 @@ const validateSource = (source) => {
 		print.error(e.message);
 	}
 	if (!isValidate) {
-		print.error(`source value(${source}) invalidate！`);
+		print.error(`source value(${source}) invalid！`);
 	}
 	return isValidate;
 }
-const validateVersion = (version) => {
+const validateVersion = (version:string) => {
 	let isValidate;
 	try {
 		isValidate = version.length > 0;
@@ -43,14 +44,14 @@ const validateVersion = (version) => {
 		print.error(e.message);
 	}
 	if (!isValidate) {
-		print.error(`version value(${version}) invalidate！`);
+		print.error(`version value(${version}) invalid！`);
 	}
 	return isValidate;
 }
-const validate = (rigJson5) => {
+const validate = (config:RigConfig) => {
 	let isValidate = true;
 	try {
-		for (let dep of rigJson5) {
+		for (let dep of config.dependencies) {
 			if (!(validateName(dep.name) && validateSource(dep.source) && validateVersion(dep.version))) {
 				isValidate = false;
 				print.error(`!INVALID CONFIG!:${JSON.stringify(dep)}`);
@@ -139,12 +140,12 @@ const checkDepsValid = (rigJson5) => {
 	return valid;
 }
 //加载命令控制器
-const load = async (cmd) => {
+export default async (cmd:any,path:string) => {
 	print.info('start rig preinstall');
 	try {
 		//读取package.rig.json5
-		let rigJson5Str = fs.readFileSync(path.join(process.cwd(), 'package.rig.json5'));
-		let rigJson5 = json5.parse(rigJson5Str);
+		const rigConfig = path ? RigConfig.createFromPath(path) : RigConfig.createFromCWD();
+		const cmdArgs = cmd.args;
 		if (!validate(rigJson5)) setTimeout(()=>{process.exit(1)},200)
 		if (!checkDepsValid(rigJson5)) setTimeout(()=>{process.exit(1)},200)
 		if (!(fs.existsSync('./rigs') && fs.lstatSync('./rigs').isDirectory())) {

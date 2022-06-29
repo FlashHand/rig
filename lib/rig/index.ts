@@ -17,8 +17,8 @@ import init from '../init';
 program.command('init').action(init);
 import install from '../install';
 
-program.command('install').action(install.load);
-program.command('i').action(install.load);
+program.command('install').action(install);
+program.command('i').action(install);
 import preinstall from '../preinstall';
 import postinstall from '../postinstall';
 
