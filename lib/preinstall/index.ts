@@ -6,68 +6,12 @@
  */
 import shell from 'shelljs';
 import fs from 'fs';
-const JSON5 = require('json5');
 import print from '../print';
-import path from 'path';
 import RigConfig from '@/classes/RigConfig';
-const compareVersions = require('compare-versions');
+import {Dep} from '@/classes/dependencies/Dep';
 
 // let semverReg = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/;
-let gitUrlReg = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$/;
-const validateName = (name:string) => {
-	if (name) {
-		return true;
-	} else {
-		print.error(`name value(${name}) invalid！`);
-		return false;
-	}
-}
-const validateSource = (source:string) => {
-	let isValidate;
-	try {
-		isValidate = gitUrlReg.test(source);
-	} catch (e) {
-		isValidate = false;
-		print.error(e.message);
-	}
-	if (!isValidate) {
-		print.error(`source value(${source}) invalid！`);
-	}
-	return isValidate;
-}
-const validateVersion = (version:string) => {
-	let isValidate;
-	try {
-		isValidate = version.length > 0;
-	} catch (e) {
-		isValidate = false;
-		print.error(e.message);
-	}
-	if (!isValidate) {
-		print.error(`version value(${version}) invalid！`);
-	}
-	return isValidate;
-}
-const validate = (config:RigConfig) => {
-	let isValidate = true;
-	try {
-		for (let dep of config.dependencies) {
-			if (!(validateName(dep.name) && validateSource(dep.source) && validateVersion(dep.version))) {
-				isValidate = false;
-				print.error(`!INVALID CONFIG!:${JSON.stringify(dep)}`);
-				break;
-			}
-		}
-	} catch (e) {
-		print.error(e.message);
-		isValidate = false;
-	}
-	if (!isValidate) {
-		print.info(`Visit https://github.com/FlashHand/rig for documentation`);
-	}
-	return isValidate;
-}
-const clone = (target, dep) => {
+const clone = (target:string, dep:Dep) => {
 	print.info(`cloning ${dep.name}`);
 	let cloneProcess = shell.exec(`git clone ${dep.source} ${target}/${dep.name}`,
 		{silent: true}
@@ -78,76 +22,14 @@ const clone = (target, dep) => {
 		process.exit(1);
 	}
 }
-const checkDepsValid = (rigJson5) => {
-	print.info(`checkDepsValid`);
-	let valid = true;
-	for (let rig of rigJson5) {
-		try {
-			const cmd = `git fetch  ${rig.source} refs/tags/${rig.version} && git show FETCH_HEAD:package.json`;
-			console.log(cmd);
-			let showPackageProcess = shell.exec(cmd,
-				{silent: true}
-			);
-			let pkgStr = showPackageProcess.stdout.trim();
-			const pkg = JSON.parse(pkgStr);
-			//获取rig依赖
-			if (pkg.rig) {
-				const rigConfig = pkg.rig;
-				//遍历rig依赖
-				Object.keys(rigConfig).forEach(key => {
-					//获取该rig依赖的要求的版本范围
-					let max = '';
-					let min = '';
-					if (Array.isArray(rigConfig[key])) {
-						//使用数组的情况
-						if (rigConfig[key].length !== 2) {
-							print.error('array\'s length must equal to 2!');
-							valid = false;
-						} else {
-							min = rigConfig[key][0]
-							max = rigConfig[key][1];
-						}
-					} else {
-						//使用字典的情况
-						min = rigConfig[key]['min'] || '';
-						max = rigConfig[key]['max'] || '';
-					}
-
-					//从rigJson5获取该依赖的版本号
-					const dep = rigJson5.find(r => r.name === key);
-					print.info(`checking: ${key}[${min},${max}]`);
-					if (dep) {
-						if (min) {
-							valid = compareVersions(dep.version, min) >= 0
-						}
-						if (max) {
-							valid = compareVersions(dep.version, max) <= 0
-						}
-						if (!valid){
-							print.error(`${rig.name} requires ${key}[${min},${max}],but ${key} is ${dep.version}!`);
-						}
-					} else {
-						print.error(`${key}[${min},${max}] is required`);
-						valid = false;
-					}
-				})
-			}
-		} catch (e) {
-			print.error(`checkDepsValid failed:${e.message}`);
-			valid = false;
-		}
-	}
-	return valid;
-}
 //加载命令控制器
-export default async (cmd:any,path:string) => {
+export default async (cmd:any) => {
 	print.info('start rig preinstall');
 	try {
 		//读取package.rig.json5
-		const rigConfig = path ? RigConfig.createFromPath(path) : RigConfig.createFromCWD();
-		const cmdArgs = cmd.args;
-		if (!validate(rigJson5)) setTimeout(()=>{process.exit(1)},200)
-		if (!checkDepsValid(rigJson5)) setTimeout(()=>{process.exit(1)},200)
+		const rigConfig = RigConfig.createFromCWD();
+		rigConfig.validate();
+		rigConfig.validateDeps();
 		if (!(fs.existsSync('./rigs') && fs.lstatSync('./rigs').isDirectory())) {
 			print.info('create folder rigs');
 			fs.mkdirSync('rigs');
@@ -162,7 +44,8 @@ export default async (cmd:any,path:string) => {
 		 * 1. install 不应该覆盖或删除已经clone到rigs下的模块，由开发者自己选择要不要删
 		 * 2. rigs下的模块更新，由开发者自己git操作解决。
 		 */
-		for (let dep of rigJson5) {
+		for (let rigName in rigConfig.dependencies) {
+			const dep = rigConfig.dependencies[rigName];
 			if (dep.dev) {
 				//不去覆盖已下载的库
 				if (fs.existsSync(`${target}/${dep.name}`)) {
@@ -190,10 +73,6 @@ export default async (cmd:any,path:string) => {
 		//远程链接设置完成，开发库设置完成，准备执行yarn install
 	} catch (e) {
 		print.error(e.message);
+		process.exit(1);
 	}
-}
-module.exports = {
-	name: 'install',
-	load,
-	checkDepsValid
 }

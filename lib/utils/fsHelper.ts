@@ -24,7 +24,7 @@ const readConfig = (path: string = '') => {
 	}
 }
 
-const writeConfig = (config: RigConfig, path: string = '') => {
+const writeConfig = (config: any, path: string = '') => {
 	try {
 		if (path) {
 			fs.writeFileSync(path,config.toString());

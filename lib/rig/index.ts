@@ -1,5 +1,8 @@
 import semver from 'semver';
 import print from '../print';
+import dev from '../dev';
+import preinstall from '../preinstall';
+import postinstall from '../postinstall';
 const nodeMin = '14.0.0';
 if (semver.gte(nodeMin,process.version)){
 	print.error('NodeJS version must be at least 14.');
@@ -19,19 +22,20 @@ import install from '../install';
 
 program.command('install').action(install);
 program.command('i').action(install);
-import preinstall from '../preinstall';
-import postinstall from '../postinstall';
 
-program.command('preinstall').action(preinstall.load);
-program.command('postinstall').action(postinstall.load);
+program.command('preinstall').action(preinstall);
+program.command('postinstall').action(postinstall);
 import tag from '../tag';
 
 program.command('tag').action(tag.load);
 import info from '../info';
 
 program.command('info').action(info.load);
-import build from '../build';
 
+program.command('dev').action(dev);
+
+
+import build from '../build';
 program.command('build')
 	.option('-s, --schema <schema>', 'specify params in tree_schema')
 	.option('-p , --params <params>', 'replace words in cicd.rig.json5, only words in ${} are replacable')
