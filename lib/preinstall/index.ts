@@ -30,19 +30,19 @@ export default async (cmd:any) => {
 		const rigConfig = RigConfig.createFromCWD();
 		rigConfig.validate();
 		rigConfig.validateDeps();
-		if (!(fs.existsSync('./rigs') && fs.lstatSync('./rigs').isDirectory())) {
-			print.info('create folder rigs');
-			fs.mkdirSync('rigs');
-			fs.writeFileSync('rigs/.gitkeep', '')
+		if (!(fs.existsSync('./rig_dev') && fs.lstatSync('./rig_dev').isDirectory())) {
+			print.info('create folder rig_dev');
+			fs.mkdirSync('rig_dev');
+			fs.writeFileSync('rig_dev/.gitkeep', '')
 		}
-		shell.chmod('777', 'rigs');
-		let target = 'rigs';
+		shell.chmod('777', 'rig_dev');
+		let target = 'rig_dev';
 		let pkgJson = JSON.parse(fs.readFileSync('package.json').toString());
 		let dependencies = pkgJson['dependencies'];
 		/**
 		 * 核心原则
-		 * 1. install 不应该覆盖或删除已经clone到rigs下的模块，由开发者自己选择要不要删
-		 * 2. rigs下的模块更新，由开发者自己git操作解决。
+		 * 1. install 不应该覆盖或删除已经clone到rig_dev下的模块，由开发者自己选择要不要删
+		 * 2. rig_dev下的模块更新，由开发者自己git操作解决。
 		 */
 		for (let rigName in rigConfig.dependencies) {
 			const dep = rigConfig.dependencies[rigName];

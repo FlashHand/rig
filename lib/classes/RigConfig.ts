@@ -2,7 +2,7 @@ import {Dep} from '@/classes/dependencies/Dep';
 import fsHelper from '@/utils/fsHelper';
 import objectHelper from '@/utils/objectHelper';
 import print from '@/print';
-import shell, {config} from 'shelljs';
+import shell from 'shelljs';
 import semver from 'semver';
 import compareVersions from 'compare-versions'
 
@@ -69,12 +69,18 @@ class RigConfig {
 		for (let rigName in this.dependencies) {
 			const rigDep = this.dependencies[rigName];
 			try {
-				const cmd = `git fetch ${rigDep.source} refs/tags/${rigDep.version} && git show FETCH_HEAD:package.json`;
-				print.info(`validateDeps:${cmd}`);
-				let showPackageProcess = shell.exec(cmd,
-					{silent: true}
-				);
-				let pkgStr = showPackageProcess.stdout.trim();
+				let pkgStr: string;
+				if (rigDep.dev) {
+					pkgStr = fsHelper.readPkgStrInRepo(rigName);
+					print.info(`${rigName} is in deleloping.Validating ${rigName}'s dependencies...`);
+				} else {
+					const cmd = `git fetch ${rigDep.source} refs/tags/${rigDep.version} && git show FETCH_HEAD:package.json`;
+					print.info(`validateDeps:${cmd}`);
+					let showPackageProcess = shell.exec(cmd,
+						{silent: true}
+					);
+					pkgStr = showPackageProcess.stdout.trim();
+				}
 				const pkg = JSON.parse(pkgStr);
 				//获取rig依赖
 				if (pkg.rig) {
@@ -104,7 +110,7 @@ class RigConfig {
 						}
 						//从rigJson5获取该依赖的版本号
 						const dep = this.dependencies[key]
-						print.info(`checking: ${key}[${min},${max}]`);
+						print.info(`checking requirements of ${rigName}: ${key}[${min},${max}]`);
 						if (dep) {
 							if (dep.dev) {
 								valid = true;

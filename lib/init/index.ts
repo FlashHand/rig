@@ -30,22 +30,22 @@ export default async () => {
       fs.writeFileSync(`${process.cwd()}/rig_helper.js`, rigHelper);
     }
 
-    //检查rigs是否存在
-    if (fs.existsSync('./rigs') && fs.lstatSync('./rigs').isDirectory()) {
-      print.info('folder rigs  already exists~');
+    //检查rig_dev是否存在
+    if (fs.existsSync('./rig_dev') && fs.lstatSync('./rig_dev').isDirectory()) {
+      print.info('folder rig_dev  already exists~');
     } else {
-      print.info('create folder rigs');
-      fs.mkdirSync('rigs');
-      fs.writeFileSync('rigs/.gitkeep', '')
+      print.info('create folder rig_dev');
+      fs.mkdirSync('rig_dev');
+      fs.writeFileSync('rig_dev/.gitkeep', '')
     }
 
     //填充gitignore
     let rigIgnoreStrArr = [
       'rigs/*',
-      'rigs_dev/*',
+      'rig_dev/*',
       '.env.rig',
       '!rigs/.gitkeep',
-      '!rigs_dev/.gitkeep'
+      '!rig_dev/.gitkeep'
     ];
     let gitignoreStr = ''
     if (fs.existsSync('.gitignore')) {
@@ -66,8 +66,7 @@ export default async () => {
     let inserted = {
       private: true,
       workspaces: [
-        "rigs/*",
-        "rigs_dev/*"
+        "rig_dev/*"
       ],
       scripts: {
         preinstall: "rig preinstall",
@@ -80,13 +79,9 @@ export default async () => {
     pkgJSON.private = inserted.private;
     //初始化workspaces
     if (pkgJSON.workspaces && pkgJSON.workspaces instanceof Array) {
-      if (pkgJSON.workspaces.indexOf('rigs/*') === -1) {
-        pkgJSON.workspaces.push('rigs/*')
+      if (pkgJSON.workspaces.indexOf('rig_dev/*') === -1) {
+        pkgJSON.workspaces.push('rig_dev/*')
       }
-      if (pkgJSON.workspaces.indexOf('rigs_dev/*') === -1) {
-        pkgJSON.workspaces.push('rigs_dev/*')
-      }
-
     } else {
       pkgJSON.workspaces = inserted.workspaces
     }

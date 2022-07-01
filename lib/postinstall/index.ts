@@ -29,7 +29,7 @@ export default async () => {
           shell.rm('-rf', `node_modules/${dep.name}`);
         }
         fs.symlinkSync(
-          path.resolve(rootPath, `./rigs/${dep.name}`),
+          path.resolve(rootPath, `./rig_dev/${dep.name}`),
           path.resolve(rootPath, `./node_modules/${dep.name}`),
           'dir'
         );
@@ -37,7 +37,7 @@ export default async () => {
     }
     print.succeed(`postinstall SUCCEED!`);
     if (devDeps.length>0){
-      print.warn(`developing ${devDeps.length} modules: ${devDeps}.Installed in rigs/.Already linked.`)
+      print.warn(`developing ${devDeps.length} modules: ${devDeps}.Installed in rig_dev/.Already linked.`)
     }
   } catch (e) {
     print.error(e.message);
