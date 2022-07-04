@@ -4,9 +4,9 @@
  * @author Wang Bo (ralwayne@163.com)
  * @date 2020/10/9 6:14 PM
  */
-import {packageRigJSON5, rigHelper} from '../template';
 import print from '../print';
 import fs from 'fs';
+import axios from 'axios';
 
 export default async () => {
   try {
@@ -21,12 +21,16 @@ export default async () => {
     } else {
       //创建package.rig.json5
       print.info('create package.rig.json5');
+      const resPackageRigJSON5 = await axios.get('https://gist.githubusercontent.com/FlashHand/ea156ac4930b05832ad7c568f7f00cdd/raw/48a4321ccf1b0339a15f6454336f289b8b5bad58/package.rig.json5');
+      const packageRigJSON5 = resPackageRigJSON5.data;
       fs.writeFileSync('./package.rig.json5', packageRigJSON5);
     }
     if (fs.existsSync(`${process.cwd()}/rig_helper.js`)) {
       print.info('rig_helper.js already exists~');
     } else {
       print.info('create rig_helper.js');
+      const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/ea156ac4930b05832ad7c568f7f00cdd/raw/326b0afcbeecae2738ab5711ee1dae8c52d372d7/package.rig.json5');
+      const rigHelper = resRigHelper.data;
       fs.writeFileSync(`${process.cwd()}/rig_helper.js`, rigHelper);
     }
 

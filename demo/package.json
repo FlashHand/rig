@@ -49,6 +49,7 @@
   ],
   "workspaces": [
     "rigs/*",
-    "rigs_dev/*"
+    "rigs_dev/*",
+    "rig_dev/*"
   ]
 }

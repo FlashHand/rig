@@ -1,7 +1,7 @@
 import { CICDConfig, Define, DefineDict, DeployTarget, DirGroup } from './CICD';
 import { mkdirSync } from 'fs';
 import DirLevel from '@/classes/cicd/DirLevel';
-//Mapping endpoints in cicd.rig.json5
+//Mapping endpoints in package.rig.json5->cicd
 interface EndpointInfo {
   build: string;
   target: string;

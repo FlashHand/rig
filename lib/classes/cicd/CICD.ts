@@ -1,10 +1,9 @@
 import DirLevel from '@/classes/cicd/DirLevel';
 import Endpoint, {EndpointDict} from '@/classes/cicd/Endpoint';
 import fs from 'fs';
+import qs from 'querystring';
 
 const JSON5 = require('json5');
-import qs from 'querystring';
-import util from 'util';
 
 export enum CloudType {
 	alicloud = 'alicloud',
@@ -112,17 +111,16 @@ class CICD {
 
 	static createByDefault(cmd: any) {
 		//replace params
-		let cicdStr = fs.readFileSync(`${process.cwd()}/cicd.rig.json5`).toString();
+		let pkgStr = fs.readFileSync(`${process.cwd()}/package.rig.json5`).toString();
 		const paramsStr = cmd.params;
 		const params = qs.parse(paramsStr);
 		//替换动态变量
 		Object.keys(params).forEach(key => {
 			const regStr = `\\$\\{${key}\\}`;
 			const regex = new RegExp(regStr, 'g');
-			cicdStr = cicdStr.replace(regex, params[key] as string);
+			pkgStr = pkgStr.replace(regex, params[key] as string);
 		});
-		const cicd = new CICD(JSON5.parse(cicdStr))
-		return cicd;
+		return new CICD(JSON5.parse(pkgStr).cicd);
 	}
 
 	matchEndpoints(cmdDirStrArr: string[]) {
