@@ -10,11 +10,14 @@ const JSON5 = require('json5');
 
 interface RigConfigJSON5 {
 	dependencies: { [name: string]: Dep; };
+	share:{ [name: string]: string | string[]; };
 }
 
 class RigConfig {
 	dependencies: { [name: string]: Dep; } = {};
 	isLegacy = false;
+	share: { [name: string]: string | string[]; } = {};
+
 
 	constructor(rigConfig: RigConfigJSON5 | Dep[]) {
 		if (Array.isArray(rigConfig)) {
@@ -29,6 +32,7 @@ class RigConfig {
 			for (let rigName in rigConfig.dependencies) {
 				this.dependencies[rigName] = new Dep({...rigConfig.dependencies[rigName], name: rigName})
 			}
+			this.share = rigConfig.share;
 		}
 		console.log(this);
 		this.validate();
@@ -54,17 +58,17 @@ class RigConfig {
 	}
 
 	validate() {
-		print.info(`rig preinstall:validating rig-dependencies...`);
+		print.info(`rig validating rig-dependencies...`);
 		for (let key in this.dependencies) {
 			const ret = this.dependencies[key].validate();
 			if (!ret) {
-				throw new Error(`rig preinstall:validating:${this.dependencies[key]} is invalid`);
+				throw new Error(`rig validating:${this.dependencies[key]} is invalid`);
 			}
 		}
 	}
 
 	validateDeps() {
-		print.info(`rig preinstall:validating dependencies' requirements`);
+		print.info(`rig validating dependencies' requirements`);
 		let valid = true;
 		for (let rigName in this.dependencies) {
 			const rigDep = this.dependencies[rigName];
@@ -134,7 +138,7 @@ class RigConfig {
 					})
 				}
 			} catch (e) {
-				throw new Error(`rig preinstall:validateDeps failed:${e.message}`);
+				throw new Error(`rig validateDeps failed:${e.message}`);
 			}
 		}
 	}
