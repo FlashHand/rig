@@ -70,6 +70,7 @@ export interface CICDConfig {
 	 * fafafafa
 	 */
 	tree_schema: string;
+	path_schema: string;
 	web_type: 'hash'|'history'|'mpa';
 	source: DeploySource;
 	target: DeployTarget | DeployTarget[];
@@ -100,7 +101,7 @@ class CICD {
 	groups: DirGroup[];
 
 	constructor(config: CICDConfig) {
-		this.treeSchema = config.tree_schema;
+		this.treeSchema = config.tree_schema || config.path_schema;
 		this.web_type = config.web_type || 'hash';
 		this.schema = DirLevel.createSchema(this.treeSchema);
 		this.endpoints = Endpoint.createEndpointArr(config, this.schema);

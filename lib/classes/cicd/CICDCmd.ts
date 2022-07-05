@@ -57,6 +57,7 @@ class CICDCmd {
 		if (this.dirStrArr.length > this.dirInSchemaStrArr.length) {
 			const sufDir = this.dirStrArr.slice(this.dirInSchemaStrArr.length, this.dirStrArr.length).join('/');
 			this.endpoints = this.endpoints.map(ep => {
+				//TODO:需要重构
 				ep.deployDir = path.join(ep.deployDir, sufDir);
 				ep.publicPath = ep.deployDir;
 				return ep;

@@ -1,6 +1,4 @@
 import fs from 'fs';
-import RigConfig from '@/classes/RigConfig';
-import {packageRigJSON5} from '@/template';
 
 const JSON5 = require('json5');
 const readCICDConfig = () => {

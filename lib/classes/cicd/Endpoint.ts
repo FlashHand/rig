@@ -68,6 +68,12 @@ class Endpoint {
 
 	}
 
+	/**
+	 *
+	 * @param {string[]} dirSchemaStrArr split tree_schema string into array
+	 * @param {DirGroup[]} groups
+	 * @returns {boolean}
+	 */
   matchCmd(dirSchemaStrArr: string[], groups: DirGroup[]) {
     if (this.dirStrArr.length < dirSchemaStrArr.length) {
       return false;

@@ -25,15 +25,15 @@ export default async () => {
       const packageRigJSON5 = resPackageRigJSON5.data;
       fs.writeFileSync('./package.rig.json5', packageRigJSON5);
     }
+    //检查是否存在rig_helper.js
     if (fs.existsSync(`${process.cwd()}/rig_helper.js`)) {
       print.info('rig_helper.js already exists~');
     } else {
       print.info('create rig_helper.js');
-      const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/ea156ac4930b05832ad7c568f7f00cdd/raw/326b0afcbeecae2738ab5711ee1dae8c52d372d7/package.rig.json5');
+      const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/c13135e8b9cd088221fbbfdb51f104ca/raw/baa02b804ee5b1186b06ca172f80b55003317bcc/rigHelper.js');
       const rigHelper = resRigHelper.data;
       fs.writeFileSync(`${process.cwd()}/rig_helper.js`, rigHelper);
     }
-
     //检查rig_dev是否存在
     if (fs.existsSync('./rig_dev') && fs.lstatSync('./rig_dev').isDirectory()) {
       print.info('folder rig_dev  already exists~');
@@ -70,6 +70,7 @@ export default async () => {
     let inserted = {
       private: true,
       workspaces: [
+        "rigs/*",
         "rig_dev/*"
       ],
       scripts: {
@@ -77,7 +78,7 @@ export default async () => {
         postinstall: "rig postinstall",
       },
       devDependencies: {
-        json5: '2.1.3'
+        json5: '2.2.1'
       }
     }
     pkgJSON.private = inserted.private;

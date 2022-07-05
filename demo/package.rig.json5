@@ -1,11 +1,60 @@
 {
   dependencies: {
-    //example
     'rig-test-1': {
       dev: true,
       name: 'rig-test-1',
       source: 'git@github.com:FlashHand/rig-test-1.git',
-      version: '1.0.1'
-    }
-  }
+      version: '1.0.1',
+    },
+    'rig-test-2': {
+      dev: false,
+      name: 'rig-test-2',
+      source: 'git@github.com:FlashHand/rig-test-2.git',
+      version: '1.0.2',
+    },
+  },
+  isLegacy: false,
+  cicd: {
+    path_schema: "demo/{env}/{oem}",
+    //Your local build's path.
+    source: {
+      root_path: "dist"
+    },
+    //Entry path for your website's index.html.Default is '/'.
+    web_entry_path: '/',
+    //Your deploy target
+    target: {
+      //Only support alicould for now.
+      id: "alicloud",
+      type: "alicloud",
+      bucket: "rys-deploy",
+      region: "oss-cn-hangzhou",
+      access_key: "${ak}",
+      access_secret: "${as}",
+      //Root path in the bucket,default is '/'.
+      root_path: "/",
+    },
+    endpoints: {
+      "demo/test/oem1": {
+        build: 'yarn cross-env OUTPUT_DIR=__RIG_OUTPUT_DIR__ PUBLIC_PATH=__RIG_PUBLIC_PATH__ vue-cli-service build',
+        defines: {
+          RIG_REPLACE_GRAY: '/test-gray'
+        },
+        domains: [
+          "test-mp.rys.cn"
+        ],
+      },
+    },
+    groups: [
+      {
+        name: "%group1",
+        level: "oem",
+        includes: [
+          "rys",
+          "zhs"
+        ]
+      },
+    ]
+
+  },
 }
