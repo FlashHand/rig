@@ -22,7 +22,7 @@ const setRewriteUri = async (
   );
 
   const configId = rwriteResult?.DomainConfigList.DomainConfigModel[0].ConfigId;
-  for (let i = 0; i <= 200; i++) {
+  for (let i = 0; i <= 100; i++) {
     const configInfo = await cdn.describeCdnDomainConfigs(domain, configId);
     const domainConfigs = configInfo.DomainConfigs.DomainConfig;
     let successCount = 0;
@@ -36,7 +36,7 @@ const setRewriteUri = async (
     if (successCount === domainConfigs.length) {
       break;
     }
-    if (i === 200) {
+    if (i === 100) {
       throw new Error('cdn rewrite timeout 10min');
     }
     await delay(3000);
@@ -46,7 +46,7 @@ const setRewriteUri = async (
 const refreshCache = async (urls: string[], cdn: CDN) => {
   const refreshResult = await cdn.refreshCache(urls.join('\n'));
   console.log('Please Wait For RefreshCache...');
-  for (let i = 0; i <= 200; i++) {
+  for (let i = 0; i <= 100; i++) {
     const desResult = await cdn.describeRefreshTaskById(
       refreshResult.RefreshTaskId
     );
@@ -61,7 +61,7 @@ const refreshCache = async (urls: string[], cdn: CDN) => {
     if (successCount === desResult.Tasks.length) {
       break;
     }
-    if (i === 200) {
+    if (i === 100) {
       throw new Error('refresh cache timeout 10min');
     }
     await delay(3000);
