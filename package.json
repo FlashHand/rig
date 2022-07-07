@@ -1,13 +1,13 @@
 {
   "name": "rigjs",
   "version": "3.0.0",
-  "description": "A multi-repos dev tool based on yarn and git.Rig is inspired by cocoapods. Not like those monorepo solutions,rig is a tool for organizing multi-repos.",
+  "description": "A multi-repos dev tool based on yarn and git.Rigjs is intended to be the simplest way to develop,share and deliver codes between different developers or different projects.",
   "keywords": [
     "modular",
     "lerna",
     "monorepo",
     "multirepos",
-    "cocoapods",
+    "carthage",
     "symlink",
     "npm link",
     "workspaces"
