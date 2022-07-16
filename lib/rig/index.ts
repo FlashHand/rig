@@ -1,5 +1,6 @@
 import semver from 'semver';
 import print from '../print';
+import add from '../add';
 import dev from '../dev';
 import preinstall from '../preinstall';
 import postinstall from '../postinstall';
@@ -36,6 +37,8 @@ program.command('tag').action(tag.load);
 import info from '../info';
 
 program.command('info').action(info.load);
+
+program.command('add').action(add);
 
 program.command('dev').action(dev);
 
