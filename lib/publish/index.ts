@@ -44,28 +44,35 @@ const setRewriteUri = async (
 };
 
 const refreshCache = async (urls: string[], cdn: CDN) => {
-  const refreshResult = await cdn.refreshCache(urls.join('\n'));
-  console.log('Please Wait For RefreshCache...');
-  for (let i = 0; i <= 100; i++) {
-    const desResult = await cdn.describeRefreshTaskById(
-      refreshResult.RefreshTaskId
-    );
-    let successCount = 0;
-    for (const item of desResult.Tasks) {
-      if (item.Status === 'Complete') {
-        successCount++;
-      } else if (item.Status === 'Failed') {
-        throw new Error('RefreshCache Failed');
+  let start = 0;
+  console.log(`Please Wait For RefreshCache for ${urls.length} domains...`);
+  while(start<urls.length){
+    const partialURLs = urls.slice(start, 10);
+    const refreshResult = await cdn.refreshCache(partialURLs.join('\n'));
+    for (let i = 0; i <= 100; i++) {
+      const desResult = await cdn.describeRefreshTaskById(
+        refreshResult.RefreshTaskId
+      );
+      let successCount = 0;
+      for (const item of desResult.Tasks) {
+        if (item.Status === 'Complete') {
+          successCount++;
+        } else if (item.Status === 'Failed') {
+          throw new Error('RefreshCache Failed');
+        }
       }
+      if (successCount === desResult.Tasks.length) {
+        break;
+      }
+      if (i === 100) {
+        throw new Error('refresh cache timeout 10min');
+      }
+      await delay(3000);
     }
-    if (successCount === desResult.Tasks.length) {
-      break;
-    }
-    if (i === 100) {
-      throw new Error('refresh cache timeout 10min');
-    }
-    await delay(3000);
+    start += 10;
   }
+
+
   console.log('RefreshCache Done');
 };
 
@@ -127,8 +134,8 @@ export default async (cmd: any) => {
             setRewriteConfig(
               domain,
               '^\\/([\\w-/]*\\w+)(?![^?]*\\.\\w+)',
-              `/${endpoint.deployDir.replace(/\\/g, '/')}/$1.html`
-            );
+              ` /${endpoint.deployDir.replace(/\\/g, '/')}/$1.html`
+  );
             //mpa匹配文件
             setRewriteConfig(
               domain,
