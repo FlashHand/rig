@@ -11,22 +11,22 @@
     - [`rig tag`](#rig-tag)
   
 ## Getting started
-###Prerequisites
+### Prerequisites
 - Should install yarn first.Rig is using yarn workspace to do module-hoisting.
 ```shell
 npm i -g yarn
 ```
 
-###Installation
+### Installation
 
 ```shell script
 yarn global add rigjs
 ```
 
-###Configuration
+### Configuration
 You could try the demo for quick practice.
 
-####1.init rig in your project
+#### 1.init rig in your project
 In your project's root path.
 
 ```shell script
@@ -35,7 +35,7 @@ rig init
 
 package.rig.json5 will be added to your project's root.
 
-####2.Put the modules you want in git repos
+#### 2.Put the modules you want in git repos
 - Create semver style tag for your modules 
   
 - Tags like 1,1.0,1.0.0,v1.0.0-alpha.110 are supported.
@@ -46,7 +46,7 @@ rig-test-1:git@github.com:FlashHand/rig-test-1.git
 
 rig-test-2:git@github.com:FlashHand/rig-test-2.git
 
-####3.configuring package.rig.json5
+#### 3.configuring package.rig.json5
 
 ***copy this and try***
 ```json5
@@ -71,7 +71,7 @@ rig-test-2:git@github.com:FlashHand/rig-test-2.git
 ]
 ```
 
-####4.run install:
+#### 4.run install:
 ```shell script
 yarn
 ```
@@ -83,15 +83,15 @@ rig-test-1 will be installed in node_modules.
 rig-test-2 will be cloned to rigs/.A shortcut of rig-test-2 will be created in node_modules.
 
 ## Main Features
-###Intergrating and reusing codes really fast.
+### Intergrating and reusing codes really fast.
 1. Git is enough.No need to publish to npm or private registry.Much simpler than git submodule.
 2. Easily configurable.After configuration in  simply use 'yarn install' and import/require your modules just like npm modules.
 3. Support modules in any scale: from a simple js file to many web page files.
 4. 
 
-###Easily develop and debug modules inside your project.
+### Easily develop and debug modules inside your project.
 
-###All modules managed by rigjs are flatten.
+### All modules managed by rigjs are flatten.
 
 
 
