@@ -1,0 +1,14 @@
+{
+  dependencies: {
+    'rig-test-1': {
+      dev: true,
+      name: 'rig-test-1',
+      source: 'git@github.com:FlashHand/rig-test-1.git',
+    },
+    'rig-test-2': {
+      dev: true,
+      name: 'rig-test-2',
+      source: 'git@github.com:FlashHand/rig-test-2.git',
+    },
+  },
+}

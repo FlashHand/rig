@@ -27,3 +27,5 @@ rigs_dev/*
 .env.rig
 !rigs/.gitkeep
 !rigs_dev/.gitkeep
+rig_dev/*
+!rig_dev/.gitkeep

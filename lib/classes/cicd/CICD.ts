@@ -1,10 +1,9 @@
 import DirLevel from '@/classes/cicd/DirLevel';
 import Endpoint, {EndpointDict} from '@/classes/cicd/Endpoint';
 import fs from 'fs';
+import qs from 'querystring';
 
 const JSON5 = require('json5');
-import qs from 'querystring';
-import util from 'util';
 
 export enum CloudType {
 	alicloud = 'alicloud',
@@ -71,6 +70,7 @@ export interface CICDConfig {
 	 * fafafafa
 	 */
 	tree_schema: string;
+	path_schema: string;
 	web_type: 'hash'|'history'|'mpa';
 	source: DeploySource;
 	target: DeployTarget | DeployTarget[];
@@ -101,7 +101,7 @@ class CICD {
 	groups: DirGroup[];
 
 	constructor(config: CICDConfig) {
-		this.treeSchema = config.tree_schema;
+		this.treeSchema = config.tree_schema || config.path_schema;
 		this.web_type = config.web_type || 'hash';
 		this.schema = DirLevel.createSchema(this.treeSchema);
 		this.endpoints = Endpoint.createEndpointArr(config, this.schema);
@@ -112,17 +112,16 @@ class CICD {
 
 	static createByDefault(cmd: any) {
 		//replace params
-		let cicdStr = fs.readFileSync(`${process.cwd()}/cicd.rig.json5`).toString();
+		let pkgStr = fs.readFileSync(`${process.cwd()}/package.rig.json5`).toString();
 		const paramsStr = cmd.params;
 		const params = qs.parse(paramsStr);
 		//替换动态变量
 		Object.keys(params).forEach(key => {
 			const regStr = `\\$\\{${key}\\}`;
 			const regex = new RegExp(regStr, 'g');
-			cicdStr = cicdStr.replace(regex, params[key] as string);
+			pkgStr = pkgStr.replace(regex, params[key] as string);
 		});
-		const cicd = new CICD(JSON5.parse(cicdStr))
-		return cicd;
+		return new CICD(JSON5.parse(pkgStr).cicd);
 	}
 
 	matchEndpoints(cmdDirStrArr: string[]) {

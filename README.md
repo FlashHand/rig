@@ -1,210 +1,173 @@
 # rig
+*[中文文档](./README_CN.md)*
 
-## [中文文档](./README_CN.md)
+- [Getting started](#Get started：Modular developing by rigjs.)
+- [dependencies config](./doc/dependencies_cn.md)
+- [CICD config](./doc/cicd_cn.md)
+- [share config](./doc/share_cn.md)
+- [Goals](#Goals)
 
-- [Getting Started](#getting-started)
-- [How It Works](#how-it-works)
-- Commands
-    - [`rig init`](#rig-init)
-    - [`rig install`](#rig-install)
-    - [`rig check`](#rig-check)
-    - [`rig tag`](#rig-tag)
-  
-## Getting started
+
+## Get started
 ### Prerequisites
-- Should install yarn first.Rig is using yarn workspace to do module-hoisting.
+#### Install yarn
 ```shell
-npm i -g yarn
-```
-
-### Installation
-
-```shell script
 yarn global add rigjs
 ```
+Rigjs use yarn workspaces to achieve module-hoisting. [About yarn workspaces](https://classic.yarnpkg.com/en/docs/workspaces).
+#### NodeJS version >= 14
+Use [n](https://github.com/tj/n) to update NodeJS.
+```shell
+yarn global add n
+#upgrade to lts
+sudo n lts 
+#specify the version.
+sudo n 14.19.1
+```
 
-### Configuration
-You could try the demo for quick practice.
-
-#### 1.init rig in your project
-In your project's root path.
+### 1.Initialize rigjs configuration。
 
 ```shell script
+#in your project's root path（same level with package.json）：
 rig init
 ```
+package.rig.json5 will be added in root path.
 
-package.rig.json5 will be added to your project's root.
+### 2.Use rigjs to install existing repos.
+#### 2.1 Method-one：rig add
+rig add [your git ssh url] [tag]
+e.g.
+```shell
+rig add git@github.com:FlashHand/rig-demo-1.git 0.0.1
+```
+import or require the module.
+```ecmascript 6
+const {hello} = require('rig-demo-1');
+hello();
+```
 
-#### 2.Put the modules you want in git repos
-- Create semver style tag for your modules 
-  
-- Tags like 1,1.0,1.0.0,v1.0.0-alpha.110 are supported.
-
-Or you can just use following repos for testing:
-
-rig-test-1:git@github.com:FlashHand/rig-test-1.git
-
-rig-test-2:git@github.com:FlashHand/rig-test-2.git
-
-#### 3.configuring package.rig.json5
-
-***copy this and try***
+#### 2.2 Method-two：change package.rig.json5
 ```json5
-//dev is false by default
-[
-  //  {
-  //    name: 'module',//module's name
-  //    source: 'git@git.domain.com:path/module.git',//module's source,not supporting http for now.
-  //    version: '1.0.0',//Notice:this used as tag.module's version ,
-  //  },
-  {
-    name: 'rig-test-1',
-    source: 'git@github.com:FlashHand/rig-test-1.git',
-    version: '1.0.0',
-  },
-  {
-    name: 'rig-test-2',
-    source: 'git@github.com:FlashHand/rig-test-2.git',
-    version: '1.0.1',
-    dev: true
+{
+  dependencies: {
+    'rig-demo-1': {
+      source: 'git@github.com:FlashHand/rig-demo-1.git',
+      version: '0.0.1',
+    }
   }
-]
+}
+```
+then
+```shell
+yarn install
+```
+### 3.Use rigjs to develop an existing repo.
+#### 3.1 Method-one：rig dev
+rig dev [package's name|git-ssh-url]
+
+When package is already in package.rig.json5:
+```shell
+rig dev rig-demo-1
+```
+When package is not in package.rig.json5:
+```shell
+rig dev git@github.com:FlashHand/rig-demo-1.git
 ```
 
-#### 4.run install:
-```shell script
-yarn
-```
-
-**Result:**
-
-rig-test-1 will be installed in node_modules.
-
-rig-test-2 will be cloned to rigs/.A shortcut of rig-test-2 will be created in node_modules.
-
-## Main Features
-### Intergrating and reusing codes really fast.
-1. Git is enough.No need to publish to npm or private registry.Much simpler than git submodule.
-2. Easily configurable.After configuration in  simply use 'yarn install' and import/require your modules just like npm modules.
-3. Support modules in any scale: from a simple js file to many web page files.
-4. 
-
-### Easily develop and debug modules inside your project.
-
-### All modules managed by rigjs are flatten.
-
-
-
-1. Put the modules you wanna intergrating in git repos.
-2. Configure those modules in
-
-
-1. Integrating other git reposCreated for modular architecture.
-2. An organizer for multi repos.
-3. You can develop and test your module within your project just by setting **dev** to true,then rigjs automatically create shortcuts in node_modules folder for your developing modules in rigs folder.
-4. Modules are hoisted,because rigjs uses yarn's workspace.
-5. Automatically create shortcuts in node_modules folder for your developing modules in rigs folder.
-
-
-## How it works
-
-#### package.rig.json5
-
-Rig is inspired by cocoapods. Not like those popular monorepo solutions,rig is a tool for organizing multi repos. So rig
-create a file named "package.rig.json5". Data in "package.rig.json5" can look like this:
-
+**rig-demo-1** will be installed in rig_dev directory.And a symlink of the module will be created in node_modules.
+#### 3.1 Method-two：change package.rig.json5
 ```json5
-//dev is false by default
-//dev 默认为false
-[
-  //  {
-  //    name: 'r-a',//module's name
-  //    source: 'git@git.domain.com:common/r-a.git',//module's source
-  //    version: '1.0.0',//Notice:this used as tag.module's version ,
-  //  },
-  {
-    name: 'r-b',
-    source: 'git@git.domain.com:common/r-b.git',
-    version: '1.0.0',
-  },
-  {
-    name: 'r-c',
-    source: 'git@git.domain.com:common/r-c.git',
-    version: '1.0.0',
-    dev: true
+{
+  dependencies: {
+    'rig-demo-1': {
+      source: 'git@github.com:FlashHand/rig-demo-1.git',
+      version: '0.0.1',
+      dev: true //false by default
+    }
   }
-]
+}
+```
+then
+```shell
+yarn install
 ```
 
-package.rig.json5 has an array of modules.
-
-So rig create a folder named "rigs".
-
-When dev is true,the module will be cloned in rigs/**(using master branch)**.
-
-And it gets automatically linked in node_modules.
-
-#### How rig modifies package.json
-
-```javascript
-//Rig will insert these to package.json
-//Rig won't cover your preinstall or postinstall's  settings.Scripts and workspaces will be appended.
-let inserted = {
-	private: true,
-	workspaces: [
-		"rigs/*",
-		"rigs_dev/*"
-	],
-	scripts: {
-		preinstall: "rig preinstall",
-		postinstall: "rig postinstall",
-	}
+### 4.Create and develop a new rigjs module。
+#### 4.1 Create a git repo。
+get git-ssh url: git@github.com:FlashHand/rig-demo-1.git
+#### 4.2 Start developing your modules in rigjs dependencies
+rig dev git@github.com:FlashHand/rig-demo-1.git
+#### 4.3 Initialize your module
+```shell
+cd your_project_path
+cd rig_dev/rig-demo-1
+yarn init 
+echo "module.export={hello:()=>{console.log('hello')}}" > index.js
+```
+#### 4.4 Use rigjs modules in your main project。
+```ecmascript 6
+const {hello} = require('rig-demo-1');
+hello();
+```
+#### 4.5 Use rigjs module in production。
+publish tag
+```shell
+cd rig_dev/rig-demo-1
+git add .
+git commit -m 'demo for rig'
+git tag 0.0.1
+git push origin your_branch --tag
+```
+Modify package.rig.json5
+- Change the module's version
+- Set dev to false.Don't use dev mode in production and should specify the version you need.
+```json5
+{
+  dependencies: {
+    'rig-demo-1': {
+      source: 'git@github.com:FlashHand/rig-demo-1.git',
+      version: '0.0.1',
+//      dev:true//Don't use dev mode in production and should specify the version you need.
+    }
+  }
 }
 ```
 
-**How to remove your modules**
+## Advantages
+- 💡Rigjs only needs git.No need to publish packages to private registry.
+- ⚡️Instant code sharing between multiple projects and multiple developers.Packages can be easily installed by git-ssh-url and tag.
+- ⚙️Auto npm link in dev mode.Import or require packages just like normal node_modules with friendly code suggestion.
+- 🔍Easily develop packages within your projects.Packages in *dev* mode are all in *rig_dev* folder.
+- 💨Easily transform existing code into a sharable package for multiple projects.
+-  📏Large content scale.You can share from a simple js file to multiple files that contains many pages.
+- 🧹Flat dependencies.No need to worry complex packages' relationship.
 
-Remove your modules from both package.json and package.rig.json5 then run **rig install** or **yarn install**.
+## Goals
+### Sharing codes or files.
+1. Reuse codes between different developers or different projects in most flexible and unobtrusive way.
+2. Easily turn modules into developing mode,no need to use npm link or change package.json.
+3. Also support sharing files between projects like '.eslintrc.js' or 'tsconfig.json'...
+4. Developing one website in multiple modules.
 
-//TODO:
-rig check //if has dev:true then end shell rig tag //using package.json version
+### Serverless CI/CD
+1. Build multiple versions for different environments at same time.
+2. Support deploying and publishing(Only support ali-cloud's oss and cdn by now).
 
-## Command
+### Remote modules' helper(in development)
+- Working with webpack5's module federation.
+- Easily active modules' developing mode.
+- Friendly Code suggestion.
+- Simple router that can brings you everywhere.
+- Sandbox,state sharing....
 
-### rig init
+### Current Limits
+- Rigjs packages can share source code directly in node_modules.So transpiling or compiling might be needed.
+- Rigjs can not remove redundant codes for remote modules.
+- Although rigjs supports developing one website in multiple repos,
+  But they all need to be built together into one application package.
+  So it wastes time to build those unchanged modules ,which seems wrong when your website has hundreds or thousands of pages.
+- CI/CD only supports ali-cloud's oss and cdn.I don't have plans to make it better for now.
 
-1. create a "package.rig.json5" file
-2. insert config to package.json
-3. create "rigs" folder
-4. modify .gitignore
+I'm still developing new features in most flexible and unobtrusive way.So my team won't cost extra time to upgrade their applications' architecture.
 
-### rig install
-
-equals to "yarn install"
-
-### rig check
-
-If a module's dev status is true in "package.rig.json5",the config will not be passed!
-
-Make sure you are not using developing modules for production.
-
-### rig tag
-
-Using version in package.json to tag.
-
-### rig --vueenv  <env>
-
-This command is specially for vue.This command reads the file named "env.rig.json5" in the root directory, and looks for
-the environment configuration in mode <env>.Then it will create a file named ".env.rig" or overwrite the file if ".env.rig" is not
-existed.
-After "rig --vueenv" you must use "--mode rig" to make it effective.
-e.g.
-```shell
-#serving a local site in dev enviroment
-rig --env dev && vue-cli-service serve --mode rig
-#building a site in prod enviroment
-rig --env prod && vue-cli-service build --mode rig
-```
-
-
-
+Rigjs works great for my team in development of vue-apps,uni-apps,electron apps and nodejs apps.If you don't need many remote modules,it will work fine for you too.

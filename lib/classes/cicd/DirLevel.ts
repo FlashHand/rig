@@ -1,4 +1,4 @@
-import regex from '../../utils/regex';
+import regex from '../../utils/regexHelper';
 
 /**
  * contain attributes of every level in the directory schema

@@ -4,7 +4,8 @@ import shell from 'shelljs';
 import path from 'path';
 import fs from 'fs';
 import vueEnv from '../vue-env';
-const print = require('../print');
+
+import print from '../print';
 
 const replaceDefine = (target: string, defines?: Define) => {
 	console.log(`start replaceDefine:${target}`);
@@ -30,68 +31,72 @@ const replaceDefine = (target: string, defines?: Define) => {
 	}
 }
 export default async (cmd: any) => {
-	try {
-		console.log('start building');
-		//create cicd object
-		const cicd = CICD.createByDefault(cmd);
-		//construct cmd object
-		const cicdCmd = new CICDCmd(cmd, cicd);
-		//build by cicdCmd and cicdConfig
-		if (cicdCmd.endpoints.length === 0) {
-			throw new Error('Must have validate endpoints')
-		}
-		//替换build中的可替换变量
-		const regexPublicPath = new RegExp('\\$public_path', 'g');
-		const regexPublicPath2 = new RegExp('__PUBLIC_PATH__', 'g');
-		const regexDomain = new RegExp('__DOMAIN__', 'g');
+	console.log('start building');
+	//create cicd object
+	const cicd = CICD.createByDefault(cmd);
+	//construct cmd object
+	const cicdCmd = new CICDCmd(cmd, cicd);
+	//build by cicdCmd and cicdConfig
+	if (cicdCmd.endpoints.length === 0) {
+		throw new Error('Must have validate endpoints')
+	}
+	//替换build中的可替换变量
+	const regexPublicPath = new RegExp('\\$public_path', 'g');
+	const regexPublicPath2 = new RegExp('__PUBLIC_PATH__', 'g');
+	const regexPublicPath3 = new RegExp('__RIG_PUBLIC_PATH__', 'g');
 
-		for (let i = 0; i < cicdCmd.endpoints.length; i++) {
-			const ep = cicdCmd.endpoints[i];
-			try {
-				//替换define中的$public_path
-				if (ep.defines){
-					Object.keys(ep.defines).forEach(key => {
-						ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
-						ep.defines[key] = ep.defines[key].replace(regexPublicPath2, ep.publicPath);
-						ep.defines[key] = ep.defines[key].replace(regexDomain, ep.domains[0]);
-					});
-				}
-			} catch (e) {
-				console.log('JSON5 error:', ep.defines, e.message);
-			}
-			let frameworktype: FrameworkType | undefined;
-			//判断是否要生成环境变量文件,以及生成环境变量的操作
-			if (ep.vue_env) {
-				frameworktype = FrameworkType.vue;
-			}
-			if (!ep.extra_env) ep.extra_env = {};
-			ep.extra_env['PUBLIC_PATH'] = ep.publicPath;
-			ep.extra_env['OUTPUT_DIR'] = path.join(cicd.source.root_path, ep.publicPath);
+	const regexDomain = new RegExp('__DOMAIN__', 'g');
+	const regexDomain2 = new RegExp('__RIG_DOMAIN__', 'g');
+	const regexOutput = new RegExp('__RIG_OUTPUT_DIR__', 'g');
 
-			switch (frameworktype) {
-				case FrameworkType.vue: {
-					vueEnv.useEnv(ep.vue_env!, ep.extra_env);
-					//推测vue脚本
-					if (!ep.build) ep.build = `npx @vue/cli-service build --mode rig --dest ${ep.extra_env['OUTPUT_DIR']}`;
-				}
-					break;
-				default:
-					break;
+
+	for (let i = 0; i < cicdCmd.endpoints.length; i++) {
+		const ep = cicdCmd.endpoints[i];
+		try {
+			//替换define中的$public_path
+			if (ep.defines) {
+				Object.keys(ep.defines).forEach(key => {
+					ep.defines[key] = ep.defines[key].replace(regexPublicPath, ep.publicPath);
+					ep.defines[key] = ep.defines[key].replace(regexPublicPath2, ep.publicPath);
+					ep.defines[key] = ep.defines[key].replace(regexPublicPath3, ep.publicPath);
+					ep.defines[key] = ep.defines[key].replace(regexDomain, ep.domains[0]);
+					ep.defines[key] = ep.defines[key].replace(regexDomain2, ep.domains[0]);
+				});
 			}
-			ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
-			print.info(`using build script:${ep.build}`);
-			shell.exec(ep.build);
-			//setup default defines and replace text in built source.
-			if (!ep.defines) ep.defines = {};
-			ep.defines['__PUBLIC_PATH__'] = ep.publicPath;
-			ep.defines['__DEPLOY_DIR__'] = ep.publicPath;
-			ep.defines['__RIG_PUBLIC_PATH__'] = ep.publicPath;
-			ep.defines['__RIG_DEPLOY_DIR__'] = ep.publicPath;
-			ep.defines['__RIG_ENTRY_PATH__'] = ep.web_entry_path!;
-			replaceDefine(path.join(cicd.source.root_path, ep.publicPath), ep.defines);
+		} catch (e) {
+			console.log('JSON5 error:', ep.defines, e.message);
 		}
-	} catch (e) {
-		console.error(e.message);
-		process.exit(1);
+		let frameworktype: FrameworkType | undefined;
+		//判断是否要生成环境变量文件,以及生成环境变量的操作
+		if (ep.vue_env) {
+			frameworktype = FrameworkType.vue;
+		}
+		if (!ep.extra_env) ep.extra_env = {};
+		ep.extra_env['PUBLIC_PATH'] = ep.publicPath;
+		ep.extra_env['OUTPUT_DIR'] = path.join(cicd.source.root_path, ep.publicPath);
+
+		switch (frameworktype) {
+			case FrameworkType.vue: {
+				vueEnv.useEnv(ep.vue_env!, ep.extra_env);
+				//推测vue脚本
+				if (!ep.build) ep.build = `npx vue-cli-service build --mode rig --dest ${ep.extra_env['OUTPUT_DIR']}`;
+			}
+				break;
+			default:
+				break;
+		}
+		//Replace predefined variables in build script
+		ep.build = ep.build.replace(regexPublicPath, ep.publicPath);
+		ep.build = ep.build.replace(regexOutput, path.join(cicd.source.root_path, ep.publicPath));
+		print.info(`using build script:${ep.build}`);
+		shell.exec(ep.build);
+		//setup default defines and replace text in built source.
+		if (!ep.defines) ep.defines = {};
+		ep.defines['__PUBLIC_PATH__'] = ep.publicPath;
+		ep.defines['__DEPLOY_DIR__'] = ep.publicPath;
+		ep.defines['__RIG_PUBLIC_PATH__'] = ep.publicPath;
+		ep.defines['__RIG_DEPLOY_DIR__'] = ep.publicPath;
+		ep.defines['__RIG_ENTRY_PATH__'] = ep.web_entry_path!;
+		replaceDefine(path.join(cicd.source.root_path, ep.publicPath), ep.defines);
 	}
 }

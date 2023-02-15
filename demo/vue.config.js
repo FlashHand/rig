@@ -3,6 +3,6 @@ console.log(process.env.PUBLIC_PATH)
 
 module.exports = defineConfig({
   transpileDependencies: true,
-  outputDir: process.env.OUT_PUT_DIR,
+  outputDir: process.env.OUTPUT_DIR,
   publicPath: process.env.PUBLIC_PATH
 })
