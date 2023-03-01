@@ -34,8 +34,6 @@ class RigConfig {
 			}
 			this.share = rigConfig.share;
 		}
-		console.log(this);
-		this.validate();
 	}
 
 	/**
@@ -67,6 +65,10 @@ class RigConfig {
 		}
 	}
 
+	/**
+	 * 检查依赖的之间的依赖(仅包含rig管理下的依赖)
+	 *
+	 */
 	validateDeps() {
 		print.info(`rig validating dependencies' requirements`);
 		let valid = true;

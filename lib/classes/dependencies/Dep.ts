@@ -48,6 +48,10 @@ export class Dep {
 		}
 		return isValid;
 	}
+
+	/**
+	 * 检查配置项格式是否正确
+	 */
 	validate(){
 		return  this.validateName() && this.validateSource() && this.validateVersion();
 	}

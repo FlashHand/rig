@@ -5079,9 +5079,9 @@ reusify@^1.0.4:
   version "1.0.1"
   resolved "git+ssh://git@github.com:FlashHand/rig-test-1.git#9a86b587aa9bea6c176ab8a470c8a86e7a2bf655"
 
-"rig-test-2@git+ssh://git@github.com:FlashHand/rig-test-2.git#1.0.2":
-  version "1.0.2"
-  resolved "git+ssh://git@github.com:FlashHand/rig-test-2.git#3c158c6c86276e8b3b5e5c341c01f4f4d9ea6094"
+"rig-test-2@git+ssh://git@github.com:FlashHand/rig-test-2.git#1.0.1":
+  version "1.0.1"
+  resolved "git+ssh://git@github.com:FlashHand/rig-test-2.git#abdb17fcfe11c5dff94b93be8cc690bc8583e219"
 
 rimraf@^3.0.2:
   version "3.0.2"

@@ -10,7 +10,7 @@
       dev: false,
       name: 'rig-test-2',
       source: 'git@github.com:FlashHand/rig-test-2.git',
-      version: '1.0.2',
+      version: '1.0.1',
     },
   },
   isLegacy: false,
@@ -41,7 +41,7 @@
           RIG_REPLACE_GRAY: '/test-gray'
         },
         domains: [
-          "test-mp.rys.cn"
+          "test-mp.domain.com"
         ],
       },
     },
