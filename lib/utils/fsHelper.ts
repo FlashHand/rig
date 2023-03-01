@@ -1,4 +1,5 @@
 import fs from 'fs';
+import {cat} from "shelljs";
 
 const JSON5 = require('json5');
 const readCICDConfig = () => {
@@ -35,7 +36,11 @@ const writeConfig = (config: any, path: string = '') => {
 	}
 }
 const readPkgStrInRepo = (rigRepoName: string) => {
-	return fs.readFileSync(`${process.cwd()}/rig_dev/${rigRepoName}/package.json`).toString();
+	try{
+		return fs.readFileSync(`${process.cwd()}/rig_dev/${rigRepoName}/package.json`).toString();
+	}catch (e){
+		throw new Error(`${rigRepoName} not exists in rig_dev`);
+	}
 }
 
 export default {

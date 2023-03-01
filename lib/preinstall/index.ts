@@ -31,7 +31,6 @@ export default async (cmd:any) => {
 		//检查配置项格式是否正确
 		rigConfig.validate();
 		//检查依赖间的相互依赖是否有效
-		rigConfig.validateDeps();
 		//创建rig_dev目录用来开发rig管理下的依赖
 		if (!(fs.existsSync('./rig_dev') && fs.lstatSync('./rig_dev').isDirectory())) {
 			print.info('create folder rig_dev');
@@ -68,6 +67,8 @@ export default async (cmd:any) => {
 			}
 			dependencies[dep.name] = `git+ssh://${dep.source}#${dep.version}`
 		}
+		rigConfig.validateDeps();
+
 		//覆盖package.json
 		pkgJson.dependencies = dependencies;
 		fs.writeFileSync('package.json', JSON.stringify(pkgJson, null, 2));

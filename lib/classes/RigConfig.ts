@@ -139,6 +139,7 @@ class RigConfig {
 						}
 					})
 				}
+
 			} catch (e) {
 				throw new Error(`rig validateDeps failed:${e.message}`);
 			}
