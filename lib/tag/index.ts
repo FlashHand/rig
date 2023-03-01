@@ -5,9 +5,9 @@
  * @date 2020/10/15 3:28 PM
  */
 const fs = require('fs');
-const shell = require('shelljs');
-const chalk = require('chalk');
-const print = require('../print');
+import shell from "shelljs";
+import chalk from "chalk";
+import print from '../print'
 let red = chalk.red;
 
 
