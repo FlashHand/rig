@@ -10,7 +10,8 @@
     "lint": "vue-cli-service lint",
     "preinstall": "rig preinstall",
     "postinstall": "rig postinstall",
-    "test_prei": "node ../built/index.js preinstall"
+    "test_prei": "node ../built/index.js preinstall",
+    "test_env": "node ../built/index.js --env dev"
   },
   "dependencies": {
     "core-js": "^3.8.3",

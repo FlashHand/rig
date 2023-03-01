@@ -28,7 +28,6 @@ const warn = (str: string) => {
 const succeed = (str: string) => {
 	printer.succeed(chalk.greenBright(str));
 }
-succeed('fafa');
 
 export default {
 	start,
