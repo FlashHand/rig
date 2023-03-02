@@ -1,13 +1,12 @@
 # rig
 *[中文文档](./README_CN.md)*
-- [Goals](#Goals)
-- [Get started:Modular developing by rigjs](#Get started：Modular developing by rigjs.)
 - [dependencies config](./doc/dependencies_cn.md)
 - [CICD config](./doc/cicd_cn.md)
 - [share config](./doc/share_cn.md)
+- [Goals](#Goals)
 
 
-## Get started：Modular developing by rigjs.
+## Get started
 ### 0.Prerequisites
 #### Install yarn
 ```shell
@@ -20,7 +19,7 @@ Use [n](https://github.com/tj/n) to update NodeJS.
 yarn global add n
 #upgrade to lts
 sudo n lts 
-#specify the version.
+#or specify the version.
 sudo n 14.19.1
 ```
 
@@ -34,8 +33,9 @@ package.rig.json5 will be added in root path.
 
 ### 2.Use rigjs to install existing repos.
 #### 2.1 Method-one：rig add
-rig add [your git ssh url] [tag]
-e.g.
+rig add [your-git-ssh-url] [tag]
+
+example:
 ```shell
 rig add git@github.com:FlashHand/rig-demo-1.git 0.0.1
 ```
@@ -126,11 +126,14 @@ Modify package.rig.json5
     'rig-demo-1': {
       source: 'git@github.com:FlashHand/rig-demo-1.git',
       version: '0.0.1',
-//      dev:true//Don't use dev mode in production and should specify the version you need.
+//      dev:true//Don't use dev mode in production.
     }
   }
 }
 ```
+### In Electron Project
+
+### In Vite Project
 
 ## Advantages
 - 💡Rigjs only needs git.No need to publish packages to private registry.
