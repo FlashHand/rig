@@ -31,6 +31,10 @@ rig init
 ```
 package.rig.json5 会被添加到工程根目录。
 
+通过yarn add新的依赖时需要增加-W参数,如:
+```shell
+yarn add axios -W
+```
 ### 2.使用rig安装现有的代码库
 version是git的tag
 
