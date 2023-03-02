@@ -1,22 +1,8 @@
 # rig
 *[中文文档](./README_CN.md)*
-<<<<<<< HEAD
-
-- [Getting started](#Get started：Modular developing by rigjs.)
-=======
->>>>>>> dev/3.0
-- [dependencies config](./doc/dependencies_cn.md)
-- [CICD config](./doc/cicd_cn.md)
-- [share config](./doc/share_cn.md)
-- [Goals](#Goals)
-
 
 ## Get started
-<<<<<<< HEAD
-### Prerequisites
-=======
 ### 0.Prerequisites
->>>>>>> dev/3.0
 #### Install yarn
 ```shell
 yarn global add rigjs
