@@ -3,7 +3,7 @@ import CICDCmd from '@/classes/cicd/CICDCmd';
 import shell from 'shelljs';
 import path from 'path';
 import fs from 'fs';
-import vueEnv from '../vue-env';
+import vueEnv from '../env';
 
 import print from '../print';
 

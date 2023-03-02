@@ -30,9 +30,18 @@ export default async () => {
       print.info('rig_helper.js already exists~');
     } else {
       print.info('create rig_helper.js');
-      const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/c13135e8b9cd088221fbbfdb51f104ca/raw/baa02b804ee5b1186b06ca172f80b55003317bcc/rigHelper.js');
+      const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/d5c219db59df54656e614a98c7ed3eb79e9d86f4/rig_helper.js');
       const rigHelper = resRigHelper.data;
       fs.writeFileSync(`${process.cwd()}/rig_helper.js`, rigHelper);
+    }
+    //检查是否存在rig_helper.d.ts
+    if (fs.existsSync(`${process.cwd()}/rig_helper.d.ts`)) {
+      print.info('rig_helper.d.ts already exists~');
+    } else {
+      print.info('create rig_helper.d.ts');
+      const resRigHelperDts = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/d5c219db59df54656e614a98c7ed3eb79e9d86f4/rig_helper.d.ts');
+      const rigHelperDts = resRigHelperDts.data;
+      fs.writeFileSync(`${process.cwd()}/rig_helper.d.ts`, rigHelperDts);
     }
     //检查rig_dev是否存在
     if (fs.existsSync('./rig_dev') && fs.lstatSync('./rig_dev').isDirectory()) {

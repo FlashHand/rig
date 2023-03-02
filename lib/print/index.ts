@@ -30,7 +30,7 @@ const succeed = (str: string) => {
 }
 
 export default {
-  start,
+	start,
 	info,
 	error,
 	warn,

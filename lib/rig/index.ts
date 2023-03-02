@@ -66,9 +66,11 @@ program.command('sync')
 	.option('-f, --force <force>', 'force to overwrite files from package.rig.json5')
 	.action(sync);
 
-import env from '../vue-env';
+import env from '../env';
 
 program.option('--vueenv <vueenv>', 'specify vue env').action(env.load);
+program.option('--env <vueenv>', 'specify env').action(env.load);
+
 program.version(require('../../package.json').version, '-v,--version');
 program.parse(process.argv);
 
