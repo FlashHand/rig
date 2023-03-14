@@ -12,11 +12,11 @@
       source: 'git@github.com:FlashHand/rig-test-2.git',
       version: '1.0.1',
     },
-    'zenrtcjssdk': {
+    'r-foundation': {
+      name: 'r-foundation',
+      source: 'git@github.com:FlashHand/r-foundation.git',
+      version: '1.1.7',
       dev: true,
-      name: 'zenrtcjssdk',
-      source: 'git@code.y5ops.com:zenrtc/zenrtcjssdk.git',
-      version: '0.0.4'
     }
   },
   isLegacy: false,

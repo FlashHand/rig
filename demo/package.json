@@ -1,5 +1,5 @@
 {
-  "name": "demo2",
+  "name": "demo",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -20,7 +20,7 @@
     "rig-test-1": "git+ssh://git@github.com:FlashHand/rig-test-1.git#1.0.1",
     "rig-test-2": "git+ssh://git@github.com:FlashHand/rig-test-2.git#1.0.1",
     "vue": "^2.6.14",
-    "zenrtcjssdk": "git+ssh://git@code.y5ops.com:zenrtc/zenrtcjssdk.git#0.0.4"
+    "r-foundation": "git+ssh://git@github.com:FlashHand/r-foundation.git#1.1.7"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",

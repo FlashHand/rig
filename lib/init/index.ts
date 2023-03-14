@@ -51,6 +51,14 @@ export default async () => {
       fs.mkdirSync('rig_dev');
       fs.writeFileSync('rig_dev/.gitkeep', '')
     }
+    //检查rig_dev是否存在
+    if (fs.existsSync('./rig_indies') && fs.lstatSync('./rig_indies').isDirectory()) {
+      print.info('folder rig_indies  already exists~');
+    } else {
+      print.info('create folder rig_indies');
+      fs.mkdirSync('rig_indies');
+      fs.writeFileSync('rig_indies/.gitkeep', '')
+    }
 
     //填充gitignore
     let rigIgnoreStrArr = [
