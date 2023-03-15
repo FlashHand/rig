@@ -56,7 +56,7 @@ export default async (cmd:any) => {
 					clone(target, dep);
 				}
 				//dev的库改为*,安装时忽略
-				dependencies[dep.name] = '*'
+				delete dependencies[dep.name]
 				//dev模式下使用workspace
 			} else {
 				//非dev得库使用远程地址安装
