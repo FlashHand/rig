@@ -55,17 +55,22 @@ export default async (cmd:any) => {
 				} else {
 					clone(target, dep);
 				}
+				//dev的库改为*,安装时忽略
+				dependencies[dep.name] = '*'
+				//dev模式下使用workspace
 			} else {
+				//非dev得库使用远程地址安装
+				dependencies[dep.name] = `git+ssh://${dep.source}#${dep.version}`
 				//不是开发中状态,不处理，不去删除已下载的模块
 				//预安装时在node_modules中要先清除json5里的库
 				if (fs.existsSync(`node_modules/${dep.name}`)) {
 					shell.rm('-rf', `node_modules/${dep.name}`);
 				}
-				if (fs.existsSync(`node_modules/.yarn-integrity`)) {
-					shell.rm('-rf', `node_modules/.yarn-integrity`);
-				}
 			}
-			dependencies[dep.name] = `git+ssh://${dep.source}#${dep.version}`
+		}
+		//强制删除.yarn-integrity,重装依赖
+		if (fs.existsSync(`node_modules/.yarn-integrity`)) {
+			shell.rm('-rf', `node_modules/.yarn-integrity`);
 		}
 		rigConfig.validateDeps();
 

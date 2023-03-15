@@ -23,8 +23,10 @@ export default async () => {
     for (let rigName in rigConfig.dependencies) {
       const dep = rigConfig.dependencies[rigName];
       if (dep.dev) {
+        //link rig_dev下的库
         print.warn(`developing:${dep.name}`);
         devDeps.push(dep.name);
+        //删除现有同名目录或快捷方式
         if (fs.existsSync(`node_modules/${dep.name}`)) {
           shell.rm('-rf', `node_modules/${dep.name}`);
         }
@@ -35,8 +37,20 @@ export default async () => {
         );
       }
     }
+    //还原被package.json中被标记为*的库
+    let pkgJson = JSON.parse(fs.readFileSync('package.json').toString());
+    let dependencies = pkgJson['dependencies'];
+    for (let rigName in rigConfig.dependencies) {
+      const dep = rigConfig.dependencies[rigName];
+      if (dep.dev) {
+        dependencies[dep.name] = `git+ssh://${dep.source}#${dep.version}`
+      }
+    }
+    pkgJson.dependencies = dependencies;
+    fs.writeFileSync('package.json', JSON.stringify(pkgJson, null, 2));
+
     print.succeed(`postinstall SUCCEED!`);
-    if (devDeps.length>0){
+    if (devDeps.length > 0) {
       print.warn(`developing ${devDeps.length} modules: ${devDeps}.Installed in rig_dev/.Already linked.`)
     }
   } catch (e) {
