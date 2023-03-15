@@ -74,8 +74,8 @@ class RigConfig {
 		let valid = true;
 		for (let rigName in this.dependencies) {
 			const rigDep = this.dependencies[rigName];
+			let pkgStr: string;
 			try {
-				let pkgStr: string;
 				if (rigDep.dev) {
 					// pkgStr = fsHelper.readPkgStrInRepo(rigName);
 					print.info(`${rigName} is in deleloping.Skip Validating.`);
@@ -88,7 +88,9 @@ class RigConfig {
 					);
 					pkgStr = showPackageProcess.stdout.trim();
 				}
+				console.log(pkgStr)
 				const pkg = JSON.parse(pkgStr);
+				console.log(pkg);
 				//获取rig依赖
 				if (pkg.rig) {
 					const pkgRig = pkg.rig;
@@ -140,9 +142,9 @@ class RigConfig {
 						}
 					})
 				}
-
 			} catch (e) {
-				throw new Error(`rig validateDeps failed:${e.message}`);
+				// @ts-ignore
+				throw new Error(`rig validateDeps:${rigDep.source} failed:${e.message},${pkgStr}`);
 			}
 		}
 	}

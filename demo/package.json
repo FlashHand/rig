@@ -9,6 +9,7 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "test_prei": "node ../built/index.js preinstall",
+    "test_tag": "node ../built/index.js tag",
     "test_env": "node ../built/index.js --env dev",
     "test_posti": "node ../built/index.js postinstall"
   },

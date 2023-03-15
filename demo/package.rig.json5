@@ -17,6 +17,12 @@
       source: 'git@github.com:FlashHand/r-foundation.git',
       version: '1.1.7',
       dev: true,
+    },
+    'zenrtcjssdk': {
+      //      dev: true,
+      name: 'zenrtcjssdk',
+      source: 'git@code.y5ops.com:zenrtc/zenrtcjssdk.git',
+      version: '1.8.16-dev.5'
     }
   },
   isLegacy: false,

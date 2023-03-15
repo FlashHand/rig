@@ -14,6 +14,7 @@ let red = chalk.red;
 const load = async () => {
 	try {
 		let pkgJson = JSON.parse(fs.readFileSync('package.json').toString());
+		console.log(pkgJson);
 		let version = pkgJson.version;
 		if (!fs.existsSync('.git')) {
 			print.error('.git not found at the level of package.json');
