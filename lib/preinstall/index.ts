@@ -65,11 +65,12 @@ export default async (cmd:any) => {
 				//不是开发中状态,不处理，不去删除已下载的模块
 				//预安装时在node_modules中要先清除json5里的库
 				if (fs.existsSync(`node_modules/${dep.name}`)) {
+					if (fs.lstatSync(`node_modules/${dep.name}`).isSymbolicLink()){
+						fs.unlinkSync(`node_modules/${dep.name}`);
+					}
 					shell.rm('-rf', `node_modules/${dep.name}`);
 				}
-				if (fs.lstatSync(`node_modules/${dep.name}`).isSymbolicLink()){
-					fs.unlinkSync(`node_modules/${dep.name}`);
-				}
+
 			}
 		}
 		//强制删除.yarn-integrity,重装依赖
