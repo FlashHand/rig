@@ -67,6 +67,9 @@ export default async (cmd:any) => {
 				if (fs.existsSync(`node_modules/${dep.name}`)) {
 					shell.rm('-rf', `node_modules/${dep.name}`);
 				}
+				if (fs.lstatSync(`node_modules/${dep.name}`).isSymbolicLink()){
+					fs.unlinkSync(`node_modules/${dep.name}`);
+				}
 			}
 		}
 		//强制删除.yarn-integrity,重装依赖

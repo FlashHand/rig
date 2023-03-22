@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import print from '../print';
 import RigConfig from '@/classes/RigConfig';
+import {rootLogger} from "ts-jest";
 
 //link开发库
 export default async () => {
@@ -22,6 +23,7 @@ export default async () => {
     let devDeps = [];
     for (let rigName in rigConfig.dependencies) {
       const dep = rigConfig.dependencies[rigName];
+      console.log(rigConfig);
       if (dep.dev) {
         //link rig_dev下的库
         print.warn(`developing:${dep.name}`);
