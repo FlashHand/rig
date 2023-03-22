@@ -45,10 +45,6 @@ version是git的tag
     'rig-demo-1': {
       source: 'git@github.com:FlashHand/rig-demo-1.git',
       version: '0.0.1',
-    },
-    'rig-demo-2': {
-      source: 'git@github.com:FlashHand/rig-demo-2.git',
-      version: '0.0.1',
     }
   }
 }
@@ -57,8 +53,9 @@ version是git的tag
 ```shell
 yarn install
 ```
+### 3. 前端开发工具配置
 
-### 3.开发一个新的rig库或改造现有仓库为rig库
+### 4.开发一个新的rig库或改造现有仓库为rig库
 rig库指在rig管理下的仓库
 
 参考demo目录

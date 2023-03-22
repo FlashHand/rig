@@ -48,6 +48,7 @@ export default async (cmd:any) => {
 		 */
 		for (let rigName in rigConfig.dependencies) {
 			const dep = rigConfig.dependencies[rigName];
+			dep.name = rigName;
 			if (dep.dev) {
 				//不去覆盖已下载的库
 				if (fs.existsSync(`${target}/${dep.name}`)) {
@@ -55,7 +56,7 @@ export default async (cmd:any) => {
 				} else {
 					clone(target, dep);
 				}
-				//dev的库改为*,安装时忽略
+				//删除package.json中的dev rig库,安装时忽略
 				delete dependencies[dep.name]
 				//dev模式下使用workspace
 			} else {

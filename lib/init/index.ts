@@ -30,7 +30,7 @@ export default async () => {
       print.info('rig_helper.js already exists~');
     } else {
       print.info('create rig_helper.js');
-      const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/d5c219db59df54656e614a98c7ed3eb79e9d86f4/rig_helper.js');
+      const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/6835c8bc56480f1ada64b99040806f1968778912/rig_helper.js');
       const rigHelper = resRigHelper.data;
       fs.writeFileSync(`${process.cwd()}/rig_helper.js`, rigHelper);
     }
@@ -39,7 +39,7 @@ export default async () => {
       print.info('rig_helper.d.ts already exists~');
     } else {
       print.info('create rig_helper.d.ts');
-      const resRigHelperDts = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/d5c219db59df54656e614a98c7ed3eb79e9d86f4/rig_helper.d.ts');
+      const resRigHelperDts = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/6835c8bc56480f1ada64b99040806f1968778912/rig_helper.d.ts');
       const rigHelperDts = resRigHelperDts.data;
       fs.writeFileSync(`${process.cwd()}/rig_helper.d.ts`, rigHelperDts);
     }
