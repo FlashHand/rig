@@ -6,7 +6,7 @@
  */
 import * as fs from 'fs';
 import json5 from 'json5';
-import print from "@/print";
+import print from "../print";
 import * as console from "console";
 const useEnv =  (mode:string,extra?:any)=>{
 	try {
