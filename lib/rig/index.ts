@@ -68,8 +68,7 @@ program.command('sync')
 
 import env from '../env';
 
-program.option('--vueenv <vueenv>', 'specify vue env').action(env.load);
-program.option('--env <vueenv>', 'specify env').action(env.load);
+program.option('--env <env>', 'specify env').action(env.load);
 
 program.version(require('../../package.json').version, '-v,--version');
 program.parse(process.argv);
