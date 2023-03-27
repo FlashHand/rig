@@ -114,6 +114,7 @@ class CICD {
 		//replace params
 		let pkgStr = fs.readFileSync(`${process.cwd()}/package.rig.json5`).toString();
 		const paramsStr = cmd.params;
+		console.log('paramsStr',paramsStr)
 		const params = qs.parse(paramsStr);
 		//替换动态变量
 		Object.keys(params).forEach(key => {
