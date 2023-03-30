@@ -84,7 +84,9 @@ class RigConfig {
 				} else {
 					let cmd = `git fetch ${rigDep.source} refs/tags/${rigDep.version} && git show FETCH_HEAD:package.json`;
 					if (os.platform() === 'win32') {
-						 cmd = `echo (git fetch ${rigDep.source} refs/tags/${rigDep.version}) -and (git show FETCH_HEAD:package.json)`;
+						print.info(`skip on windows`);
+						return;
+						 // cmd = `echo (git fetch ${rigDep.source} refs/tags/${rigDep.version}) -and (git show FETCH_HEAD:package.json)`;
 					}
 					print.info(`validateDeps:${cmd}`);
 					let showPackageProcess = shell.exec(cmd,
