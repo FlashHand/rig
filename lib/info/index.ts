@@ -16,7 +16,10 @@ const info = () => {
 	const depKeyArr = Object.keys(rigJson5.dependencies);
 	for (let depKey of depKeyArr) {
 		const dep = rigJson5.dependencies[depKey];
-
+		if (process.platform === 'win32'){
+			print.info(`skip info on windows`);
+			return;
+		}
 		let describeProcess = process.platform === 'win32'?shell.exec(`git ls-remote --tags --refs --sort="version:refname" ${dep.source} | awk -F/ "END{print$NF}"`,
 			{silent: true}
 		):  shell.exec(`git ls-remote --tags --refs --sort="version:refname" ${dep.source} | awk -F/ 'END{print$NF}'`,
