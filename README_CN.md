@@ -36,6 +36,8 @@ package.rig.json5 会被添加到工程根目录。
 yarn add axios -W
 ```
 ### 2.使用rig安装现有的代码库
+修改package.rig.json5:
+
 version是git的tag
 
 如下:
@@ -81,7 +83,7 @@ rig库指在rig管理下的仓库
 ### rig init
 初始化rig管理工具,在项目根目录执行.
 
-### rig env [mode]
+### rig --env [mode]
 从env.rig.json5中指定一组环境变量,并覆盖到.env.rig文件中
 
 ### rig tag
