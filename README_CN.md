@@ -56,6 +56,9 @@ version是git的tag
 yarn install
 ```
 ### 3. 前端开发工具配置
+#### 3.1 vite
+#### 3.2 webpack
+#### 3.3 vue-cli
 
 ### 4.开发一个新的rig库或改造现有仓库为rig库
 rig库指在rig管理下的仓库
