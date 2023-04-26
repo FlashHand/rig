@@ -75,7 +75,7 @@ yarn install
 
 #### 3.1 vite
 
-在vite.config.ts中增加代码
+尽量使用最新的vite,在vite.config.ts中增加代码
 
 ```typescript
 import {viteCommonjs} from '@originjs/vite-plugin-commonjs';
@@ -90,14 +90,13 @@ export default defineConfig((env: ConfigEnv) => {
 			commonjs({include: rig_helper.getPkgs()}),//commonjs to esm,build时有效
 			//... 
 		],
-		optimizeDeps: {
-			esbuildOptions: {target: 'es2020'},
-			exclude: rigHelper.getPkgs(),//预打包中排除rig库
-		},
+        optimizeDeps: {
+            exclude: rig_helper.getPkgs(),//vite小于4时,
+        },
 		server: {
 			watch: {
-				ignored: rig_helper.getRigGlobs(),//开发过程中监听所有rig_dev下的库,js库完成编译后会触发hmr
-				followSymlinks: true,//跟踪symlink对应目录的发生变化,未编译的
+				ignored: rig_helper.getRigGlobs(),//vite小于4时,监听rig_dev下的目录文件发生变化,触发hmr
+				followSymlinks: true,//followSymlinks不能为false
 			},
 		}
 	}
@@ -105,6 +104,7 @@ export default defineConfig((env: ConfigEnv) => {
 ```
 
 #### 3.2 webpack
+
 
 #### 3.3 vue-cli
 
