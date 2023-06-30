@@ -33,7 +33,7 @@ export default async (cmd: any) => {
     const target = Array.isArray(cicdCmd.cicd.target)
       ? cicdCmd.cicd.target[0]
       : cicdCmd.cicd.target;
-
+    console.log('oss tagert', target);
     const aliOss = new AliOSS(target);
     console.log('Please Wait for Upload OSS...');
     if (!cicdCmd.endpoints || cicdCmd.endpoints.length === 0) {

@@ -26,23 +26,23 @@ export default async () => {
       fs.writeFileSync('./package.rig.json5', packageRigJSON5);
     }
     //检查是否存在rig_helper.js
-    if (fs.existsSync(`${process.cwd()}/rig_helper.js`)) {
-      print.info('rig_helper.js already exists~');
-    } else {
-      print.info('create rig_helper.js');
-      const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/6835c8bc56480f1ada64b99040806f1968778912/rig_helper.js');
-      const rigHelper = resRigHelper.data;
-      fs.writeFileSync(`${process.cwd()}/rig_helper.js`, rigHelper);
-    }
-    //检查是否存在rig_helper.d.ts
-    if (fs.existsSync(`${process.cwd()}/rig_helper.d.ts`)) {
-      print.info('rig_helper.d.ts already exists~');
-    } else {
-      print.info('create rig_helper.d.ts');
-      const resRigHelperDts = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/6835c8bc56480f1ada64b99040806f1968778912/rig_helper.d.ts');
-      const rigHelperDts = resRigHelperDts.data;
-      fs.writeFileSync(`${process.cwd()}/rig_helper.d.ts`, rigHelperDts);
-    }
+    // if (fs.existsSync(`${process.cwd()}/rig_helper.js`)) {
+    //   print.info('rig_helper.js already exists~');
+    // } else {
+    //   print.info('create rig_helper.js');
+    //   const resRigHelper = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/6835c8bc56480f1ada64b99040806f1968778912/rig_helper.js');
+    //   const rigHelper = resRigHelper.data;
+    //   fs.writeFileSync(`${process.cwd()}/rig_helper.js`, rigHelper);
+    // }
+    // //检查是否存在rig_helper.d.ts
+    // if (fs.existsSync(`${process.cwd()}/rig_helper.d.ts`)) {
+    //   print.info('rig_helper.d.ts already exists~');
+    // } else {
+    //   print.info('create rig_helper.d.ts');
+    //   const resRigHelperDts = await axios.get('https://gist.githubusercontent.com/FlashHand/f468123502fd7aa87933fd8e39ed6926/raw/6835c8bc56480f1ada64b99040806f1968778912/rig_helper.d.ts');
+    //   const rigHelperDts = resRigHelperDts.data;
+    //   fs.writeFileSync(`${process.cwd()}/rig_helper.d.ts`, rigHelperDts);
+    // }
     //检查rig_dev是否存在
     if (fs.existsSync('./rig_dev') && fs.lstatSync('./rig_dev').isDirectory()) {
       print.info('folder rig_dev  already exists~');
@@ -95,7 +95,8 @@ export default async () => {
         postinstall: "rig postinstall",
       },
       devDependencies: {
-        json5: '2.2.1'
+        json5: '2.2.1',
+        "rig-helper": '^1.0.2'
       }
     }
     pkgJSON.private = inserted.private;
@@ -124,9 +125,11 @@ export default async () => {
     }
     if (pkgJSON.devDependencies) {
       pkgJSON.devDependencies.json5 = inserted.devDependencies.json5;
+      pkgJSON.devDependencies["rig-helper"] = inserted.devDependencies["rig-helper"];
     } else {
       pkgJSON.devDependencies = inserted.devDependencies;
     }
+    //检查是否存在rig-helper
     fs.writeFileSync('package.json', JSON.stringify(pkgJSON, null, 2));
     print.succeed('rig init succeed');
   } catch (e) {

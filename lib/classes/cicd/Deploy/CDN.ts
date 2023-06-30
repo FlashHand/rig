@@ -63,8 +63,8 @@ class CDN {
       format: 'RFC3986',
     });
 
-    const url = `http://cdn.aliyuncs.com?${paramConfig}`;
-
+    const url = `http://cdn.ap-southeast-1.aliyuncs.com?${paramConfig}`;
+    console.log('cdn update url:', url);
     const res = await axios.create().get(url);
     return res.data;
   }
@@ -115,7 +115,7 @@ class CDN {
       return data;
     } catch (e) {
       console.error(
-        `Error: ${e.response ? JSON.stringify(e.response.data.Message) : e}`
+        `setRewriteUri Error: ${e.response ? JSON.stringify(e.response.data.Message) : e}`
       );
       throw new Error(e.response.data.Message);
     }

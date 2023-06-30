@@ -9,7 +9,7 @@ import fs from 'fs';
 import print from '../print';
 import RigConfig from '@/classes/RigConfig';
 import {Dep} from '@/classes/dependencies/Dep';
-
+import pkg from '../../package.json';
 // let semverReg = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/;
 const clone = (target:string, dep:Dep) => {
 	print.info(`cloning ${dep.name}`);
@@ -24,6 +24,8 @@ const clone = (target:string, dep:Dep) => {
 }
 //加载命令控制器
 export default async (cmd:any) => {
+	print.info(`version:${pkg.version}`);
+
 	print.info('start rig preinstall');
 	try {
 		//读取package.rig.json5,生成配置对象

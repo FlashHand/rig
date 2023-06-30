@@ -5,6 +5,7 @@ import print from '@/print';
 import shell from 'shelljs';
 import semver from 'semver';
 import compareVersions from 'compare-versions'
+import os from "os";
 
 const JSON5 = require('json5');
 
@@ -81,13 +82,19 @@ class RigConfig {
 					print.info(`${rigName} is in deleloping.Skip Validating.`);
 					continue;
 				} else {
-					const cmd = `git fetch ${rigDep.source} refs/tags/${rigDep.version} && git show FETCH_HEAD:package.json`;
+					let cmd = `git fetch ${rigDep.source} refs/tags/${rigDep.version} && git show FETCH_HEAD:package.json`;
+					if (os.platform() === 'win32') {
+						print.info(`skip on windows`);
+						return;
+						 // cmd = `echo (git fetch ${rigDep.source} refs/tags/${rigDep.version}) -and (git show FETCH_HEAD:package.json)`;
+					}
 					print.info(`validateDeps:${cmd}`);
 					let showPackageProcess = shell.exec(cmd,
 						{silent: true}
 					);
 					pkgStr = showPackageProcess.stdout.trim();
 				}
+				pkgStr = pkgStr.replace('-and', '');
 				console.log(pkgStr)
 				const pkg = JSON.parse(pkgStr);
 				console.log(pkg);
