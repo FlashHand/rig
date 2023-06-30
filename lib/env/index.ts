@@ -16,11 +16,14 @@ const useEnv =  (mode:string,extra?:any)=>{
 			if (extra) modeObj = Object.assign(modeObj, extra);
 			const keysArray = Object.keys(modeObj);
 			let content = "";
+			content += 'MODE' + " = " + mode + "\n"
+			content += 'VITE_MODE' + " = " + mode + "\n"
 			for (let i = 0; i<keysArray.length; i++) {
 				const key = keysArray[i];
 				const value = modeObj[key];
 				content += key + " = " + value + "\n"
 			}
+
 			print.info(`using env:`)
 			console.log(`----------${mode}----------`)
 			console.log(content);
