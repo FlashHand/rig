@@ -53,7 +53,7 @@ class AliOSS {
         path.extname(filesList[i]) === '.css' ||
         path.extname(filesList[i]) === '.ico'
       ) {
-        options.headers = { 'Cache-Control': 'max-age=3000000' };
+        options.headers = { 'Cache-Control': 'max-age=31536000' };
       }
       const fileResult = await this.ossClient.putStream(
         ossPath,
