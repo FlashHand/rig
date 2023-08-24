@@ -35,7 +35,7 @@ const load = async () => {
 					fields.forEach((field: string) => {
 						const value = pkgJson[field];
 						if (value) {
-							tagStr.replace(`{${field}}`, value)
+							tagStr = tagStr.replace(`{${field}}`, value)
 						} else {
 							print.error(`field:${field} not found in package.json`);
 							process.exit(1)
