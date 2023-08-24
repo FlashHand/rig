@@ -1,6 +1,6 @@
 {
   "name": "rigjs",
-  "version": "3.0.23",
+  "version": "3.0.24",
   "description": "A multi-repos dev tool based on yarn and git.Rigjs is intended to be the simplest way to develop,share and deliver codes between different developers or different projects.",
   "keywords": [
     "modular",
@@ -25,7 +25,7 @@
     "p": "cd demo && node ../lib/rig/index.js publish",
     "posti": "cd demo && node ../lib/rig/index.js postinstall",
     "prei": "cd demo && node ../built/index.js preinstall",
-    "c": "d demo && node ../lib/rig/index.js check",
+    "c": "cd demo && node ../lib/rig/index.js check",
     "envmake": "cd demo && node ../lib/rig/index.js --env prod_view_zhs",
     "t": "node lib/rig/index.js tag",
     "deliver": "npm publish --registry=https://registry.npmjs.org",
