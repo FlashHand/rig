@@ -16,9 +16,13 @@ let red = chalk.red;
 const load = async () => {
 	try {
 		let pkgJson = JSON.parse(fs.readFileSync('package.json').toString());
-		let pkgJson5 = json5.parse(fs.readFileSync('package.rig.json5').toString());
+		let pkgJson5 = null
+		try{
+			pkgJson5 = json5.parse(fs.readFileSync('package.rig.json5').toString());
+		}catch (e) {
+			print.warn('no validate package.rig.json5 found, use package.json')
+		}
 
-		console.log(pkgJson);
 		let version = pkgJson.version;
 		if (!fs.existsSync('.git')) {
 			print.error('.git not found at the level of package.json');
@@ -27,7 +31,7 @@ const load = async () => {
 		}
 		let statusProcess = shell.exec('git status', {silent: true});
 		if (statusProcess.stdout.indexOf('nothing to commit') >= 0) {
-			if(pkgJson5.tag_template){
+			if(pkgJson5&&pkgJson5.tag_template){
 				let tagStr = `${pkgJson5.tag_template}`;
 
 				try{
