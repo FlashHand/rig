@@ -13,7 +13,10 @@
     "workspaces"
   ],
   "main": "index.js",
-  "repository": "https://github.com/FlashHand/rig",
+  "repository":{
+    "type": "git",
+    "url":  "https://github.com/FlashHand/rig"
+  },
   "author": "ralwayne",
   "license": "MIT",
   "bin": {
