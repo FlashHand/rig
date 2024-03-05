@@ -55,7 +55,7 @@ const load = async () => {
 				let tagStr = `${pkgJson.rig_tag_template}`;
 
 				try{
-					const fields = pkgJson.tag_template.match(/(?<={)[^{}]+(?=})/g)
+					const fields = pkgJson.rig_tag_template.match(/(?<={)[^{}]+(?=})/g)
 					fields.forEach((field: string) => {
 						const value = pkgJson[field];
 						if (value) {
