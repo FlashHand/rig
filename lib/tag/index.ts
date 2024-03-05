@@ -13,7 +13,7 @@ import json5 from 'json5';
 let red = chalk.red;
 
 const exec = (cmd:string)=>{
-	shell.exec(`cmd`,(code, stdout, stderr)=>{
+	shell.exec(cmd,(code, stdout, stderr)=>{
 		if (stderr){
 			print.error(stderr);
 		}else{
