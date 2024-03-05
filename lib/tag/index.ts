@@ -12,7 +12,15 @@ import json5 from 'json5';
 
 let red = chalk.red;
 
-
+const exec = (cmd:string)=>{
+	shell.exec(`cmd`,(code, stdout, stderr)=>{
+		if (stderr){
+			print.error(stderr);
+		}else{
+			print.succeed(`success: ${cmd}`);
+		}
+	});
+}
 const load = async () => {
 	try {
 		let pkgJson = JSON.parse(fs.readFileSync('package.json').toString());
@@ -45,7 +53,7 @@ const load = async () => {
 							process.exit(1)
 						}
 					});
-					shell.exec(`git tag ${tagStr}`);
+					exec(`git tag ${tagStr}`);
 					print.succeed(`tag:${tagStr} created.`);
 				}catch(e:any){
 					print.error(`create tag failed:${e.message}`);
@@ -65,15 +73,13 @@ const load = async () => {
 							process.exit(1)
 						}
 					});
-					shell.exec(`git tag ${tagStr}`);
-					print.succeed(`tag:${tagStr} created.`);
+					exec(`git tag ${tagStr}`)
 				}catch(e:any){
 					print.error(`create tag failed:${e.message}`);
 					process.exit(1)
 				}
 			}else{
-				shell.exec(`git tag ${version}`);
-				print.succeed(`tag:${version} created.`);
+				exec(`git tag ${version}`)
 			}
 		} else {
 			print.error('please commit your changes before tag');
