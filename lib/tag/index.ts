@@ -51,6 +51,26 @@ const load = async () => {
 					print.error(`create tag failed:${e.message}`);
 					process.exit(1)
 				}
+			}else if (pkgJson&&pkgJson.rig_tag_template){
+				let tagStr = `${pkgJson.rig_tag_template}`;
+
+				try{
+					const fields = pkgJson.tag_template.match(/(?<={)[^{}]+(?=})/g)
+					fields.forEach((field: string) => {
+						const value = pkgJson[field];
+						if (value) {
+							tagStr = tagStr.replace(`{${field}}`, value)
+						} else {
+							print.error(`field:${field} not found in package.json`);
+							process.exit(1)
+						}
+					});
+					shell.exec(`git tag ${tagStr}`);
+					print.succeed(`tag:${tagStr} created.`);
+				}catch(e:any){
+					print.error(`create tag failed:${e.message}`);
+					process.exit(1)
+				}
 			}else{
 				shell.exec(`git tag ${version}`);
 				print.succeed(`tag:${version} created.`);
