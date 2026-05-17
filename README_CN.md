@@ -2,6 +2,22 @@
 
 - [dependencies配置](./doc/dependencies_cn.md)
 
+## 这个包里有什么
+
+- **多仓库 workspace 工具**(原始能力):`rig init / add / dev / install / build / deploy / publish / sync / tag`,详见下面 [快速开始](#快速开始)。
+- **`rig wiki *`** —— Karpathy 风格的 LLM Wiki 操作集合(scan / fetch / ingest / query / lint),配套 launchd daemon 做定时任务。底层用 Claude Code 当执行器。macOS only,Node ≥ 22。详见 [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) 和 [`doc/architecture/wiki.md`](./doc/architecture/wiki.md)。
+- **内置 Claude Code skill**(`rig-wiki`)—— skill 文件就是根目录的 `RIG_WIKI_SKILL.md`,通过 [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) 同时注册为 Claude Code 官方 plugin。
+
+## 安装 rig-wiki skill(三条路任选)
+
+最终结果都一样:Claude Code 在 `~/.claude/skills/rig-wiki/SKILL.md` 看到这个 skill。
+
+1. **`npm i -g rigjs`** —— 包的 `postinstall` 脚本自动 symlink 到 `~/.claude/skills/rig-wiki/`,装完即用,**重启 Claude Code** 生效。
+2. **`npm i -g rigjs --ignore-scripts`**(安全敏感用户)—— postinstall 被跳过,再手动跑一次 `rig wiki install-skill` 即可。
+3. **Claude Code 官方 plugin marketplace** —— 别人(或你自己)把一份 `marketplace.json` 指向 `{ "source": "npm", "package": "rigjs" }`,然后用户走 `/plugin install rig-wiki@<marketplace>` —— 整条链路由 Claude Code 自己管,postinstall 不会跑。
+
+路径 1 的 opt-out:`RIG_NO_AUTO_SKILL=1 npm i -g rigjs`。卸载 skill:`rig wiki uninstall-skill`。
+
 ## 快速开始
 
 ### 0.前提准备

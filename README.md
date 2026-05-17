@@ -1,6 +1,22 @@
 # rig
 *[中文文档](./README_CN.md)*
 
+## What's in this package
+
+- **Multi-repo workspace tooling** (the original purpose): `rig init / add / dev / install / build / deploy / publish / sync / tag`. See [Get started](#get-started) below.
+- **`rig wiki *`** — Karpathy-style LLM Wiki ops (scan / fetch / ingest / query / lint), with a launchd daemon for periodic runs. Backed by Claude Code as the executor. macOS only, Node ≥ 22. See [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) and [`doc/architecture/wiki.md`](./doc/architecture/wiki.md).
+- **Bundled Claude Code skill** (`rig-wiki`) — shipped at `RIG_WIKI_SKILL.md` and registered as a Claude Code plugin via [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json).
+
+## Installing the rig-wiki skill (three paths)
+
+Pick one — they all end with Claude Code seeing the same skill at `~/.claude/skills/rig-wiki/SKILL.md`.
+
+1. **`npm i -g rigjs`** — the package's `postinstall` script symlinks the skill into `~/.claude/skills/rig-wiki/` automatically. No further action.
+2. **`npm i -g rigjs --ignore-scripts`** (security-conscious users) — postinstall is skipped, so finish with `rig wiki install-skill`.
+3. **Claude Code plugin marketplace** — once you (or anyone) host a `marketplace.json` pointing at `{ "source": "npm", "package": "rigjs" }`, users install via `/plugin install rig-wiki@<marketplace>` — Claude Code handles everything; postinstall does not run.
+
+Opt-out for path 1: `RIG_NO_AUTO_SKILL=1 npm i -g rigjs`. To remove: `rig wiki uninstall-skill`.
+
 ## Get started
 ### 0.Prerequisites
 #### Install yarn

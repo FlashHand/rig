@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "rig-wiki",
+  "description": "Karpathy-style LLM Wiki ops over any project registered with `rig wiki`. Scan, fetch, ingest, query, lint — backed by Claude Code as the executor.",
+  "version": "4.0.0",
+  "author": {
+    "name": "Bo Wang"
+  },
+  "homepage": "https://github.com/FlashHand/rig",
+  "repository": "https://github.com/FlashHand/rig",
+  "license": "MIT",
+  "keywords": ["llm-wiki", "karpathy", "knowledge-base", "rig"],
+  "skills": ".claude/skills"
+}

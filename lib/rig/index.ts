@@ -9,9 +9,9 @@ import deploy from '../deploy';
 import publish from '../publish';
 
 import sync from '../sync';
-const nodeMin = '14.0.0';
+const nodeMin = '22.0.0';
 if (semver.gte(nodeMin,process.version)){
-	print.error('NodeJS version must be at least 14.');
+	print.error('NodeJS version must be at least 22 (better-sqlite3 12.x prebuilds require it).');
 	process.exit(0);
 }
 import {Command} from 'commander';
@@ -65,6 +65,9 @@ program.command('publish')
 program.command('sync')
 	.option('-f, --force <force>', 'force to overwrite files from package.rig.json5')
 	.action(sync);
+
+import { registerWikiCommands } from '../wiki';
+registerWikiCommands(program);
 
 import env from '../env';
 
