@@ -29,24 +29,49 @@ export default function wikiRegister(givenPath: string | undefined, opts: Regist
     process.exit(1);
   }
 
+  // Read project-local overrides (include / exclude / ingestRules / schedule)
+  // from package.rig.json5 if present. The user is the authoritative voice for
+  // what gets scanned. Falls back to safe defaults only when fields are absent.
+  const projectWiki = project ? readProjectWikiBlock(project) : null;
+  const wikiBasename = path.basename(wikiPath);
   const entry: WikiEntry = {
     name,
     path: wikiPath,
     project: project || undefined,
-    include: ['**/*.md'],
-    exclude: [`${path.basename(wikiPath)}/**`, 'node_modules/**', '.git/**'],
-    schedule: { scan: '0 */6 * * *', lint: '0 3 * * *' },
-    ingestRules: [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
+    include: projectWiki?.include ?? ['**/*.md'],
+    exclude: projectWiki?.exclude ?? [`${wikiBasename}/**`, 'node_modules/**', '.git/**'],
+    schedule: projectWiki?.schedule ?? { scan: '0 */6 * * *', lint: '0 3 * * *' },
+    ingestRules: projectWiki?.ingestRules ?? [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
   };
 
   if (existing >= 0) cfg.wikis[existing] = entry;
   else cfg.wikis.push(entry);
   saveWikiConfig(cfg);
 
-  // bidirectional: also write to project's package.rig.json5 if present
-  if (project) writeProjectWikiBlock(project, name, wikiPath);
+  // bidirectional: write back to project's package.rig.json5 — preserve any
+  // existing include/exclude/ingestRules/schedule fields the user authored.
+  if (project) writeProjectWikiBlock(project, name, wikiPath, projectWiki);
 
   print.succeed(`registered wiki "${name}" -> ${wikiPath}`);
+}
+
+interface ProjectWikiBlock {
+  name?: string;
+  path?: string;
+  include?: string[];
+  exclude?: string[];
+  schedule?: { scan?: string; lint?: string; ingest?: string | null };
+  ingestRules?: { match: string; mode: 'auto-on-new' | 'propose-only' }[];
+}
+
+function readProjectWikiBlock(project: string): ProjectWikiBlock | null {
+  const file = path.join(project, 'package.rig.json5');
+  if (!fs.existsSync(file)) return null;
+  try {
+    const cfg = JSON5.parse(fs.readFileSync(file, 'utf8'));
+    const wiki = cfg && typeof cfg === 'object' && cfg.wiki;
+    return wiki && typeof wiki === 'object' ? wiki as ProjectWikiBlock : null;
+  } catch { return null; }
 }
 
 function detectWikiPath(start: string): string | undefined {
@@ -83,12 +108,24 @@ function detectName(project: string | undefined, wikiPath: string): string {
   return path.basename(path.dirname(wikiPath));
 }
 
-function writeProjectWikiBlock(project: string, name: string, wikiPath: string): void {
+function writeProjectWikiBlock(
+  project: string,
+  name: string,
+  wikiPath: string,
+  existingWiki: ProjectWikiBlock | null,
+): void {
   const file = path.join(project, 'package.rig.json5');
   let cfg: Record<string, unknown> = {};
   if (fs.existsSync(file)) {
     try { cfg = JSON5.parse(fs.readFileSync(file, 'utf8')); } catch { cfg = {}; }
   }
-  cfg.wiki = { name, path: path.relative(project, wikiPath) };
+  // Always update name + path (those are derived from invocation). Preserve
+  // every other field the user authored (include / exclude / schedule /
+  // ingestRules / anything else they put in there).
+  cfg.wiki = {
+    ...(existingWiki || {}),
+    name,
+    path: path.relative(project, wikiPath),
+  };
   fs.writeFileSync(file, JSON5.stringify(cfg, null, 2) + '\n', 'utf8');
 }
