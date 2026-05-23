@@ -48,8 +48,10 @@ export function registerWikiCommands(program: any): void {
     .action(wikiScan);
 
   wiki.command('fetch <url>')
-    .description('agent-as-fetcher: verbatim download into raw/')
+    .description('verbatim download URL into raw/YYYY-MM-DD-<slug>.md')
     .option('-w, --wiki <name>', 'target wiki name')
+    .option('--slug <slug>', 'override the auto-derived slug')
+    .option('--via-agent', 'use Claude WebFetch for HTML→md conversion')
     .option('--json', 'machine-readable output')
     .action(wikiFetch);
 
@@ -61,8 +63,13 @@ export function registerWikiCommands(program: any): void {
     .action(wikiIngest);
 
   wiki.command('query <q>')
-    .description('answer a question over the wiki (uses qmd if installed)')
+    .description('search the wiki — BM25 by default; --vector for semantic; --hybrid for both (one-time ~1GB expansion-model download)')
     .option('-w, --wiki <name>', 'target wiki name')
+    .option('-l, --limit <n>', 'top-k hits (1-50, default 10)', (v) => parseInt(v, 10))
+    .option('--vector', 'semantic vector search (uses already-downloaded embed model)')
+    .option('--hybrid', 'full hybrid + query expansion (slow first run)')
+    .option('-r, --rerank', 'with --hybrid: enable LLM reranker (higher precision, slower)')
+    .option('-s, --synth', 'use Claude to synthesize a paragraph answer with citations')
     .option('--json', 'machine-readable output')
     .action(wikiQuery);
 

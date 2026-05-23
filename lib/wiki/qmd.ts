@@ -18,17 +18,36 @@ import fs from 'fs';
 import path from 'path';
 import { paths } from './paths';
 
+// CDN-backed default embed model — Qwen3-Embedding-0.6B Q8_0 GGUF.
+// Globally accelerated via Aliyun CDN; node-llama-cpp's resolveModelFile
+// accepts https:// URIs natively. qmd's `isQwen3EmbeddingModel` matches the
+// "Qwen.*Embed" pattern in this URL, so the Qwen3 instruction template
+// (Instruct:/Query:) is applied automatically.
+const DEFAULT_EMBED_MODEL_URL = 'https://assets.terncloud.com/rig/models/Qwen3-Embedding-0.6B-Q8_0.gguf';
+
+// Apply the rig default unless the user pinned a different model. This runs
+// at module load so every qmd call inherits it without the caller worrying.
+if (!process.env.QMD_EMBED_MODEL) {
+  process.env.QMD_EMBED_MODEL = DEFAULT_EMBED_MODEL_URL;
+}
+
 export interface QmdInfo {
   installed: true;
   version: string;
   bundled: true;
+  embedModel: string;
 }
 
 let infoCache: QmdInfo | null = null;
 
 export function detectQmd(): QmdInfo {
   if (infoCache) return infoCache;
-  infoCache = { installed: true, version: qmdVersion(), bundled: true };
+  infoCache = {
+    installed: true,
+    version: qmdVersion(),
+    bundled: true,
+    embedModel: process.env.QMD_EMBED_MODEL || DEFAULT_EMBED_MODEL_URL,
+  };
   return infoCache;
 }
 
@@ -101,24 +120,41 @@ export async function qmdEmbed(
   }
 }
 
+export type QmdQueryMode = 'lex' | 'vector' | 'hybrid';
+
 /**
- * Hybrid search (BM25 + sqlite-vec + optional LLM rerank). Returns the raw
- * SDK result array, or null on failure. Caller is responsible for shaping.
+ * Query the per-wiki qmd store. Three modes:
+ *   - 'lex'    : BM25 only via searchLex. No model load. Always works.
+ *   - 'vector' : sqlite-vec only via searchVector. Uses the embed model
+ *                (already downloaded for `index` / `embed`).
+ *   - 'hybrid' : full BM25 + vec + rerank via search(). Triggers a one-time
+ *                ~1GB download of qmd's query-expansion model from HF —
+ *                slow / sometimes blocked in CN. Opt-in.
  */
 export async function qmdQuery(
   q: string,
   wikiName: string,
-  opts: { limit?: number; rerank?: boolean } = {}
+  opts: { limit?: number; mode?: QmdQueryMode; rerank?: boolean } = {}
 ): Promise<unknown[] | null> {
+  const mode: QmdQueryMode = opts.mode || 'lex';
   try {
     const { createStore } = await loadQmd();
     const store = await createStore({ dbPath: dbPathFor(wikiName) });
     try {
-      const results = await store.search({
-        query: q,
-        limit: opts.limit ?? 10,
-        rerank: opts.rerank ?? false,
-      });
+      const limit = opts.limit ?? 10;
+      let results: unknown;
+      if (mode === 'lex') {
+        results = await store.searchLex(q, { limit, collection: wikiName });
+      } else if (mode === 'vector') {
+        results = await store.searchVector(q, { limit, collection: wikiName });
+      } else {
+        results = await store.search({
+          query: q,
+          limit,
+          collection: wikiName,
+          skipRerank: !opts.rerank,
+        });
+      }
       return Array.isArray(results) ? results : [];
     } finally {
       await store.close();
