@@ -27,7 +27,7 @@ A vault is **a single `rig-wiki/` dir at the project root** holding metadata (pu
 This means:
 - **No `--wiki <name>` flag exists.** Don't try to pass one.
 - **No `rig wiki list`, `register`, or `unregister` commands.** They've been removed.
-- If the user is in a project that has no vault, the next step is `rig wiki init <scope>` (see "Setup" below).
+- If the user is in a project that has no vault, the next step is `rig wiki init` (see "Setup" below). The `<scope>` argument is optional — without it the vault covers the whole CWD, filtered by .gitignore / hidden / binary rules.
 
 ## Intent → command map
 
@@ -35,11 +35,13 @@ This means:
 |---|---|
 | "把 / record / take notes on / 添加 / 收一下 / 收藏 …" + a URL | `rig wiki fetch <url>` then `rig wiki ingest raw/<resulting-file>` |
 | "…" + a local file path or content paste | Write the content to `<vault>/raw/YYYY-MM-DD-<kebab-slug>.md` with frontmatter (`source-url`, `fetched-at`, `fetcher: agent-paste`, `content-sha`). Then `rig wiki ingest <that-path>`. |
-| "ingest / re-process / 重新整理 / 重新 ingest <something>" | `rig wiki ingest <path>` — handles new sources AND re-ingest of modified ones. |
+| "ingest / re-process / 重新整理 / 重新 ingest <something>" | `rig wiki ingest <path>` — single file, NEW or MODIFIED. |
 | "what's new / 有什么变化 / scan / diff" | `rig wiki scan` — surface the NEW / MODIFIED / DELETED / RAW DRIFT report verbatim. |
-| "ingest everything new / 把新东西都收一下" | `rig wiki scan` → for each NEW path → `rig wiki ingest <path>` (one call per file). |
+| "update / 同步 / 更新整个 wiki / refresh / sync / 让 wiki 跟上磁盘 / 把改动都收掉 / 删掉源没了的页面 / 全量更新" | `rig wiki sync` — one shot: scan → ingest each NEW + MODIFIED → prune wiki pages whose source files have been deleted, scrub the dropped slug from derived pages' `sources: [...]`, drop the state.db rows. This is the daily "keep wiki current" command. Add `--dry-run` to preview, `--no-prune` to keep deleted-source pages around. |
+| "ingest everything new / 把新东西都收一下" | `rig wiki sync` — covers NEW, MODIFIED, and DELETED in one call. (The old workflow of `scan` → per-file `ingest` still works, but `sync` is preferred.) |
 | "看看哪些文件能进 wiki / what's eligible / survey / 看一下能 ingest 什么 / triage" | `rig wiki survey` — walks scan root, asks the agent to apply `schema.md` "Ingestion policy" rules to every non-binary visible candidate; outputs ingest/skip/unclear per file. |
 | "把符合策略的全收 / ingest everything that fits / 一键收录" | `rig wiki survey --apply` — survey + ingest all "ingest"-tagged candidates in series. Tell the user upfront how many it'll process. |
+| "在这建一个 wiki / init wiki here / 设置 wiki / 一键给当前项目建 wiki" | `rig wiki init` (no argument — covers the whole CWD by default). Then tell the user to edit `rig-wiki/purpose.md` (one-time scoping), then `rig wiki sync` ingests everything that survives the .gitignore + hidden + binary filters. |
 | "policy / 收录规则 / 该收什么文件" | Read `<vault>/schema.md` "Ingestion policy" section. To change rules, the user edits schema.md directly — DO NOT edit it for them (it's human-authored). |
 | "wiki 里有没有 X / what does my wiki say about X / search the wiki for X" | `rig wiki query "<X>"` (Qwen3 vector + Qwen3 reranker; cross-lingual). Default limit 10. |
 | "summarize what we know about X / 总结一下 X" | `rig wiki query "<X>" --synth` — adds a Claude-synthesized paragraph with `[[wikilink]]` citations after the hit list. |

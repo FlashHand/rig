@@ -154,28 +154,30 @@ function defaultVaultConfig(scope: string, rootRel: string): VaultConfig {
 }
 
 export default function wikiInit(scope?: string): void {
-  if (!scope || !scope.trim()) {
-    print.error('rig wiki init requires a scope.');
-    print.info('usage: rig wiki init <scope>     (e.g. `rig wiki init personal` to ingest from ./personal/)');
-    print.info(`<scope> is an existing data subdir of the project. Vault metadata is auto-created at ./${VAULT_DIRNAME}/.`);
-    process.exit(1);
-  }
-
   const cwd = process.cwd();
   const vaultDir = path.join(cwd, VAULT_DIRNAME);
-  const scopeAbs = path.resolve(cwd, scope);
 
-  // The scope must already exist — pointing the wiki at a missing dir would
-  // hide what is almost certainly a typo.
-  if (!fs.existsSync(scopeAbs) || !fs.statSync(scopeAbs).isDirectory()) {
-    print.error(`scope dir not found: ${scope}`);
-    print.info(`expected an existing data subdir at ${shortPath(scopeAbs)}`);
-    process.exit(1);
-  }
-  // The scope can't be (or contain) the vault dir itself.
-  if (scopeAbs === vaultDir || vaultDir.startsWith(scopeAbs + path.sep)) {
-    print.error(`scope cannot be or contain the vault dir (${VAULT_DIRNAME}/).`);
-    process.exit(1);
+  // No-arg form: scope = the whole project (CWD). Vault scans up one level
+  // from `<CWD>/rig-wiki/` to reach CWD. Wiki name defaults to basename(CWD).
+  // Hidden segments, binary extensions, and .gitignored files are filtered
+  // by scan/survey at walk time — no scope restriction needed.
+  const hasScope = !!(scope && scope.trim());
+  const scopeAbs = hasScope ? path.resolve(cwd, scope!) : cwd;
+  const scopeName = hasScope ? scope!.trim() : path.basename(cwd);
+
+  if (hasScope) {
+    // The explicit scope must already exist — pointing the wiki at a missing
+    // dir would hide what is almost certainly a typo.
+    if (!fs.existsSync(scopeAbs) || !fs.statSync(scopeAbs).isDirectory()) {
+      print.error(`scope dir not found: ${scope}`);
+      print.info(`expected an existing data subdir at ${shortPath(scopeAbs)}`);
+      process.exit(1);
+    }
+    // The scope can't be (or contain) the vault dir itself.
+    if (scopeAbs === vaultDir || vaultDir.startsWith(scopeAbs + path.sep)) {
+      print.error(`scope cannot be or contain the vault dir (${VAULT_DIRNAME}/).`);
+      process.exit(1);
+    }
   }
 
   const guard = guardPath(vaultDir, cwd);
@@ -189,6 +191,7 @@ export default function wikiInit(scope?: string): void {
   // If the vault already has a config, it must already be scoped to the
   // same data dir — otherwise the user is trying to re-target an existing
   // vault, which we won't do silently. Manual config edit only.
+  // No-arg init resolves to the CWD itself, which equals `path.dirname(vaultDir)`.
   const cfgFile = vaultConfigPath(vaultDir);
   if (fs.existsSync(cfgFile)) {
     const existing = loadVaultConfig(vaultDir);
@@ -222,12 +225,13 @@ export default function wikiInit(scope?: string): void {
 
   if (!fs.existsSync(cfgFile)) {
     const rootRel = path.relative(vaultDir, scopeAbs);
-    saveVaultConfig(vaultDir, defaultVaultConfig(scope, rootRel));
+    saveVaultConfig(vaultDir, defaultVaultConfig(scopeName, rootRel));
   }
 
-  print.succeed(`vault initialized at ${shortPath(vaultDir)} (scope: ${scope})`);
+  const scopeLabel = hasScope ? `scope: ${scope}` : `scope: <project-wide, name "${scopeName}">`;
+  print.succeed(`vault initialized at ${shortPath(vaultDir)} (${scopeLabel})`);
   print.info(`next: edit ${shortPath(path.join(vaultDir, 'purpose.md'))} to describe what this wiki is for.`);
-  print.info(`then run \`rig wiki scan\` from anywhere inside ${shortPath(cwd)} to see what will be ingested.`);
+  print.info(`then run \`rig wiki sync\` from anywhere inside ${shortPath(cwd)} to ingest, update, and prune in one shot.`);
 }
 
 function writeIfMissing(file: string, content: string) {

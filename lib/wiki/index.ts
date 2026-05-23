@@ -1,6 +1,7 @@
 import wikiInit from './init';
 import wikiScan from './scan';
 import wikiSurvey from './survey';
+import wikiSync from './sync';
 import wikiFetch from './fetch';
 import wikiIngest from './ingest';
 import wikiQuery from './query';
@@ -20,8 +21,8 @@ import { registerDaemonCommands } from './daemon';
 export function registerWikiCommands(program: any): void {
   const wiki = program.command('wiki').description('Karpathy-style LLM Wiki ops (macOS only in v1)');
 
-  wiki.command('init <scope>')
-    .description('bootstrap a vault scoped to <scope>/ — an existing data subdir of the project. Metadata is auto-created at ./rig-wiki/.')
+  wiki.command('init [scope]')
+    .description('bootstrap a vault under ./rig-wiki/. With no <scope>, the vault covers the whole CWD; with <scope>, only that subdir is scanned. Hidden/.gitignored/binary files are filtered at walk time regardless.')
     .action(wikiInit);
 
   wiki.command('scan')
@@ -37,6 +38,13 @@ export function registerWikiCommands(program: any): void {
     .option('--no-agent', 'skip agent classification; accept every non-binary candidate (local rules only)')
     .option('--json', 'machine-readable output')
     .action(wikiSurvey);
+
+  wiki.command('sync')
+    .description('one-shot wiki update: scan → ingest NEW + MODIFIED → prune wiki pages for DELETED sources')
+    .option('--dry-run', 'print scan diff and what would change without writing anything')
+    .option('--no-prune', 'skip the delete step (only ingest NEW + MODIFIED)')
+    .option('--json', 'machine-readable output')
+    .action(wikiSync);
 
   wiki.command('fetch <url>')
     .description('verbatim download URL into raw/YYYY-MM-DD-<slug>.md')
