@@ -1,6 +1,7 @@
 ---
 name: rig-wiki
-description: Karpathy-style LLM Wiki ops over any project registered with `rig wiki`. Vector-only semantic retrieval via Qwen3-Embedding-0.6B + Qwen3-Reranker-0.6B (both globally CDN-mirrored). Cross-lingual Chinese/English out of the box. Use to scan for new sources, fetch URLs, ingest two-step CoT, query, lint, or rebuild local caches.
+description: >-
+  Karpathy-style LLM wiki ops. Trigger whenever the user wants to capture, ingest, search, or maintain personal knowledge in a project's `rig wiki` directory. Intent phrases include "把这个加进 wiki / record this / take notes on", "what does my wiki say about X / wiki 里有没有 X", "fetch <url> into my wiki", "重建/同步 wiki索引", "lint wiki". Vector-only retrieval via Qwen3-Embedding + Qwen3-Reranker, cross-lingual CN/EN out of the box. Do NOT use for arbitrary file reads, code documentation, or repo-wide search.
 user-invocable: true
 disable-model-invocation: false
 metadata:
@@ -10,209 +11,88 @@ metadata:
     os: [darwin]
 ---
 
-# rig-wiki
+# rig-wiki — agent operator's playbook
 
-Thin wrapper over `rig wiki *`. Use when the user wants to:
+You orchestrate `rig wiki *` on behalf of the user. The user speaks in intent; you map to commands. Below is the intent → action table. Resolve the **target wiki** by reading `rig wiki list` once at session start; if none registered, see "Setup" at the bottom.
 
-- **Scan** a project for new sources to ingest.
-- **Fetch** a URL verbatim into the wiki's `raw/`.
-- **Ingest** a source (two-step CoT: analysis → generation), with a diff preview.
-- **Query** semantically (Qwen3 vector + Qwen3 reranker, cross-lingual CN/EN).
-- **Lint** the wiki (contradictions, orphans, stale claims, broken `sources[]` refs).
-- **Rebuild** local caches on a new device or after switching embed models.
+## Intent → command map
 
-## Install
+| User intent (any language) | Action |
+|---|---|
+| "把 / record / take notes on / 添加 / 收一下 / 收藏 …" + a URL | `rig wiki fetch <url>` then `rig wiki ingest raw/<resulting-file>` |
+| "…" + a local file path or content paste | Write the content to `<wiki>/raw/YYYY-MM-DD-<kebab-slug>.md` with frontmatter (`source-url`, `fetched-at`, `fetcher: agent-paste`, `content-sha`). Then `rig wiki ingest <that-path>`. |
+| "ingest / re-process / 重新整理 / 重新 ingest <something>" | `rig wiki ingest <path>` — handles new sources AND re-ingest of modified ones. |
+| "what's new / 有什么变化 / scan / diff" | `rig wiki scan` — surface the NEW / MODIFIED / DELETED / RAW DRIFT report verbatim. |
+| "ingest everything new / 把新东西都收一下" | `rig wiki scan` → for each NEW path → `rig wiki ingest <path>` (one call per file). |
+| "wiki 里有没有 X / what does my wiki say about X / search the wiki for X" | `rig wiki query "<X>"` (Qwen3 vector + Qwen3 reranker; cross-lingual). Default limit 10. |
+| "summarize what we know about X / 总结一下 X" | `rig wiki query "<X>" --synth` — adds a Claude-synthesized paragraph with `[[wikilink]]` citations after the hit list. |
+| "lint / 检查一遍 / what's broken in my wiki" | `rig wiki lint`. Surface the report. Exit code 11 = severe (broken refs / missing source). |
+| "rebuild / 全部重 embed / 换了模型 / 新机器" | `rig wiki rebuild` — full nuclear refresh. Only suggest this when the user mentions a new device or explicitly switching the embed model. |
+| "wiki list / what wikis are registered" | `rig wiki list` |
 
-`yarn global add rigjs` auto-symlinks the skill into `~/.claude/skills/rig-wiki/SKILL.md`. Restart Claude Code to pick it up.
+Always run from inside the registered project (or pass `--wiki <name>`). If the user is in some other CWD, `cd` to the wiki's project first.
 
-If the auto-link didn't run:
+## Argument inference rules
 
-```bash
-rig wiki install-skill          # idempotent
-rig wiki install-skill --force  # re-link if the target points elsewhere
-```
+- **slug** = kebab-case, no dates inside `wiki/`, dates only on `raw/YYYY-MM-DD-*` prefix.
+- **raw filename** = `YYYY-MM-DD-<slug>.md`. Pick today's local date; if filename collides, append `-2`, `-3`.
+- **URL → slug**: last path segment, drop extension, lowercase, replace non-`[a-z0-9-]` with `-`, max 64 chars.
+- **wiki dir name** when initializing: prefer user-stated name; if absent, ask once. Never default to `wiki` or CWD silently.
 
-For local dev/iteration (edit rig source, install over the registry version):
+## Hard rules — refuse and explain if violated
 
-```bash
-rig install-local               # yarn build + sync to global rigjs in place
-rig -v                          # confirm new version
-rig -c                          # confirm versionCode
-```
+- **Never** edit `raw/`, `purpose.md`, or `schema.md` directly. Those are human-authored. If the user asks you to, tell them to do it manually.
+- **Never** ingest a path outside the wiki's `include[]` scope (anything in `raw/` is always fine; outside that requires the path to be listed in the registered wiki's `include`).
+- **`rig wiki scan` exit 10 (RAW DRIFT)** = a `raw/` file's bytes changed since last scan. Do NOT auto-fix or re-ingest. Surface to the user as a data-integrity warning.
+- **`rig wiki lint` exit 11** = severe findings. Surface the report path and the top findings; do not auto-fix unless the user asks.
+- **Never** suggest editing `~/.rig/cache/qmd/*.sqlite` or `~/.cache/qmd/`. Those are rebuildable caches.
 
-A later `yarn global add rigjs` cleanly overrides the local install.
+## Common error → recovery
 
-To remove the skill link: `rig wiki uninstall-skill`.
+| Error | What it means | Action |
+|---|---|---|
+| `qmd query failed. Run \`rig wiki index\` first` | No vector index for this wiki | `rig wiki index --wiki <name>` then retry |
+| `no wiki resolved` | CWD is not inside a registered wiki and no `--wiki` flag | Either `cd` into the project or pass `--wiki <name>` |
+| `claude not installed on PATH` (during ingest/synth) | Claude Code CLI missing | Tell the user; suggest `yarn dlx @anthropics/claude-code` or use a non-agent flow |
+| Reranker download stalls on first query | CDN cold node, can take ~1 min | Just wait; subsequent queries are instant |
 
-## Quickstart — first-time setup
+## Output handling
 
-> `rig wiki init` **requires a target subdirectory**. The CLI rejects bare `rig wiki init` to prevent dumping templates into the project root.
-
-```bash
-# 1. Bootstrap a wiki dir (a subdir under the project — pick any name)
-rig wiki init knowledge          # creates ./knowledge/{raw,wiki/...,purpose.md,schema.md,...}
-
-# 2. Edit purpose.md + schema.md (human-only, one-time scoping)
-$EDITOR knowledge/purpose.md
-
-# 3. Register so subsequent commands resolve it automatically from CWD
-rig wiki register knowledge
-
-# 4. (Optional) Verify
-rig wiki list
-```
-
-## Quickstart — incremental updates
-
-After init, you typically work in two flows. **Both end with the same single command — `ingest`** — which calls Claude in two-step CoT to write/update wiki pages AND triggers an incremental qmd embed automatically. You almost never need to think about indexing manually.
-
-### Flow A — new raw source arrives
-
-```bash
-# Option 1: pull a URL
-rig wiki fetch https://example.com/article          # writes raw/2026-05-24-article.md
-
-# Option 2: manually drop a file
-cp ~/Downloads/note.md knowledge/raw/2026-05-24-note.md
-
-# Then ingest it (Claude writes new wiki/sources, entities, concepts pages
-# + updates index.md/overview.md + re-embeds incrementally)
-rig wiki ingest raw/2026-05-24-article.md
-```
-
-### Flow B — existing source / living-doc changed
-
-```bash
-# Show what's new/modified/deleted vs the recorded sha baseline
-rig wiki scan
-# Output:
-#   NEW (1)
-#     harness/dev/api-design.md
-#   MODIFIED (1)
-#     raw/2026-05-24-article.md
-#   DELETED (0)
-
-# Re-process only the changed ones (one ingest call per file)
-rig wiki ingest harness/dev/api-design.md
-rig wiki ingest raw/2026-05-24-article.md
-```
-
-`ingest` is **always incremental** — Claude reads the existing wiki, knows what already exists, and writes only the pages affected. The vector index re-embed is also incremental (qmd diffs chunks).
-
-### Flow C — query
-
-```bash
-rig wiki query "你的问题"                            # vector + Qwen3 rerank
-rig wiki query "concept" --synth                    # + Claude-synthesized paragraph
-```
-
-### Flow D — maintenance
-
-```bash
-rig wiki lint        # contradictions / orphans / broken refs / stale source-sha
-rig wiki rebuild     # nuclear: clear sha index + drop qmd sqlite + full re-embed
-```
-
-> Use `rebuild` only on a new device or after switching the embed model. Day-to-day, `ingest` keeps the index incrementally fresh.
-
-## Output
-
-All commands accept `--json` for machine-readable output (`{ ok, code, data?, error? }`).
-
-## Hard rules
-
-- **Never** edit `raw/`, `purpose.md`, or `schema.md` directly — human-authored.
-- **Never** run `ingest` against a path that isn't a registered wiki source.
-- **`scan` exit code 10** means a `raw/` file changed — error, not a re-ingest trigger.
-- **Never** commit `~/.rig/cache/qmd/*.sqlite*` or `~/.cache/qmd/`. `init` writes a `.gitignore` covering the project-local case; the global caches are outside the repo by location.
+- For **interactive** users: print the rig output verbatim, then explain what changed in one short sentence.
+- For **machine** consumption (chained tools): use `--json` on any command. Shape is `{ ok, code, data?, error? }`.
+- **Long ingest** (Claude two-step CoT): expect 1–3 minutes. Tell the user once at the start; don't ping them mid-run.
 
 ## When NOT to use this skill
 
-- User just wants to read a wiki page → use Read.
-- User wants to write `purpose.md` / `schema.md` / `raw/` → human-only; refuse and explain.
-- User is not in a `rig`-aware project → `rig wiki register` first.
-- Project is on Linux/Windows → `rig wiki` is macOS-only in v1.
+- User wants to read a single existing wiki page → use `Read`, not `rig wiki query`.
+- User wants to write/edit `purpose.md` / `schema.md` / a file in `raw/` → human-authored, refuse with reason.
+- User is talking about a different knowledge system (Obsidian-only, Notion, etc.).
+- Task is unrelated to personal knowledge capture (e.g. code search → use `grep`).
 
-## Retrieval architecture (vector-only, Qwen3 × 2)
+## Setup — if no wiki is registered
 
-`rig wiki query` is **pure semantic** — no BM25, no query expansion, just:
+`rig wiki list` shows zero entries → ask the user **once**:
 
-1. **Vector retrieval** via Qwen3-Embedding-0.6B against the per-wiki sqlite-vec store.
-2. **Reranker** Qwen3-Reranker-0.6B over the top-40 candidates.
-3. Top-k results sorted by rerank score.
+> "No wiki registered in this project. Init one? If yes, what subdir name? (suggestions: `knowledge`, `wiki`, `harness/llm-wiki`)"
 
-Both Qwen3 models are bundled-defaults inside rig:
-
-- Embed: `https://assets.terncloud.com/rig/models/Qwen3-Embedding-0.6B-Q8_0.gguf` (CDN-accelerated)
-- Rerank: `https://assets.terncloud.com/rig/models/qwen3-reranker-0.6b-q8_0.gguf` (CDN-accelerated)
-
-Each model is ~610MB Q8_0 GGUF. node-llama-cpp downloads them to `~/.cache/qmd/models/` on first use; subsequent calls are instant from cache.
-
-### Cross-lingual
-
-Qwen3 models are multilingual (100+ languages). Verified working:
-
-- Chinese query against English content (`如何精排候选` → `reranker.md`)
-- English query against Chinese content
-- Mixed CN/EN content + queries
-
-No language tag, no tokenizer config — the embedding space aligns languages internally.
-
-### `--no-rerank`
-
-Skips the reranker pass. Faster (one model load instead of two), slightly lower precision.
+Then run:
 
 ```bash
-rig wiki query "..." --no-rerank
+rig wiki init <user-chosen-subdir>          # REQUIRED — fails if no path
+# tell user to edit purpose.md (one-time scoping)
+rig wiki register <user-chosen-subdir>
 ```
 
-### `--synth`
+After they edit `purpose.md`, you're ready to use the intent map above.
 
-After printing the hits, invokes the Claude adapter to write a 1-paragraph synthesized answer with `[[wikilink]]` citations.
+## Architecture (read once, then forget)
 
-## qmd on-disk model — what to sync and what NOT to sync
+- Vector-only retrieval: Qwen3-Embedding-0.6B (~610MB) + Qwen3-Reranker-0.6B (~610MB), both CDN-mirrored at `assets.terncloud.com/rig/models/`.
+- Models auto-downloaded on first use into `~/.cache/qmd/models/`; subsequent runs are instant.
+- Per-wiki SQLite at `~/.rig/cache/qmd/<wiki>.sqlite` (sqlite-vec extension). `.gitignore`'d by default.
+- `ingest` triggers incremental embed at the end — no need to manually call `index` in routine use.
+- macOS-only in v1.
 
-qmd stores the per-wiki index in `~/.rig/cache/qmd/<wiki>.sqlite` (sqlite-vec extension). Model GGUFs in `~/.cache/qmd/models/`. **Never commit either**:
+## Agent CLI
 
-1. **Non-deterministic.** Float weights vary by CPU/GPU backend (Metal vs Vulkan vs CPU). SQLite page layout adds more drift.
-2. **Binary blob.** Every embed produces a new blob — git history explodes; Obsidian Sync only does full-file conflict resolution.
-3. **Cache by design.** Both locations are conventional "safe to delete" caches.
-
-**Sync only the markdown sources** (`raw/`, `wiki/**`, `purpose.md`, `schema.md`, `index.md`, `overview.md`, `log.md`, `reviews.md`). Rebuild caches on each device.
-
-## New-device flow
-
-On a fresh machine after `git clone` (or after Obsidian Sync materializes the vault):
-
-```bash
-# 1. Install rig
-yarn global add rigjs
-
-# 2. Register the wiki (or rely on the auto-registered entry in package.rig.json5)
-rig wiki register <path>
-
-# 3. Rebuild local caches (downloads both Qwen3 models from CDN; ~10s each on a good link)
-rig wiki rebuild
-
-# 4. Baseline the sha index
-rig wiki scan
-
-# 5. Sanity check — first query loads the reranker (one extra ~10s for cold cache)
-rig wiki query "what is this wiki about?"
-```
-
-## Obsidian compatibility
-
-`rig wiki` produces a plain-markdown vault. Drop it inside an Obsidian vault (or treat the whole project as one) and Obsidian handles it natively:
-
-- ✅ Nested folders, YAML frontmatter, `[[wikilink]]` — all standard.
-- ⚠️ `.obsidian/workspace.json` should be in `.gitignore` (rig's `init` already covers the qmd cache; add Obsidian workspace separately if you want one vault per machine).
-
-## Agent
-
-`rig wiki` defaults to Claude Code (`claude` on PATH). Used by `ingest` (two-step CoT) and `query --synth` (paragraph synthesis).
-
-- `rig wiki agent list` — detected adapters.
-- `rig wiki agent use claude` — only `claude` is implemented in v1.
-
-Codex / pi-agent adapters exist as stubs (P3 roadmap).
+`rig wiki ingest` and `rig wiki query --synth` invoke Claude Code (`claude -p`) under the hood. If the user picks a different agent in `~/.rig/config.json5` (`wiki.defaultAgent`), it's used instead. Only `claude` is implemented in v1.
