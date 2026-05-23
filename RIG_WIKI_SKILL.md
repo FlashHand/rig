@@ -1,7 +1,7 @@
 ---
 name: rig-wiki
 description: >-
-  Karpathy-style LLM wiki ops. Trigger whenever the user wants to capture, ingest, search, or maintain personal knowledge in a project's `rig wiki` directory. Intent phrases include "把这个加进 wiki / record this / take notes on", "what does my wiki say about X / wiki 里有没有 X", "fetch <url> into my wiki", "重建/同步 wiki索引", "lint wiki". Vector-only retrieval via Qwen3-Embedding + Qwen3-Reranker, cross-lingual CN/EN out of the box. Do NOT use for arbitrary file reads, code documentation, or repo-wide search.
+  Agent-only orchestration skill for Karpathy-style LLM wikis. rig wiki is designed to be DRIVEN BY a coding agent (Claude Code, Codex, …), not invoked by humans on the command line. Users state intent in natural language — "把这个加进 wiki / record this / take notes on / fetch <url> into my wiki / wiki 里有没有 X / what does my wiki say about Y / 重建索引 / lint wiki" — and the agent translates that into `rig wiki *` commands. Vector-only retrieval via Qwen3-Embedding + Qwen3-Reranker, cross-lingual CN/EN out of the box. Do NOT use for arbitrary file reads, code documentation, or repo-wide search.
 user-invocable: true
 disable-model-invocation: false
 metadata:
@@ -12,6 +12,8 @@ metadata:
 ---
 
 # rig-wiki — agent operator's playbook
+
+**Positioning.** rig wiki is an **agent-facing tool**. Humans don't memorise the CLI; they tell their agent (you) what they want, and you orchestrate `rig wiki *`. Treat any direct user-typed `rig wiki ...` invocation as a fallback — your job is to make raw CLI use unnecessary. Never just hand the user a command and walk away; run it, observe, report.
 
 You orchestrate `rig wiki *` on behalf of the user. The user speaks in intent; you map to commands. Below is the intent → action table. Resolve the **target wiki** by reading `rig wiki list` once at session start; if none registered, see "Setup" at the bottom.
 
@@ -59,9 +61,13 @@ Always run from inside the registered project (or pass `--wiki <name>`). If the 
 
 ## Output handling
 
-- For **interactive** users: print the rig output verbatim, then explain what changed in one short sentence.
-- For **machine** consumption (chained tools): use `--json` on any command. Shape is `{ ok, code, data?, error? }`.
+- After running a `rig wiki *` command, **summarise in natural language** what changed. Don't dump raw `rig` output unless the user asks ("show me the raw output"). Examples:
+  - After `rig wiki ingest`: "Wrote 11 pages (1 source, 2 entities, 5 concepts, …). Lint clean."
+  - After `rig wiki query`: cite the top hit by slug `[[wikilink]]` and quote a 1-line snippet; offer to run `--synth` if user wants a paragraph.
+  - After `rig wiki scan`: "3 new, 1 modified. Want me to ingest them?"
+- For **machine** consumption (chaining): use `--json` on any command. Shape is `{ ok, code, data?, error? }`.
 - **Long ingest** (Claude two-step CoT): expect 1–3 minutes. Tell the user once at the start; don't ping them mid-run.
+- **First-run model download** (embed model on first `ingest` / `index`, reranker on first `query`): each is ~610MB from the rig CDN — usually under a minute. Mention it the first time, then forget.
 
 ## When NOT to use this skill
 
@@ -72,19 +78,18 @@ Always run from inside the registered project (or pass `--wiki <name>`). If the 
 
 ## Setup — if no wiki is registered
 
-`rig wiki list` shows zero entries → ask the user **once**:
+`rig wiki list` shows zero entries → ask the user **once** (don't list multiple defaults; pick one suggestion and confirm):
 
-> "No wiki registered in this project. Init one? If yes, what subdir name? (suggestions: `knowledge`, `wiki`, `harness/llm-wiki`)"
+> "No wiki registered here. Want me to init one under `knowledge/`? (or pick another subdir name)"
 
-Then run:
+Then orchestrate without further prompting:
 
 ```bash
-rig wiki init <user-chosen-subdir>          # REQUIRED — fails if no path
-# tell user to edit purpose.md (one-time scoping)
-rig wiki register <user-chosen-subdir>
+rig wiki init <subdir>          # REQUIRED — fails if path missing or hidden/gitignored
+rig wiki register <subdir>
 ```
 
-After they edit `purpose.md`, you're ready to use the intent map above.
+After init, **pause and ask the user to edit `<subdir>/purpose.md`** (one-time human scoping — define what this wiki is for, in/out of scope). Don't write purpose.md yourself; it's the only human-authored anchor for everything downstream.
 
 ## Architecture (read once, then forget)
 
