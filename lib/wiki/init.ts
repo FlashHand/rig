@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import print from '../print';
+import { guardPath, refusalMessage } from './pathGuard';
 
 const PURPOSE_TMPL = `# Purpose
 
@@ -82,6 +83,13 @@ export default function wikiInit(givenPath?: string): void {
     process.exit(1);
   }
   const root = path.resolve(givenPath);
+  const guard = guardPath(root, process.cwd());
+  if (!guard.ok) {
+    print.error('refusing to initialize a wiki at a hidden or gitignored path.');
+    // eslint-disable-next-line no-console
+    console.error(refusalMessage(root, guard));
+    process.exit(1);
+  }
   fs.mkdirSync(root, { recursive: true });
 
   writeIfMissing(path.join(root, 'purpose.md'), PURPOSE_TMPL);

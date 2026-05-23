@@ -21,6 +21,7 @@ import { paths } from './paths';
 import { recordLastRun } from './db';
 import { qmdEmbed } from './qmd';
 import { adapters } from './agent/registry';
+import { guardPath, refusalMessage } from './pathGuard';
 
 interface IngestOpts { wiki?: string; dryRun?: boolean; json?: boolean; }
 
@@ -42,6 +43,13 @@ export default async function wikiIngest(source: string, opts: IngestOpts): Prom
   const absSource = path.isAbsolute(source) ? source : path.resolve(target.path, source);
   if (!fs.existsSync(absSource)) {
     print.error(`source not found: ${source}`);
+    process.exit(1);
+  }
+  const guard = guardPath(absSource, target.project || target.path);
+  if (!guard.ok) {
+    print.error('refusing to ingest from a hidden or gitignored path.');
+    // eslint-disable-next-line no-console
+    console.error(refusalMessage(absSource, guard));
     process.exit(1);
   }
   const relSource = path.relative(target.path, absSource);

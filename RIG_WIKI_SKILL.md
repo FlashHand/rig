@@ -42,6 +42,7 @@ Always run from inside the registered project (or pass `--wiki <name>`). If the 
 ## Hard rules — refuse and explain if violated
 
 - **Never** edit `raw/`, `purpose.md`, or `schema.md` directly. Those are human-authored. If the user asks you to, tell them to do it manually.
+- **Never** ingest or init at a **hidden path** (any segment starting with `.`) or a **.gitignored** path. rig wiki refuses at the CLI level — it sees these as "the project deliberately doesn't want this in the wiki." Workaround if the user insists: `cp -R <hidden-or-ignored> <wiki>/raw/<slug>/` first, then ingest the copy. Never bypass the guard.
 - **Never** ingest a path outside the wiki's `include[]` scope (anything in `raw/` is always fine; outside that requires the path to be listed in the registered wiki's `include`).
 - **`rig wiki scan` exit 10 (RAW DRIFT)** = a `raw/` file's bytes changed since last scan. Do NOT auto-fix or re-ingest. Surface to the user as a data-integrity warning.
 - **`rig wiki lint` exit 11** = severe findings. Surface the report path and the top findings; do not auto-fix unless the user asks.
