@@ -13,44 +13,33 @@
 //   - full re-embed (Qwen3-Embedding by default)
 
 import print from '../print';
-import { loadWikiConfig, resolveWiki, WikiEntry } from './config';
+import { requireVault } from './config';
 import { getDb, recordLastRun } from './db';
 import { qmdEmbed, qmdResetStore } from './qmd';
 
-interface RebuildOpts { wiki?: string; all?: boolean; skipEmbed?: boolean; }
+interface RebuildOpts { skipEmbed?: boolean; }
 
 export default async function wikiRebuild(opts: RebuildOpts): Promise<void> {
-  const cfg = loadWikiConfig();
-  const targets: WikiEntry[] = opts.all
-    ? cfg.wikis
-    : [resolveWiki(cfg, opts.wiki)].filter(Boolean) as WikiEntry[];
-  if (targets.length === 0) {
-    print.error('no wiki resolved. Pass --wiki <name>, --all, or run from inside a registered project.');
-    process.exit(1);
-  }
-
+  const t = requireVault();
   const db = getDb();
-  for (const t of targets) {
-    print.start(`rebuild: ${t.name}`);
-    const del = db.prepare('DELETE FROM source_sha WHERE wiki = ?').run(t.name);
-    print.info(`  cleared ${del.changes} source_sha rows for ${t.name}`);
 
-    qmdResetStore(t.name);
+  print.start(`rebuild: ${t.name}`);
+  const del = db.prepare('DELETE FROM source_sha WHERE wiki = ?').run(t.name);
+  print.info(`  cleared ${del.changes} source_sha rows for ${t.name}`);
 
-    if (!opts.skipEmbed) {
-      const res = await qmdEmbed(t.name, t.path, { force: true });
-      if (res.ok) print.info(`  qmd embed: ${t.name} done`);
-      else {
-        print.error(`  qmd embed: ${t.name} failed: ${res.stderr.trim()}`);
-        recordLastRun(t.name, 'rebuild', 1);
-        process.exitCode = 1;
-        continue;
-      }
+  qmdResetStore(t.name);
+
+  if (!opts.skipEmbed) {
+    const res = await qmdEmbed(t.name, t.path, { force: true });
+    if (res.ok) print.info(`  qmd embed: ${t.name} done`);
+    else {
+      print.error(`  qmd embed: ${t.name} failed: ${res.stderr.trim()}`);
+      recordLastRun(t.name, 'rebuild', 1);
+      process.exit(1);
     }
-
-    recordLastRun(t.name, 'rebuild', 0);
-    print.succeed(`rebuilt: ${t.name}`);
   }
 
+  recordLastRun(t.name, 'rebuild', 0);
+  print.succeed(`rebuilt: ${t.name}`);
   print.info('next: run `rig wiki scan` to baseline the new sha index.');
 }

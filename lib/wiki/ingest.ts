@@ -16,29 +16,24 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import print from '../print';
-import { loadWikiConfig, resolveWiki, loadRigConfig, WikiEntry } from './config';
+import { requireVault, loadRigConfig, WikiEntry } from './config';
 import { paths } from './paths';
 import { recordLastRun } from './db';
 import { qmdEmbed } from './qmd';
 import { adapters } from './agent/registry';
 import { guardPath, refusalMessage } from './pathGuard';
 
-interface IngestOpts { wiki?: string; dryRun?: boolean; json?: boolean; }
+interface IngestOpts { dryRun?: boolean; json?: boolean; }
 
 const AGENT_TIMEOUT_MS = 15 * 60 * 1000;
 
 // LLM-writable surface — everything outside this set is filtered out of the
 // diff (raw/, purpose.md, schema.md, .gitignore, lint-report-*, proposals/).
 const WRITABLE_TOP = new Set(['index.md', 'overview.md', 'log.md', 'reviews.md']);
-const WRITABLE_DIRS = ['wiki/sources', 'wiki/entities', 'wiki/concepts', 'wiki/synthesis', 'wiki/queries'];
+const WRITABLE_DIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'];
 
 export default async function wikiIngest(source: string, opts: IngestOpts): Promise<void> {
-  const cfg = loadWikiConfig();
-  const target = resolveWiki(cfg, opts.wiki);
-  if (!target) {
-    print.error('no wiki resolved. Pass --wiki <name> or run from inside a registered project.');
-    process.exit(1);
-  }
+  const target = requireVault();
 
   const absSource = path.isAbsolute(source) ? source : path.resolve(target.path, source);
   if (!fs.existsSync(absSource)) {
@@ -241,12 +236,12 @@ function buildPrompt(wiki: WikiEntry, sourceAbs: string): string {
     `  - In your head, list: entities mentioned, concepts touched, contradictions vs existing pages, items that need human review.`,
     ``,
     `Step 2 — GENERATION (write files):`,
-    `  - Create \`wiki/sources/<slug>.md\` summarizing this source. \`<slug>\` = source basename minus YYYY-MM-DD prefix and extension, kebab-case.`,
-    `  - For each new or affected entity / concept / synthesis page, create or UPDATE the corresponding file under \`wiki/entities/\`, \`wiki/concepts/\`, \`wiki/synthesis/\`.`,
+    `  - Create \`sources/<slug>.md\` summarizing this source. \`<slug>\` = source basename minus YYYY-MM-DD prefix and extension, kebab-case.`,
+    `  - For each new or affected entity / concept / synthesis page, create or UPDATE the corresponding file under \`entities/\`, \`concepts/\`, \`synthesis/\` (at the vault root — there is no \`wiki/\` subdir).`,
     `  - Update \`index.md\` and \`overview.md\` to reflect the new content.`,
     `  - If anything is unclear or contradictory, append a bullet to \`reviews.md\`. Do NOT silently merge contradictions.`,
     ``,
-    `Frontmatter — every wiki/**/*.md MUST have:`,
+    `Frontmatter — every page under sources/ entities/ concepts/ synthesis/ queries/ MUST have:`,
     '```yaml',
     `type: source | entity | concept | synthesis | query`,
     `sources: [<source-slug>, ...]      # source-slug is the source page slug, not raw filename`,
@@ -261,7 +256,7 @@ function buildPrompt(wiki: WikiEntry, sourceAbs: string): string {
     ``,
     `Hard rules — the host will REJECT any patch that violates these:`,
     `  - DO NOT modify \`raw/\`, \`purpose.md\`, or \`schema.md\`.`,
-    `  - Use kebab-case slugs; no spaces; no date prefixes inside \`wiki/\` filenames.`,
+    `  - Use kebab-case slugs; no spaces; no date prefixes in page filenames.`,
     `  - Link related pages with [[wikilink]]. Every wiki page should link to ≥1 other page.`,
     `  - For contradictions, write inline: \`> Contradiction: A vs B (see [[page-A]], [[page-B]])\`.`,
     ``,

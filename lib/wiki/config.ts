@@ -7,13 +7,13 @@ import { paths, vaultConfigPath } from './paths';
  * Two-layer config model.
  *
  *   ~/.rig/config.yml       — rig-global preferences (agent / qmd / logRotate).
- *   ~/.rig/wikis.yml        — registry: list of absolute vault paths only.
  *   <vault>/.rig/config.yml — per-vault settings (name, include, exclude,
  *                             schedule, ingestRules, optional scan root).
  *
- * A `WikiEntry` is the composed view returned to consumers (registry path
- * + vault config + defaults). Nothing about a wiki's identity or scope lives
- * outside the vault itself; the global registry is just a discovery list.
+ * There is **no global registry**. A vault is discovered by walking up from
+ * the current working directory looking for `.rig/config.yml`. Everything
+ * about a vault — its identity, its scope, its schedule — lives inside the
+ * vault dir itself.
  */
 
 export interface RigConfig {
@@ -35,26 +35,17 @@ export interface VaultConfig {
   ingestRules?: { match: string; mode: 'auto-on-new' | 'propose-only' }[];
 }
 
-/** Global registry persisted at `~/.rig/wikis.yml`. */
-export interface Registry {
-  wikis: string[]; // absolute vault paths
-}
-
 /** Composed view used by all wiki commands. */
 export interface WikiEntry {
   name: string;
   /** Absolute path to the vault dir. */
   path: string;
-  /** Absolute path to the scan root (resolved from VaultConfig.root). */
+  /** Absolute path to the scan root. */
   root: string;
   include: string[];
   exclude: string[];
   schedule?: { scan?: string; lint?: string; ingest?: string | null };
   ingestRules?: { match: string; mode: 'auto-on-new' | 'propose-only' }[];
-}
-
-export interface WikiConfig {
-  wikis: WikiEntry[];
 }
 
 const DEFAULT_RIG_CONFIG: RigConfig = {
@@ -97,20 +88,6 @@ export function saveRigConfig(cfg: RigConfig): void {
   writeYaml(paths.config, cfg);
 }
 
-// ─────────────────────────── registry (paths only) ───────────────────────
-
-export function loadRegistry(): Registry {
-  ensureHomeDir();
-  const reg = readYaml<Registry>(paths.registry, { wikis: [] });
-  if (!Array.isArray(reg.wikis)) reg.wikis = [];
-  return reg;
-}
-
-export function saveRegistry(reg: Registry): void {
-  ensureHomeDir();
-  writeYaml(paths.registry, { wikis: reg.wikis });
-}
-
 // ─────────────────────────── per-vault config ────────────────────────────
 
 export function loadVaultConfig(vaultDir: string): VaultConfig | null {
@@ -123,56 +100,76 @@ export function saveVaultConfig(vaultDir: string, cfg: VaultConfig): void {
   writeYaml(vaultConfigPath(vaultDir), cfg);
 }
 
-// ───────────────────────────── composed view ─────────────────────────────
+// ─────────────────────────── vault discovery ─────────────────────────────
 
-const HARDCODED_EXCLUDES = ['node_modules/**', '.git/**'];
-
-function composeEntry(vaultPath: string): WikiEntry | null {
-  const vault = loadVaultConfig(vaultPath);
-  if (!vault) return null;
+function composeEntry(vaultPath: string, vault: VaultConfig): WikiEntry {
   const rootRel = vault.root ?? '..';
   const root = path.resolve(vaultPath, rootRel);
-  const vaultBasename = path.basename(vaultPath);
   return {
-    name: vault.name,
+    name: vault.name || path.basename(vaultPath),
     path: vaultPath,
     root,
     include: vault.include ?? ['**/*.md'],
-    exclude: vault.exclude ?? [`${vaultBasename}/**`, ...HARDCODED_EXCLUDES],
+    exclude: vault.exclude ?? [],
     schedule: vault.schedule ?? DEFAULT_SCHEDULE,
     ingestRules: vault.ingestRules ?? [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
   };
 }
 
 /**
- * Compose the list of registered wikis. Reads the registry and, for each
- * recorded path, loads the vault's own `.rig/config.yml`. Paths whose vault
- * config is missing or malformed are skipped silently (the user can re-run
- * `rig wiki register <path>` to repair).
+ * Walk up from `start` (default: CWD) looking for a vault. At each ancestor
+ * we check two patterns:
+ *
+ *   1. **The dir itself is the vault** — `<dir>/.rig/config.yml` exists.
+ *      Triggered when the user is inside the vault or below it.
+ *   2. **An immediate child is the vault** — some `<dir>/<child>/.rig/config.yml`
+ *      exists. Triggered when the user is at the project root (the common
+ *      case for `cd <project> && rig wiki *` where the vault is
+ *      `<project>/rig-wiki/`). If multiple children are vaults, the
+ *      lexicographically first wins.
+ *
+ * Returns the composed `WikiEntry`, or `undefined` if no vault is found.
+ *
+ * Callers that need a vault and don't have one must produce a helpful error
+ * themselves — `resolveVault` is a pure lookup and stays quiet.
  */
-export function loadWikiConfig(): WikiConfig {
-  const reg = loadRegistry();
-  const wikis: WikiEntry[] = [];
-  for (const p of reg.wikis) {
-    const entry = composeEntry(p);
-    if (entry) wikis.push(entry);
+export function resolveVault(start?: string): WikiEntry | undefined {
+  let dir = path.resolve(start || process.cwd());
+  while (true) {
+    // 1. Is `dir` itself a vault?
+    if (fs.existsSync(vaultConfigPath(dir))) {
+      const v = loadVaultConfig(dir);
+      if (v) return composeEntry(dir, v);
+    }
+    // 2. Does any immediate child of `dir` look like a vault?
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true })
+        .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+        .map(e => e.name)
+        .sort();
+      for (const name of entries) {
+        const child = path.join(dir, name);
+        if (fs.existsSync(vaultConfigPath(child))) {
+          const v = loadVaultConfig(child);
+          if (v) return composeEntry(child, v);
+        }
+      }
+    } catch { /* unreadable dir — fall through to parent */ }
+
+    const parent = path.dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
   }
-  return { wikis };
 }
 
 /**
- * Resolve target wiki for a command:
- *   1. If `--wiki <name>` provided, look up by name.
- *   2. Otherwise walk up from CWD; first match wins (by vault `path` or `root`).
- *   3. Return undefined if nothing matches.
+ * Same as `resolveVault` but exits the process with a clear error when no
+ * vault is found. Use from CLI commands.
  */
-export function resolveWiki(cfg: WikiConfig, wikiFlag?: string): WikiEntry | undefined {
-  if (wikiFlag) return cfg.wikis.find(w => w.name === wikiFlag);
-  const cwd = process.cwd();
-  return cfg.wikis.find(w =>
-    cwd === w.path ||
-    cwd.startsWith(w.path + path.sep) ||
-    cwd === w.root ||
-    cwd.startsWith(w.root + path.sep),
-  );
+export function requireVault(): WikiEntry {
+  const v = resolveVault();
+  if (v) return v;
+  // eslint-disable-next-line no-console
+  console.error('No rig wiki vault found. cd into a vault directory (one that contains .rig/config.yml) or run `rig wiki init <path>` first.');
+  process.exit(1);
 }

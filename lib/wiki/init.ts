@@ -19,7 +19,8 @@ const SCHEMA_TMPL = `# Schema
 
 ## Layers
 - raw/, purpose.md, schema.md: read-only for LLM
-- wiki/, index.md, overview.md, log.md, reviews.md: LLM is sole author
+- index.md, overview.md, log.md, reviews.md, sources/, entities/, concepts/,
+  synthesis/, queries/: LLM is sole author
 
 ## Page types
 - sources/<slug>.md     : 1-source summary
@@ -37,7 +38,7 @@ const SCHEMA_TMPL = `# Schema
 - last-updated: <ISO>
 
 ## Naming
-- kebab-case; no spaces; no dates in wiki/ filenames
+- kebab-case; no spaces; no dates in page filenames
 - raw/ filenames keep YYYY-MM-DD prefix
 
 ## Linking
@@ -56,7 +57,7 @@ const SCHEMA_TMPL = `# Schema
 
 const SUBDIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'];
 
-// What lives inside the wiki dir but must not enter git / Obsidian Sync:
+// What lives inside the vault but must not enter git / Obsidian Sync:
 // - qmd's project-local vector cache (sqlite-vec, non-deterministic, rebuilds
 //   locally with `rig wiki index` / `rig wiki rebuild`)
 // - lint reports (auto-regenerated)
@@ -76,11 +77,19 @@ proposals/
 *.swp
 `;
 
+/**
+ * Sensible defaults for a fresh vault. The user can edit
+ * `<vault>/.rig/config.yml` afterwards.
+ *
+ * Note: hidden directories (any path segment starting with `.`) and files
+ * matched by the project's `.gitignore` are skipped automatically by the
+ * scanner — there is no need to add `.git/**` or `node_modules/**` here.
+ */
 const DEFAULT_VAULT_CONFIG = (vaultBasename: string): VaultConfig => ({
   name: vaultBasename,
   root: '..',
   include: ['**/*.md'],
-  exclude: [`${vaultBasename}/**`, 'node_modules/**', '.git/**'],
+  exclude: [`${vaultBasename}/**`],
   schedule: { scan: '0 */6 * * *', lint: '0 3 * * *', ingest: null },
   ingestRules: [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
 });
@@ -88,14 +97,14 @@ const DEFAULT_VAULT_CONFIG = (vaultBasename: string): VaultConfig => ({
 export default function wikiInit(givenPath?: string): void {
   if (!givenPath || !givenPath.trim()) {
     print.error('rig wiki init requires a target subdirectory.');
-    print.info('usage: rig wiki init <subdir>     (e.g. `rig wiki init knowledge` / `rig wiki init harness/llm-wiki`)');
-    print.info('refusing to default to CWD — that would litter the project root with wiki templates.');
+    print.info('usage: rig wiki init <subdir>     (recommended: `rig wiki init rig-wiki` at the project root)');
+    print.info('refusing to default to CWD — that would litter the project root with vault templates.');
     process.exit(1);
   }
   const root = path.resolve(givenPath);
   const guard = guardPath(root, process.cwd());
   if (!guard.ok) {
-    print.error('refusing to initialize a wiki at a hidden or gitignored path.');
+    print.error('refusing to initialize a vault at a hidden or gitignored path.');
     // eslint-disable-next-line no-console
     console.error(refusalMessage(root, guard));
     process.exit(1);
@@ -113,8 +122,9 @@ export default function wikiInit(givenPath?: string): void {
   fs.mkdirSync(path.join(root, 'raw'), { recursive: true });
   writeIfMissing(path.join(root, 'raw', '.gitkeep'), '');
 
+  // Page tree lives at the vault root — no extra `wiki/` nesting.
   for (const sub of SUBDIRS) {
-    const d = path.join(root, 'wiki', sub);
+    const d = path.join(root, sub);
     fs.mkdirSync(d, { recursive: true });
     writeIfMissing(path.join(d, '.gitkeep'), '');
   }
@@ -126,17 +136,13 @@ export default function wikiInit(givenPath?: string): void {
     saveVaultConfig(root, DEFAULT_VAULT_CONFIG(path.basename(root)));
   }
 
-  print.succeed(`wiki initialized at ${root}`);
-  print.info(`next: edit purpose.md + schema.md (and .rig/config.yml if scope differs from defaults), then \`rig wiki register ${shortPath(root)}\``);
+  print.succeed(`vault initialized at ${root}`);
+  print.info('next: edit purpose.md + schema.md (and .rig/config.yml if scope differs from defaults).');
+  print.info('discovery is automatic — cd into this dir (or any subdir) and run `rig wiki *` commands.');
   print.info('on a new device, after cloning, run `rig wiki rebuild` to refresh local caches.');
 }
 
 function writeIfMissing(file: string, content: string) {
   if (fs.existsSync(file)) return;
   fs.writeFileSync(file, content, 'utf8');
-}
-
-function shortPath(p: string) {
-  const home = process.env.HOME || '';
-  return home && p.startsWith(home) ? '~' + p.slice(home.length) : p;
 }

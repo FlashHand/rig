@@ -90,4 +90,63 @@ try {
 } finally {
   rmSync(tmpDir, { recursive: true, force: true });
 }
+
+if (status === 0) {
+  await syncNpmmirror(pkg.name);
+}
 process.exit(status);
+
+/**
+ * Tell registry.npmmirror.com to pull the newly published version from
+ * upstream npmjs. Fire the POST kickoff, then poll the sync log a few
+ * times — we don't block release on completion, just surface progress.
+ *
+ * Failures (network, 5xx, timeout) are warnings, not hard errors: the
+ * publish itself succeeded; the mirror will catch up on its own.
+ */
+async function syncNpmmirror(pkgName) {
+  const slug = encodeURIComponent(pkgName);
+  const kickoffUrl = `https://registry.npmmirror.com/-/package/${slug}/syncs?sync_upstream=true`;
+  process.stdout.write(`\nsyncing ${pkgName} to npmmirror.com...\n`);
+
+  let logId;
+  try {
+    const r = await fetch(kickoffUrl, { method: 'PUT' });
+    if (!r.ok) {
+      process.stderr.write(`  kickoff failed (HTTP ${r.status}) — mirror will sync on its own schedule\n`);
+      return;
+    }
+    const body = await r.json();
+    logId = body.logId || body.id;
+    if (!logId) {
+      process.stdout.write(`  kicked off (no logId returned, treating as fire-and-forget)\n`);
+      return;
+    }
+    process.stdout.write(`  kicked off (logId=${logId})\n`);
+  } catch (e) {
+    process.stderr.write(`  kickoff error: ${e.message} — mirror will sync on its own schedule\n`);
+    return;
+  }
+
+  // Poll the sync log: 3s interval, give up after 60s.
+  const statusUrl = `https://registry.npmmirror.com/-/package/${slug}/syncs/${logId}`;
+  const start = Date.now();
+  const TIMEOUT_MS = 60_000;
+  while (Date.now() - start < TIMEOUT_MS) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const r = await fetch(statusUrl);
+      if (!r.ok) continue;
+      const s = await r.json();
+      if (s.syncDone || s.state === 'success') {
+        process.stdout.write(`  npmmirror sync complete\n`);
+        return;
+      }
+      if (s.state === 'fail') {
+        process.stderr.write(`  npmmirror sync failed: ${s.error || '(no error message)'}\n`);
+        return;
+      }
+    } catch { /* transient — keep polling */ }
+  }
+  process.stdout.write(`  still in progress after ${TIMEOUT_MS / 1000}s — npmmirror will finish in the background\n`);
+}

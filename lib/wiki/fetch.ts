@@ -15,10 +15,10 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import print from '../print';
-import { loadWikiConfig, resolveWiki, WikiEntry } from './config';
+import { requireVault, WikiEntry } from './config';
 import { adapters } from './agent/registry';
 
-interface FetchOpts { wiki?: string; json?: boolean; viaAgent?: boolean; slug?: string; }
+interface FetchOpts { json?: boolean; viaAgent?: boolean; slug?: string; }
 
 const FETCH_TIMEOUT_MS = 60 * 1000;
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB cap to avoid pulling videos accidentally
@@ -28,12 +28,7 @@ export default async function wikiFetch(url: string, opts: FetchOpts): Promise<v
     print.error(`unsupported URL scheme: ${url}`);
     process.exit(1);
   }
-  const cfg = loadWikiConfig();
-  const target = resolveWiki(cfg, opts.wiki);
-  if (!target) {
-    print.error('no wiki resolved. Pass --wiki <name> or run from inside a registered project.');
-    process.exit(1);
-  }
+  const target = requireVault();
 
   const slug = opts.slug || urlToSlug(url);
   const today = new Date().toISOString().slice(0, 10);

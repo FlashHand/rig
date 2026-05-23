@@ -11,9 +11,9 @@ Convention: **one file per subcommand**, plus a small set of shared infra files 
 | File | Purpose |
 |---|---|
 | `index.ts` | Commander wiring. Builds the `rig wiki` subtree and attaches every action. Imported once from `lib/rig/index.ts`. |
-| `paths.ts` | Centralized filesystem paths (`~/.rig/`, launchd plist, Claude skills dir). Override with `RIG_HOME`. Also exports the launchd label. |
+| `paths.ts` | Centralized filesystem paths (`~/.rig/`, launchd plist, Claude skills dir). Override with `RIG_HOME`. Also exports the launchd label and `vaultConfigPath(vaultDir)` for `<vault>/.rig/config.yml`. |
 | `platform.ts` | `requireMacOS()` — hard-exits with code 32 on non-Darwin platforms. v1 is macOS-only by decision; see roadmap P5. |
-| `config.ts` | YAML read/write for `~/.rig/config.yml` (`RigConfig`, rig-global prefs) and `~/.rig/wikis.yml` (`Registry`, discovery-only path list). Per-vault settings live at `<vault>/.rig/config.yml` (`VaultConfig`). `loadWikiConfig()` composes the registry + each vault's config into the consumer-facing `WikiEntry[]`. `resolveWiki()` picks the target wiki for a command (flag → CWD walk → undefined). |
+| `config.ts` | YAML read/write for `~/.rig/config.yml` (`RigConfig`, rig-global prefs) and `<vault>/.rig/config.yml` (`VaultConfig`). `resolveVault()` walks up from CWD looking for a `.rig/config.yml`; `requireVault()` is the CLI-friendly variant that exits with a clear error on miss. **No global registry** — vault discovery is purely CWD-based. |
 | `db.ts` | Lazy-loaded `better-sqlite3` singleton. WAL mode. Idempotent migrations on every open. Exposes `getDb()`, `recordLastRun()`, `getLastRun()`. |
 | `qmd.ts` | Detects `qmd` on PATH, wraps `qmd query --json` and `qmd embed`. All callers must handle `installed=false` gracefully — qmd is optional. |
 
@@ -23,18 +23,22 @@ Convention: **one file per subcommand**, plus a small set of shared infra files 
 
 | File | Subcommand | What it does |
 |---|---|---|
-| `init.ts` | `rig wiki init [path]` | Bootstraps a fresh wiki dir: `purpose.md` + `schema.md` from templates, empty `index.md` / `overview.md` / `log.md` / `reviews.md`, `raw/` + five `wiki/<sub>/` dirs, and seeds `<vault>/.rig/config.yml` with default include / exclude / schedule. Idempotent — never overwrites existing files. Does **not** register. |
-| `register.ts` | `rig wiki register [path]` | Ensures `<vault>/.rig/config.yml` exists (seeding defaults if absent), applies `--as <slug>` to its `name`, then appends the vault's absolute path to `~/.rig/wikis.yml`. Auto-detects the vault by walking up from CWD looking for `purpose.md`. |
-| `unregister.ts` | `rig wiki unregister <nameOrPath>` | Drops the vault path from `~/.rig/wikis.yml`. `<vault>/.rig/config.yml` and disk content are untouched. |
-| `list.ts` | `rig wiki list` | Prints a table: name, path, page count, last scan / ingest / lint. Banner row shows detected agent CLI, qmd status. |
-| `scan.ts` | `rig wiki scan [path]` | Walks `include` globs + `raw/`, sha256-compares against the `source_sha` table in `state.db`. Emits NEW / MODIFIED / DELETED / RAW DRIFT report. Returns exit code 10 if any RAW DRIFT (raw/ files are immutable). No agent calls. |
-| `fetch.ts` | `rig wiki fetch <url>` | (stub — P1) Agent-as-fetcher. Will WebFetch the URL via Claude adapter and write `raw/YYYY-MM-DD-<slug>.md` verbatim with frontmatter. **Never** summarizes. |
-| `ingest.ts` | `rig wiki ingest <source>` | (stub — P1) Two-step CoT (analysis → generation). Sandbox-copies the wiki dir, runs Claude adapter, then host-diffs sandbox vs original to extract writes. Filters out edits to `raw/` / `purpose.md` / `schema.md`. `--dry-run` prints diff without applying. |
-| `query.ts` | `rig wiki query "..."` | (stub — P1) Answer a question with `[[wikilink]]` citations. Prefers `qmd query --json` for retrieval; falls back to injecting `index.md` + `overview.md` + heuristic page picks. |
-| `lint.ts` | `rig wiki lint` | (stub — P1) Walks the wiki for contradictions, orphans, stale claims, broken `sources[]` refs, reviews.md backlog. Writes `lint-report-YYYY-MM-DD.md`. Non-zero exit on severe findings (code 11). |
-| `indexCmd.ts` | `rig wiki index` | qmd-only. Ensures the wiki's qmd collection exists, then runs `qmd embed`. When qmd is absent: warns and exits 0 (qmd is optional). Named `indexCmd` to avoid clashing with `index.ts`. |
-| `installSkill.ts` | `rig wiki install-skill` | Locates rig's bundled `.claude/skills/rig-wiki/` inside the rigjs install, then symlinks it into `~/.claude/skills/rig-wiki`. Lets every machine with rig installed get the slash command without manual copy. |
-| `uninstallSkill.ts` | `rig wiki uninstall-skill` | Removes the symlink. |
+| `init.ts` | `rig wiki init <path>` | Bootstraps a fresh vault: `purpose.md` + `schema.md` from templates, empty `index.md` / `overview.md` / `log.md` / `reviews.md`, `raw/` + five page-tree dirs (`sources/ entities/ concepts/ synthesis/ queries/`) directly at the vault root (no inner `wiki/` subdir), and seeds `<vault>/.rig/config.yml`. Idempotent — never overwrites existing files. |
+| `scan.ts` | `rig wiki scan` | Walks `include` globs from the vault's `root` (default: vault's parent dir), sha256-compares against the `source_sha` table in `state.db`. Auto-skips hidden segments (dot-prefixed) and gitignored paths. Emits NEW / MODIFIED / DELETED / RAW DRIFT report. Returns exit code 10 if any RAW DRIFT. No agent calls. |
+| `fetch.ts` | `rig wiki fetch <url>` | Verbatim download URL into `raw/YYYY-MM-DD-<slug>.md`. Default path uses Node fetch + HTML-strip; `--via-agent` uses Claude WebFetch. Never summarizes — that's `ingest`'s job. |
+| `ingest.ts` | `rig wiki ingest <source>` | Two-step CoT (analysis → generation). Spawns Claude in the vault dir, then host-diffs the writable surface (`sources/ entities/ concepts/ synthesis/ queries/` + `index.md` / `overview.md` / `log.md` / `reviews.md`) to extract writes. Filters out edits to `raw/` / `purpose.md` / `schema.md`. `--dry-run` prints diff without applying. |
+| `query.ts` | `rig wiki query "..."` | Vector retrieval via qmd. `--synth` adds a Claude-synthesized paragraph with `[[wikilink]]` citations. |
+| `lint.ts` | `rig wiki lint` | Walks the vault for frontmatter completeness, contradictions, orphans, broken `[[wikilinks]]`, missing `raw/` sources, reviews.md backlog. Writes `lint-report-YYYY-MM-DD.md`. Exit 11 on severe findings. |
+| `indexCmd.ts` | `rig wiki index` | qmd-only. Ensures the vault's qmd collection exists, then runs `qmd embed`. Named `indexCmd` to avoid clashing with `index.ts`. |
+| `rebuild.ts` | `rig wiki rebuild` | Clear `source_sha` rows + drop the per-vault qmd store + full re-embed. Use after switching embed model or onto a new device. |
+| `installSkill.ts` | `rig wiki install-skill [--project]` | Default: symlink bundled `rig-wiki` / `rig-crew` skills into `~/.claude/skills/`. With `--project`: install into `<cwd>/.claude/skills/` AND `<cwd>/.agents/skills/` (per-project override, covers both Claude Code and Codex). |
+| `uninstallSkill.ts` | `rig wiki uninstall-skill [--project]` | Mirror of install-skill. |
+
+### Commands intentionally NOT in this set
+
+`register`, `unregister`, `list` — there is no global registry. Vault discovery is by walking up from CWD looking for `<dir>/.rig/config.yml`. If you find yourself wanting to "list all wikis on this machine," that's a deliberate non-feature: each project's vault stands alone.
+
+`--wiki <name>` and `--all` flags — gone everywhere. A command operates on whatever vault `resolveVault()` finds from CWD, or errors with a clear message.
 
 ---
 
@@ -66,7 +70,7 @@ One adapter per agent CLI. Only Claude Code is implemented in v1; others are stu
 | `stop.ts` | `launchctl bootout` only. |
 | `status.ts` | `launchctl print gui/<uid>/<label>`, parses `state=` and `pid=`. |
 | `logs.ts` | Tails `~/.rig/logs/wiki-daemon.log` (with optional `-f`). |
-| `runner.ts` | **The launchd entry.** `launchctl` invokes `node <rigjs>/built/index.js wiki daemon runner`. v1: heartbeat-only loop that logs every 10 min and reloads `~/.rig/wikis.yml` + each vault's `.rig/config.yml`. P2 will add cron-based scan/lint scheduling and `auto-on-new` ingest rules. |
+| `runner.ts` | **The launchd entry.** `launchctl` invokes `node <rigjs>/built/index.js wiki daemon runner`. v1: heartbeat-only loop that tries to `resolveVault()` from its CWD at startup, logs the result, then ticks every 10 min. P2 will accept a `wiki.watchedVaults` list in `~/.rig/config.yml` and run cron-based scan/lint/ingest per entry. |
 
 ---
 

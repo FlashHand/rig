@@ -10,12 +10,11 @@
 
 import path from 'path';
 import print from '../print';
-import { loadWikiConfig, resolveWiki, loadRigConfig, WikiEntry } from './config';
+import { requireVault, loadRigConfig, WikiEntry } from './config';
 import { qmdQuery, QmdHit } from './qmd';
 import { adapters } from './agent/registry';
 
 interface QueryOpts {
-  wiki?: string;
   json?: boolean;
   limit?: number;
   synth?: boolean;
@@ -28,12 +27,7 @@ export default async function wikiQuery(q: string, opts: QueryOpts): Promise<voi
     print.error('empty query.');
     process.exit(1);
   }
-  const cfg = loadWikiConfig();
-  const target = resolveWiki(cfg, opts.wiki);
-  if (!target) {
-    print.error('no wiki resolved. Pass --wiki <name> or run from inside a registered project.');
-    process.exit(1);
-  }
+  const target = requireVault();
 
   const limit = Math.max(1, Math.min(50, opts.limit || 10));
   const hits = await qmdQuery(q, target.name, { limit, rerank: opts.rerank !== false });
@@ -78,13 +72,15 @@ function printHits(wiki: WikiEntry, q: string, hits: QmdHit[]): void {
   console.log('');
 }
 
-// "/abs/.../wiki/sources/foo.md" → "foo". Outside wiki/<sub>/ → null so the
-// caller falls back to printing the literal path.
+// "/abs/<vault>/sources/foo.md" → "foo". For paths outside the page-tree
+// subdirs returns null so the caller falls back to the literal path.
+const PAGE_SUBDIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'];
 function toWikilink(wiki: WikiEntry, filePath: string): string | null {
   try {
     const abs = path.isAbsolute(filePath) ? filePath : path.resolve(wiki.path, filePath);
-    const wikiRoot = path.join(wiki.path, 'wiki') + path.sep;
-    if (!abs.startsWith(wikiRoot)) return null;
+    const rel = path.relative(wiki.path, abs);
+    const first = rel.split(path.sep)[0];
+    if (!PAGE_SUBDIRS.includes(first)) return null;
     return path.basename(abs, path.extname(abs));
   } catch { return null; }
 }

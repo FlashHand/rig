@@ -6,7 +6,6 @@ export const RIG_HOME = process.env.RIG_HOME || path.join(os.homedir(), '.rig');
 export const paths = {
   home: RIG_HOME,
   config: path.join(RIG_HOME, 'config.yml'),
-  registry: path.join(RIG_HOME, 'wikis.yml'),
   stateDb: path.join(RIG_HOME, 'state.db'),
   locks: path.join(RIG_HOME, 'locks'),
   logs: path.join(RIG_HOME, 'logs'),

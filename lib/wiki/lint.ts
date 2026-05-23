@@ -16,13 +16,13 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import print from '../print';
-import { loadWikiConfig, resolveWiki, WikiEntry } from './config';
+import { requireVault, WikiEntry } from './config';
 import { recordLastRun } from './db';
 
-interface LintOpts { wiki?: string; all?: boolean; json?: boolean; }
+interface LintOpts { json?: boolean; }
 
 interface PageMeta {
-  rel: string;          // wiki-relative path, e.g. "wiki/sources/foo.md"
+  rel: string;          // vault-relative path, e.g. "sources/foo.md"
   slug: string;         // filename without ext
   sub: string;          // "sources" | "entities" | "concepts" | "synthesis" | "queries"
   frontmatter: Record<string, unknown> | null;
@@ -44,34 +44,24 @@ const SOURCE_EXTRA_KEYS = ['source-sha', 'source-path'] as const;
 const WIKI_SUBDIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'] as const;
 
 export default async function wikiLint(opts: LintOpts): Promise<void> {
-  const cfg = loadWikiConfig();
-  const targets: WikiEntry[] = opts.all
-    ? cfg.wikis
-    : [resolveWiki(cfg, opts.wiki)].filter(Boolean) as WikiEntry[];
-  if (targets.length === 0) {
-    print.error('no wiki resolved. Pass --wiki <name>, --all, or run from inside a registered project.');
-    process.exit(1);
-  }
-
-  let severeFound = false;
-  const reports: { wiki: string; findings: Findings }[] = [];
-  for (const t of targets) {
-    const findings = lintOne(t);
-    reports.push({ wiki: t.name, findings });
-    const sev =
-      findings.missingFrontmatter.length +
-      findings.missingRequiredKey.length +
-      findings.brokenWikilinks.length +
-      findings.missingRawSource.length;
-    if (sev > 0) severeFound = true;
-    if (!opts.json) printSummary(t.name, findings);
-    writeReport(t, findings);
-    recordLastRun(t.name, 'lint', sev > 0 ? 11 : 0);
-  }
+  const target = requireVault();
+  const findings = lintOne(target);
+  const sev =
+    findings.missingFrontmatter.length +
+    findings.missingRequiredKey.length +
+    findings.brokenWikilinks.length +
+    findings.missingRawSource.length;
+  const severeFound = sev > 0;
+  if (!opts.json) printSummary(target.name, findings);
+  writeReport(target, findings);
+  recordLastRun(target.name, 'lint', severeFound ? 11 : 0);
 
   if (opts.json) {
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ ok: !severeFound, code: severeFound ? 11 : 0, data: reports }, null, 2));
+    console.log(JSON.stringify({
+      ok: !severeFound, code: severeFound ? 11 : 0,
+      data: [{ wiki: target.name, findings }],
+    }, null, 2));
   }
   if (severeFound) process.exit(11);
 }
@@ -89,7 +79,7 @@ function lintOne(wiki: WikiEntry): Findings {
 
   const pages: PageMeta[] = [];
   for (const sub of WIKI_SUBDIRS) {
-    const dir = path.join(wiki.path, 'wiki', sub);
+    const dir = path.join(wiki.path, sub);
     if (!fs.existsSync(dir)) continue;
     for (const name of fs.readdirSync(dir)) {
       if (!name.endsWith('.md') || name === '.gitkeep') continue;
