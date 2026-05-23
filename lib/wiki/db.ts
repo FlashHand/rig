@@ -69,3 +69,32 @@ export function getLastRun(wiki: string, op: string): { ts: number; exit_code: n
     .prepare('SELECT ts, exit_code FROM last_run WHERE wiki = ? AND op = ?')
     .get(wiki, op) as { ts: number; exit_code: number } | undefined;
 }
+
+/**
+ * Upsert one source-sha row. Path is the **root-relative** path (same key
+ * `scan` uses), so subsequent `scan` runs can detect drift via the same map.
+ */
+export function upsertSourceSha(wiki: string, relPath: string, sha: string, mtimeMs: number): void {
+  getDb().prepare(
+    `INSERT INTO source_sha (wiki, path, sha, mtime) VALUES (?, ?, ?, ?)
+     ON CONFLICT(wiki, path) DO UPDATE SET sha = excluded.sha, mtime = excluded.mtime`
+  ).run(wiki, relPath, sha, Math.floor(mtimeMs));
+}
+
+/** Bulk-upsert variant for `scan --baseline`. Uses a single transaction. */
+export function upsertSourceShasBulk(wiki: string, rows: { path: string; sha: string; mtimeMs: number }[]): void {
+  if (rows.length === 0) return;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO source_sha (wiki, path, sha, mtime) VALUES (?, ?, ?, ?)
+     ON CONFLICT(wiki, path) DO UPDATE SET sha = excluded.sha, mtime = excluded.mtime`
+  );
+  const tx = db.transaction((items: { path: string; sha: string; mtimeMs: number }[]) => {
+    for (const r of items) stmt.run(wiki, r.path, r.sha, Math.floor(r.mtimeMs));
+  });
+  tx(rows);
+}
+
+export function deleteSourceSha(wiki: string, relPath: string): void {
+  getDb().prepare('DELETE FROM source_sha WHERE wiki = ? AND path = ?').run(wiki, relPath);
+}

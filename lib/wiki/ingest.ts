@@ -18,7 +18,7 @@ import crypto from 'crypto';
 import print from '../print';
 import { requireVault, loadRigConfig, WikiEntry } from './config';
 import { paths } from './paths';
-import { recordLastRun } from './db';
+import { recordLastRun, upsertSourceSha } from './db';
 import { qmdEmbed } from './qmd';
 import { adapters } from './agent/registry';
 import { guardPath, refusalMessage } from './pathGuard';
@@ -116,6 +116,18 @@ export default async function wikiIngest(source: string, opts: IngestOpts): Prom
   if (!embedRes.ok) {
     print.warn(`qmd embed failed after ingest: ${embedRes.stderr.trim().slice(0, 300)}`);
     print.warn('your wiki content is committed to disk; only the vector index is stale.');
+  }
+
+  // Baseline this source into state.db.source_sha so future `rig wiki scan`
+  // can detect MODIFIED on this exact file. Key by root-relative path to
+  // match what scan uses for lookups.
+  try {
+    const stat = fs.statSync(absSource);
+    const sha = crypto.createHash('sha256').update(fs.readFileSync(absSource)).digest('hex');
+    const relFromRoot = path.relative(target.root, absSource);
+    upsertSourceSha(target.name, relFromRoot, sha, stat.mtimeMs);
+  } catch (e) {
+    print.warn(`source_sha upsert failed: ${(e as Error).message}. Future scans may misreport this file as NEW.`);
   }
 
   if (opts.json) {
@@ -257,8 +269,9 @@ function buildPrompt(wiki: WikiEntry, sourceAbs: string): string {
     `  - In your head, list: entities mentioned, concepts touched, contradictions vs existing pages, items that need human review.`,
     ``,
     `Step 2 — GENERATION (write files):`,
-    `  - Create \`sources/<slug>.md\` summarizing this source. \`<slug>\` = source basename minus YYYY-MM-DD prefix and extension, kebab-case.`,
-    `  - For each new or affected entity / concept / synthesis page, create or UPDATE the corresponding file under \`entities/\`, \`concepts/\`, \`synthesis/\` (at the vault root — there is no \`wiki/\` subdir).`,
+    `  - Write the source summary to \`sources/<slug>.md\`. \`<slug>\` = source basename minus YYYY-MM-DD prefix and extension, kebab-case.`,
+    `  - **If \`sources/<slug>.md\` already exists, UPDATE IT IN PLACE.** Do NOT create a sibling like \`<slug>-2.md\` or \`<slug>-updated.md\`. Re-ingest of the same source MUST overwrite its existing source page so any [[wikilinks]] pointing at \`[[<slug>]]\` keep working. Refresh \`last-updated\` and \`source-sha\` in the frontmatter; preserve \`ingested-at\` (the original first-ingest timestamp).`,
+    `  - For each new or affected entity / concept / synthesis page, create or UPDATE the corresponding file under \`entities/\`, \`concepts/\`, \`synthesis/\` (at the vault root — there is no \`wiki/\` subdir). Same in-place rule: never create \`-2.md\` siblings.`,
     `  - Update \`index.md\` and \`overview.md\` to reflect the new content.`,
     `  - If anything is unclear or contradictory, append a bullet to \`reviews.md\`. Do NOT silently merge contradictions.`,
     ``,

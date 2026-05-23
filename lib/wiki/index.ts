@@ -25,6 +25,7 @@ export function registerWikiCommands(program: any): void {
 
   wiki.command('scan')
     .description('compute NEW/MODIFIED/DELETED/RAW DRIFT report for the vault resolved from CWD')
+    .option('-b, --baseline', 'commit current shas into state.db so future scans can detect drift (no wiki content changed)')
     .option('--json', 'machine-readable output')
     .action(wikiScan);
 
