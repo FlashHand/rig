@@ -76,6 +76,34 @@ const SCHEMA_TMPL = `# Schema
 - never edit raw/, purpose.md, schema.md
 - raw/ file sha drift = error, not a re-ingest trigger
 - living-doc paths (in include[]) sha drift = MODIFIED, propose re-ingest
+
+## Ingestion policy
+
+This section is consumed by \`rig wiki survey\` to decide which files under
+the scan root are eligible to ingest. Edit the "Custom rules" subsection
+to add wiki-specific filters; the default rules below cover the obvious
+cases.
+
+### Default — INGESTIBLE
+- markdown / plain text: \`.md\` \`.markdown\` \`.txt\` \`.rst\`
+- documents: \`.pdf\` (Claude reads natively)
+- images of receipts / whiteboards / diagrams: \`.png\` \`.jpg\` \`.jpeg\` \`.webp\` \`.gif\`
+- structured text: \`.csv\` \`.tsv\` \`.json\` \`.yaml\` \`.yml\` \`.toml\` \`.html\` \`.xml\`
+
+### Default — NOT INGESTIBLE
+- compressed archives: \`.zip\` \`.tar\` \`.tar.gz\` \`.tgz\` \`.gz\` \`.bz2\` \`.xz\` \`.7z\` \`.rar\` \`.dmg\` \`.iso\`
+- binaries / native: \`.exe\` \`.dll\` \`.so\` \`.dylib\` \`.bin\` \`.o\` \`.a\` \`.lib\` \`.class\` \`.jar\` \`.pyc\` \`.node\` \`.wasm\`
+- AV: \`.mp4\` \`.mov\` \`.mkv\` \`.avi\` \`.webm\` \`.mp3\` \`.wav\` \`.flac\` \`.aac\` \`.ogg\`
+- design / proprietary: \`.psd\` \`.ai\` \`.fig\` \`.sketch\` \`.fla\` \`.indd\`
+- lockfiles + build artifacts: \`yarn.lock\` \`package-lock.json\` \`pnpm-lock.yaml\` \`*.lock\` \`*.min.js\` \`*.map\`
+- model weights / embeddings: \`.gguf\` \`.safetensors\` \`.bin\` \`.pt\` \`.onnx\` \`.h5\` \`.pkl\`
+- anything in hidden dirs (segment starts with \`.\`) or .gitignored — refused by the path guard
+
+### Custom rules (edit me)
+
+- (e.g.) skip files in \`personal/work/archive/\`
+- (e.g.) only English-language content
+- (e.g.) skip files larger than 5MB
 `;
 
 const SUBDIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'];

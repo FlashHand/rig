@@ -1,5 +1,6 @@
 import wikiInit from './init';
 import wikiScan from './scan';
+import wikiSurvey from './survey';
 import wikiFetch from './fetch';
 import wikiIngest from './ingest';
 import wikiQuery from './query';
@@ -28,6 +29,14 @@ export function registerWikiCommands(program: any): void {
     .option('-b, --baseline', 'commit current shas into state.db so future scans can detect drift (no wiki content changed)')
     .option('--json', 'machine-readable output')
     .action(wikiScan);
+
+  wiki.command('survey')
+    .description('triage candidate files via schema.md "Ingestion policy" — agent decides ingest/skip/unclear per file')
+    .option('-a, --apply', 'auto-ingest every "ingest" decision (sequential)')
+    .option('-l, --limit <n>', `cap candidates passed to the agent (default 500)`, (v) => parseInt(v, 10))
+    .option('--no-agent', 'skip agent classification; accept every non-binary candidate (local rules only)')
+    .option('--json', 'machine-readable output')
+    .action(wikiSurvey);
 
   wiki.command('fetch <url>')
     .description('verbatim download URL into raw/YYYY-MM-DD-<slug>.md')

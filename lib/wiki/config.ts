@@ -109,7 +109,11 @@ function composeEntry(vaultPath: string, vault: VaultConfig): WikiEntry {
     name: vault.name || path.basename(vaultPath),
     path: vaultPath,
     root,
-    include: vault.include ?? ['**/*.md'],
+    // Default: walk everything visible. Binary extensions, hidden dirs,
+    // and .gitignored content are filtered at walk time by scan.ts /
+    // surveyed by `rig wiki survey`. include/exclude in vault config
+    // remain available as escape hatches for power users.
+    include: vault.include ?? ['**/*'],
     exclude: vault.exclude ?? [],
     schedule: vault.schedule ?? DEFAULT_SCHEDULE,
     ingestRules: vault.ingestRules ?? [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],

@@ -38,6 +38,9 @@ This means:
 | "ingest / re-process / 重新整理 / 重新 ingest <something>" | `rig wiki ingest <path>` — handles new sources AND re-ingest of modified ones. |
 | "what's new / 有什么变化 / scan / diff" | `rig wiki scan` — surface the NEW / MODIFIED / DELETED / RAW DRIFT report verbatim. |
 | "ingest everything new / 把新东西都收一下" | `rig wiki scan` → for each NEW path → `rig wiki ingest <path>` (one call per file). |
+| "看看哪些文件能进 wiki / what's eligible / survey / 看一下能 ingest 什么 / triage" | `rig wiki survey` — walks scan root, asks the agent to apply `schema.md` "Ingestion policy" rules to every non-binary visible candidate; outputs ingest/skip/unclear per file. |
+| "把符合策略的全收 / ingest everything that fits / 一键收录" | `rig wiki survey --apply` — survey + ingest all "ingest"-tagged candidates in series. Tell the user upfront how many it'll process. |
+| "policy / 收录规则 / 该收什么文件" | Read `<vault>/schema.md` "Ingestion policy" section. To change rules, the user edits schema.md directly — DO NOT edit it for them (it's human-authored). |
 | "wiki 里有没有 X / what does my wiki say about X / search the wiki for X" | `rig wiki query "<X>"` (Qwen3 vector + Qwen3 reranker; cross-lingual). Default limit 10. |
 | "summarize what we know about X / 总结一下 X" | `rig wiki query "<X>" --synth` — adds a Claude-synthesized paragraph with `[[wikilink]]` citations after the hit list. |
 | "lint / 检查一遍 / what's broken in my wiki" | `rig wiki lint`. Surface the report. Exit code 11 = severe (broken refs / missing source). |
