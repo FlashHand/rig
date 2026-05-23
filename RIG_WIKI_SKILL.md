@@ -91,6 +91,18 @@ rig wiki register <subdir>
 
 After init, **pause and ask the user to edit `<subdir>/purpose.md`** (one-time human scoping — define what this wiki is for, in/out of scope). Don't write purpose.md yourself; it's the only human-authored anchor for everything downstream.
 
+If the user describes a scan scope that differs from the defaults (e.g. "include every md file in the parent dir but ignore zip files"), translate that into edits to `<subdir>/.rig/config.yml` — that's the per-vault settings file (`name`, `root`, `include`, `exclude`, `schedule`, `ingestRules`). The vault is self-contained: nothing about its identity or scope lives outside its own directory.
+
+## Configuration model (read once, then forget)
+
+Two layers, both YAML:
+
+- `~/.rig/config.yml` — rig-global prefs only (default agent, qmd toggle, log rotation). Touched by `rig wiki agent use`.
+- `~/.rig/wikis.yml` — registry. **Just a flat list of vault paths** for discovery. No per-wiki settings here.
+- `<vault>/.rig/config.yml` — **the only place per-vault settings live.** `name`, optional `root` (relative scan base, default `..`), `include[]`, `exclude[]`, `schedule`, `ingestRules`. Created automatically by `init`. Safe to edit by hand.
+
+Never edit `~/.rig/wikis.yml` to change a wiki's name, scope, or schedule — those belong in the vault. Never invent a `package.rig.json5` wiki block; that file is unrelated to rig wiki (legacy rig CICD only).
+
 ## Architecture (read once, then forget)
 
 - Vector-only retrieval: Qwen3-Embedding-0.6B (~610MB) + Qwen3-Reranker-0.6B (~610MB), both CDN-mirrored at `assets.terncloud.com/rig/models/`.
@@ -101,4 +113,4 @@ After init, **pause and ask the user to edit `<subdir>/purpose.md`** (one-time h
 
 ## Agent CLI
 
-`rig wiki ingest` and `rig wiki query --synth` invoke Claude Code (`claude -p`) under the hood. If the user picks a different agent in `~/.rig/config.json5` (`wiki.defaultAgent`), it's used instead. Only `claude` is implemented in v1.
+`rig wiki ingest` and `rig wiki query --synth` invoke Claude Code (`claude -p`) under the hood. If the user picks a different agent in `~/.rig/config.yml` (`wiki.defaultAgent`), it's used instead. Only `claude` is implemented in v1.

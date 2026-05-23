@@ -27,13 +27,13 @@ export function registerWikiCommands(program: any): void {
     .action(wikiInit);
 
   wiki.command('register [path]')
-    .description('register a wiki into ~/.rig/wiki.config.json5')
+    .description('register a vault into ~/.rig/wikis.yml (settings live in <vault>/.rig/config.yml)')
     .option('-n, --as <slug>', 'override the wiki name (`--name` would clash with commander)')
     .option('-f, --force', 'overwrite an existing entry with the same name')
     .action(wikiRegister);
 
   wiki.command('unregister <nameOrPath>')
-    .description('remove a wiki from ~/.rig/wiki.config.json5 (disk untouched)')
+    .description('remove a vault from ~/.rig/wikis.yml (vault contents on disk untouched)')
     .action(wikiUnregister);
 
   wiki.command('list')

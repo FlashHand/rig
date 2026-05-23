@@ -1,83 +1,82 @@
 import fs from 'fs';
 import path from 'path';
-import JSON5 from 'json5';
 import print from '../print';
-import { loadWikiConfig, saveWikiConfig, WikiEntry } from './config';
+import {
+  loadRegistry,
+  saveRegistry,
+  loadVaultConfig,
+  saveVaultConfig,
+  VaultConfig,
+} from './config';
 
 interface RegisterOpts {
   as?: string;
   force?: boolean;
 }
 
+/**
+ * `rig wiki register [path]`
+ *
+ *   1. Resolve the vault dir (explicit arg, or walk up from CWD looking for
+ *      a directory that already has `purpose.md`).
+ *   2. Ensure `<vault>/.rig/config.yml` exists. Create it from defaults if
+ *      missing; otherwise keep whatever the user authored.
+ *   3. Apply the optional `--as <slug>` override to the vault config's name.
+ *   4. Append the absolute vault path to `~/.rig/wikis.yml` (the
+ *      discovery-only registry). No-op if already present.
+ */
 export default function wikiRegister(givenPath: string | undefined, opts: RegisterOpts): void {
-  const wikiPath = path.resolve(givenPath || detectWikiPath(process.cwd()) || process.cwd());
-  if (!fs.existsSync(wikiPath)) {
-    print.error(`path does not exist: ${wikiPath}`);
+  const vaultPath = path.resolve(givenPath || detectVaultPath(process.cwd()) || process.cwd());
+  if (!fs.existsSync(vaultPath)) {
+    print.error(`path does not exist: ${vaultPath}`);
     process.exit(1);
   }
-  const project = detectProjectRoot(wikiPath);
-  const name = (opts.as || detectName(project, wikiPath)).trim();
-  if (!name) {
-    print.error('failed to derive a wiki name; pass --name <n>');
-    process.exit(1);
-  }
-
-  const cfg = loadWikiConfig();
-  const existing = cfg.wikis.findIndex(w => w.name === name);
-  if (existing >= 0 && !opts.force) {
-    print.error(`wiki "${name}" already registered at ${cfg.wikis[existing].path}; pass --force to overwrite`);
+  if (!fs.existsSync(path.join(vaultPath, 'purpose.md'))) {
+    print.error(`not a wiki vault (no purpose.md): ${vaultPath}`);
+    print.info(`run \`rig wiki init ${shortPath(vaultPath)}\` first.`);
     process.exit(1);
   }
 
-  // Read project-local overrides (include / exclude / ingestRules / schedule)
-  // from package.rig.json5 if present. The user is the authoritative voice for
-  // what gets scanned. Falls back to safe defaults only when fields are absent.
-  const projectWiki = project ? readProjectWikiBlock(project) : null;
-  const wikiBasename = path.basename(wikiPath);
-  const entry: WikiEntry = {
-    name,
-    path: wikiPath,
-    project: project || undefined,
-    include: projectWiki?.include ?? ['**/*.md'],
-    exclude: projectWiki?.exclude ?? [`${wikiBasename}/**`, 'node_modules/**', '.git/**'],
-    schedule: projectWiki?.schedule ?? { scan: '0 */6 * * *', lint: '0 3 * * *' },
-    ingestRules: projectWiki?.ingestRules ?? [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
-  };
+  // Load or seed the per-vault config.
+  let vault = loadVaultConfig(vaultPath);
+  if (!vault) {
+    vault = defaultVaultConfig(path.basename(vaultPath));
+  }
+  const desiredName = (opts.as || vault.name || path.basename(vaultPath)).trim();
+  if (!desiredName) {
+    print.error('failed to derive a wiki name; pass --as <slug>');
+    process.exit(1);
+  }
 
-  if (existing >= 0) cfg.wikis[existing] = entry;
-  else cfg.wikis.push(entry);
-  saveWikiConfig(cfg);
+  // Name collision in the registry — surfaced by composing the registry.
+  const reg = loadRegistry();
+  for (const existingPath of reg.wikis) {
+    if (existingPath === vaultPath) continue;
+    const other = loadVaultConfig(existingPath);
+    if (other && other.name === desiredName) {
+      if (!opts.force) {
+        print.error(`wiki "${desiredName}" already registered at ${existingPath}; pass --force to overwrite`);
+        process.exit(1);
+      }
+      // --force: drop the old entry, the new one wins.
+      reg.wikis = reg.wikis.filter(p => p !== existingPath);
+    }
+  }
 
-  // bidirectional: write back to project's package.rig.json5 — preserve any
-  // existing include/exclude/ingestRules/schedule fields the user authored.
-  if (project) writeProjectWikiBlock(project, name, wikiPath, projectWiki);
+  vault.name = desiredName;
+  saveVaultConfig(vaultPath, vault);
 
-  print.succeed(`registered wiki "${name}" -> ${wikiPath}`);
+  if (!reg.wikis.includes(vaultPath)) reg.wikis.push(vaultPath);
+  saveRegistry(reg);
+
+  print.succeed(`registered wiki "${desiredName}" -> ${vaultPath}`);
 }
 
-interface ProjectWikiBlock {
-  name?: string;
-  path?: string;
-  include?: string[];
-  exclude?: string[];
-  schedule?: { scan?: string; lint?: string; ingest?: string | null };
-  ingestRules?: { match: string; mode: 'auto-on-new' | 'propose-only' }[];
-}
-
-function readProjectWikiBlock(project: string): ProjectWikiBlock | null {
-  const file = path.join(project, 'package.rig.json5');
-  if (!fs.existsSync(file)) return null;
-  try {
-    const cfg = JSON5.parse(fs.readFileSync(file, 'utf8'));
-    const wiki = cfg && typeof cfg === 'object' && cfg.wiki;
-    return wiki && typeof wiki === 'object' ? wiki as ProjectWikiBlock : null;
-  } catch { return null; }
-}
-
-function detectWikiPath(start: string): string | undefined {
+function detectVaultPath(start: string): string | undefined {
   const candidates = ['harness/llm-wiki', 'wiki'];
   let dir = start;
   while (true) {
+    if (fs.existsSync(path.join(dir, 'purpose.md'))) return dir;
     for (const c of candidates) {
       const cand = path.join(dir, c);
       if (fs.existsSync(path.join(cand, 'purpose.md'))) return cand;
@@ -88,44 +87,18 @@ function detectWikiPath(start: string): string | undefined {
   }
 }
 
-function detectProjectRoot(wikiPath: string): string | undefined {
-  let dir = wikiPath;
-  while (true) {
-    if (fs.existsSync(path.join(dir, 'package.json'))) return dir;
-    const parent = path.dirname(dir);
-    if (parent === dir) return undefined;
-    dir = parent;
-  }
-}
-
-function detectName(project: string | undefined, wikiPath: string): string {
-  if (project) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8'));
-      if (pkg && typeof pkg.name === 'string') return pkg.name.replace(/^@.*\//, '');
-    } catch { /* fall through */ }
-  }
-  return path.basename(path.dirname(wikiPath));
-}
-
-function writeProjectWikiBlock(
-  project: string,
-  name: string,
-  wikiPath: string,
-  existingWiki: ProjectWikiBlock | null,
-): void {
-  const file = path.join(project, 'package.rig.json5');
-  let cfg: Record<string, unknown> = {};
-  if (fs.existsSync(file)) {
-    try { cfg = JSON5.parse(fs.readFileSync(file, 'utf8')); } catch { cfg = {}; }
-  }
-  // Always update name + path (those are derived from invocation). Preserve
-  // every other field the user authored (include / exclude / schedule /
-  // ingestRules / anything else they put in there).
-  cfg.wiki = {
-    ...(existingWiki || {}),
-    name,
-    path: path.relative(project, wikiPath),
+function defaultVaultConfig(vaultBasename: string): VaultConfig {
+  return {
+    name: vaultBasename,
+    root: '..',
+    include: ['**/*.md'],
+    exclude: [`${vaultBasename}/**`, 'node_modules/**', '.git/**'],
+    schedule: { scan: '0 */6 * * *', lint: '0 3 * * *', ingest: null },
+    ingestRules: [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
   };
-  fs.writeFileSync(file, JSON5.stringify(cfg, null, 2) + '\n', 'utf8');
+}
+
+function shortPath(p: string): string {
+  const home = process.env.HOME || '';
+  return home && p.startsWith(home) ? '~' + p.slice(home.length) : p;
 }

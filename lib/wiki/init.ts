@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import print from '../print';
 import { guardPath, refusalMessage } from './pathGuard';
+import { saveVaultConfig, VaultConfig } from './config';
 
 const PURPOSE_TMPL = `# Purpose
 
@@ -75,6 +76,15 @@ proposals/
 *.swp
 `;
 
+const DEFAULT_VAULT_CONFIG = (vaultBasename: string): VaultConfig => ({
+  name: vaultBasename,
+  root: '..',
+  include: ['**/*.md'],
+  exclude: [`${vaultBasename}/**`, 'node_modules/**', '.git/**'],
+  schedule: { scan: '0 */6 * * *', lint: '0 3 * * *', ingest: null },
+  ingestRules: [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
+});
+
 export default function wikiInit(givenPath?: string): void {
   if (!givenPath || !givenPath.trim()) {
     print.error('rig wiki init requires a target subdirectory.');
@@ -109,8 +119,15 @@ export default function wikiInit(givenPath?: string): void {
     writeIfMissing(path.join(d, '.gitkeep'), '');
   }
 
+  // Seed `<vault>/.rig/config.yml` with sensible defaults. Idempotent: if the
+  // user has already authored one, leave it alone.
+  const vaultCfgFile = path.join(root, '.rig', 'config.yml');
+  if (!fs.existsSync(vaultCfgFile)) {
+    saveVaultConfig(root, DEFAULT_VAULT_CONFIG(path.basename(root)));
+  }
+
   print.succeed(`wiki initialized at ${root}`);
-  print.info(`next: edit purpose.md + schema.md, then \`rig wiki register ${shortPath(root)}\``);
+  print.info(`next: edit purpose.md + schema.md (and .rig/config.yml if scope differs from defaults), then \`rig wiki register ${shortPath(root)}\``);
   print.info('on a new device, after cloning, run `rig wiki rebuild` to refresh local caches.');
 }
 

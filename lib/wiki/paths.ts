@@ -5,8 +5,8 @@ export const RIG_HOME = process.env.RIG_HOME || path.join(os.homedir(), '.rig');
 
 export const paths = {
   home: RIG_HOME,
-  config: path.join(RIG_HOME, 'config.json5'),
-  wikiConfig: path.join(RIG_HOME, 'wiki.config.json5'),
+  config: path.join(RIG_HOME, 'config.yml'),
+  registry: path.join(RIG_HOME, 'wikis.yml'),
   stateDb: path.join(RIG_HOME, 'state.db'),
   locks: path.join(RIG_HOME, 'locks'),
   logs: path.join(RIG_HOME, 'logs'),
@@ -22,6 +22,11 @@ export const daemonLabel = 'ai.flashhand.rig.wiki';
 
 export function wikiLogDir(wikiName: string) {
   return path.join(paths.logs, 'wikis', wikiName);
+}
+
+/** Per-vault config path: `<vault>/.rig/config.yml`. */
+export function vaultConfigPath(vaultDir: string) {
+  return path.join(vaultDir, '.rig', 'config.yml');
 }
 
 export function wikiLockFile(wikiName: string) {

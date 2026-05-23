@@ -13,7 +13,7 @@ Convention: **one file per subcommand**, plus a small set of shared infra files 
 | `index.ts` | Commander wiring. Builds the `rig wiki` subtree and attaches every action. Imported once from `lib/rig/index.ts`. |
 | `paths.ts` | Centralized filesystem paths (`~/.rig/`, launchd plist, Claude skills dir). Override with `RIG_HOME`. Also exports the launchd label. |
 | `platform.ts` | `requireMacOS()` — hard-exits with code 32 on non-Darwin platforms. v1 is macOS-only by decision; see roadmap P5. |
-| `config.ts` | JSON5 read/write for `~/.rig/config.json5` (`RigConfig`) and `~/.rig/wiki.config.json5` (`WikiConfig`). `resolveWiki()` picks the target wiki for a command (flag → CWD walk → undefined). |
+| `config.ts` | YAML read/write for `~/.rig/config.yml` (`RigConfig`, rig-global prefs) and `~/.rig/wikis.yml` (`Registry`, discovery-only path list). Per-vault settings live at `<vault>/.rig/config.yml` (`VaultConfig`). `loadWikiConfig()` composes the registry + each vault's config into the consumer-facing `WikiEntry[]`. `resolveWiki()` picks the target wiki for a command (flag → CWD walk → undefined). |
 | `db.ts` | Lazy-loaded `better-sqlite3` singleton. WAL mode. Idempotent migrations on every open. Exposes `getDb()`, `recordLastRun()`, `getLastRun()`. |
 | `qmd.ts` | Detects `qmd` on PATH, wraps `qmd query --json` and `qmd embed`. All callers must handle `installed=false` gracefully — qmd is optional. |
 
@@ -23,9 +23,9 @@ Convention: **one file per subcommand**, plus a small set of shared infra files 
 
 | File | Subcommand | What it does |
 |---|---|---|
-| `init.ts` | `rig wiki init [path]` | Bootstraps a fresh wiki dir: `purpose.md` + `schema.md` from templates, empty `index.md` / `overview.md` / `log.md` / `reviews.md`, `raw/` + five `wiki/<sub>/` dirs. Idempotent — never overwrites existing files. Does **not** register. |
-| `register.ts` | `rig wiki register [path]` | Adds (or `--force`-replaces) an entry in `~/.rig/wiki.config.json5`. Auto-detects path (`harness/llm-wiki` / `wiki`) walking up from CWD. Also writes a `wiki:` block back to the project's `package.rig.json5` for bidirectional consistency. |
-| `unregister.ts` | `rig wiki unregister <nameOrPath>` | Removes the entry. Disk wiki content is untouched. |
+| `init.ts` | `rig wiki init [path]` | Bootstraps a fresh wiki dir: `purpose.md` + `schema.md` from templates, empty `index.md` / `overview.md` / `log.md` / `reviews.md`, `raw/` + five `wiki/<sub>/` dirs, and seeds `<vault>/.rig/config.yml` with default include / exclude / schedule. Idempotent — never overwrites existing files. Does **not** register. |
+| `register.ts` | `rig wiki register [path]` | Ensures `<vault>/.rig/config.yml` exists (seeding defaults if absent), applies `--as <slug>` to its `name`, then appends the vault's absolute path to `~/.rig/wikis.yml`. Auto-detects the vault by walking up from CWD looking for `purpose.md`. |
+| `unregister.ts` | `rig wiki unregister <nameOrPath>` | Drops the vault path from `~/.rig/wikis.yml`. `<vault>/.rig/config.yml` and disk content are untouched. |
 | `list.ts` | `rig wiki list` | Prints a table: name, path, page count, last scan / ingest / lint. Banner row shows detected agent CLI, qmd status. |
 | `scan.ts` | `rig wiki scan [path]` | Walks `include` globs + `raw/`, sha256-compares against the `source_sha` table in `state.db`. Emits NEW / MODIFIED / DELETED / RAW DRIFT report. Returns exit code 10 if any RAW DRIFT (raw/ files are immutable). No agent calls. |
 | `fetch.ts` | `rig wiki fetch <url>` | (stub — P1) Agent-as-fetcher. Will WebFetch the URL via Claude adapter and write `raw/YYYY-MM-DD-<slug>.md` verbatim with frontmatter. **Never** summarizes. |
@@ -51,7 +51,7 @@ One adapter per agent CLI. Only Claude Code is implemented in v1; others are stu
 | `codex.ts` | Stub. Detection works; `run()` throws. Open questions on codex's permission flags live in `doc/architecture/agents.md §4`. |
 | `pi.ts` | Stub. Same shape as codex. Upstream CLI name not yet fixed. |
 | `list.ts` | `rig wiki agent list` — iterates `adapters`, calls `detect()`, prints a table. Marks the default agent with `*`. |
-| `use.ts` | `rig wiki agent use <name>` — writes `~/.rig/config.json5` `wiki.defaultAgent`. Rejects un-implemented adapters with exit code 20. |
+| `use.ts` | `rig wiki agent use <name>` — writes `~/.rig/config.yml` `wiki.defaultAgent`. Rejects un-implemented adapters with exit code 20. |
 
 ---
 
@@ -66,7 +66,7 @@ One adapter per agent CLI. Only Claude Code is implemented in v1; others are stu
 | `stop.ts` | `launchctl bootout` only. |
 | `status.ts` | `launchctl print gui/<uid>/<label>`, parses `state=` and `pid=`. |
 | `logs.ts` | Tails `~/.rig/logs/wiki-daemon.log` (with optional `-f`). |
-| `runner.ts` | **The launchd entry.** `launchctl` invokes `node <rigjs>/built/index.js wiki daemon runner`. v1: heartbeat-only loop that logs every 10 min and reloads `wiki.config.json5`. P2 will add cron-based scan/lint scheduling and `auto-on-new` ingest rules. |
+| `runner.ts` | **The launchd entry.** `launchctl` invokes `node <rigjs>/built/index.js wiki daemon runner`. v1: heartbeat-only loop that logs every 10 min and reloads `~/.rig/wikis.yml` + each vault's `.rig/config.yml`. P2 will add cron-based scan/lint scheduling and `auto-on-new` ingest rules. |
 
 ---
 
