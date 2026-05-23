@@ -14,10 +14,10 @@
 
 import fs from 'fs';
 import path from 'path';
-import { spawnSync } from 'child_process';
 import print from '../print';
 import { requireVault, loadRigConfig, WikiEntry } from './config';
 import { isBinaryExtension } from './fileTypes';
+import { batchGitignored } from './gitignore';
 import { adapters } from './agent/registry';
 import { default as wikiIngest } from './ingest';
 
@@ -107,23 +107,8 @@ function collectCandidates(entry: WikiEntry): Candidate[] {
   }
   // Gitignore filter via batch `git check-ignore --stdin -z` (best-effort,
   // silent fallback outside a git repo)
-  const ignored = batchGitignored(root, out.map(c => c.abs));
+  const ignored = batchGitignored(out.map(c => c.abs));
   return out.filter(c => !ignored.has(c.abs));
-}
-
-function batchGitignored(root: string, abs: string[]): Set<string> {
-  const ignored = new Set<string>();
-  if (abs.length === 0) return ignored;
-  const r = spawnSync('git', ['check-ignore', '--stdin', '-z'], {
-    cwd: root,
-    input: Buffer.from(abs.join('\0') + '\0'),
-  });
-  if (r.status === 128 || !r.stdout || r.stdout.length === 0) return ignored;
-  const lines = Buffer.isBuffer(r.stdout)
-    ? r.stdout.toString('utf8').split('\0')
-    : String(r.stdout).split('\0');
-  for (const line of lines) if (line) ignored.add(path.resolve(root, line));
-  return ignored;
 }
 
 async function classifyWithAgent(target: WikiEntry, candidates: Candidate[]): Promise<SurveyRow[]> {
