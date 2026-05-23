@@ -65,11 +65,26 @@ writeFileSync(tmpRc, [
   '',
 ].join('\n'), { mode: 0o600 });
 
+// Scrub `npm_config_*` env vars before spawning npm. yarn injects
+// `npm_config_registry=https://registry.yarnpkg.com` when running scripts,
+// and that env wins over the registry= line in our temp .npmrc.
+const cleanEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([k]) => !/^npm_config_/i.test(k))
+);
+
 let status = 1;
 try {
-  const res = spawnSync('npm', ['publish', `--userconfig=${tmpRc}`, ...passthrough], {
+  // `--registry` on the CLI is the strongest override (CLI flag > env > rc).
+  // Belt-and-braces with the scrubbed env above.
+  const res = spawnSync('npm', [
+    'publish',
+    '--registry', REGISTRY,
+    `--userconfig=${tmpRc}`,
+    ...passthrough,
+  ], {
     cwd: repoRoot,
     stdio: 'inherit',
+    env: cleanEnv,
   });
   status = res.status ?? 1;
 } finally {
