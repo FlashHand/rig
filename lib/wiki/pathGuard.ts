@@ -1,13 +1,15 @@
-// Shared guards for rig wiki — refuse to operate on hidden paths or
-// .gitignored content. The user must explicitly copy such files into a
-// visible, tracked location before they can become wiki sources.
+// Shared guards for rig wiki — refuse to operate on hidden paths,
+// .gitignored content, or .wikiignored content. The user must explicitly
+// copy such files into a visible, tracked, non-wikiignored location
+// before they can become wiki sources.
 
 import path from 'path';
 import { spawnSync } from 'child_process';
+import { batchWikiIgnored } from './wikiignore';
 
 export interface PathGuardResult {
   ok: boolean;
-  reason?: 'hidden' | 'gitignored';
+  reason?: 'hidden' | 'gitignored' | 'wikiignored';
   segment?: string;       // for hidden: the offending segment
   detail?: string;        // human-readable detail
 }
@@ -49,9 +51,14 @@ export function isGitignored(p: string, repoCwd: string): boolean | null {
 
 /**
  * Validate a path as a wiki source / target. Returns ok if visible AND
- * not gitignored. Use for `init` target and `ingest` source.
+ * not gitignored AND not wikiignored. Use for `init` target and `ingest`
+ * source.
+ *
+ * `vaultRoot` (optional) enables the `.wikiignore` check; pass the
+ * project root so layered `.wikiignore` files are consulted. Omit for
+ * pre-vault callers (e.g. `init` deciding where the vault dir lives).
  */
-export function guardPath(absPath: string, repoCwd: string): PathGuardResult {
+export function guardPath(absPath: string, repoCwd: string, vaultRoot?: string): PathGuardResult {
   const seg = hiddenSegment(absPath);
   if (seg) {
     return {
@@ -69,6 +76,16 @@ export function guardPath(absPath: string, repoCwd: string): PathGuardResult {
       detail: '.gitignore matches this path',
     };
   }
+  if (vaultRoot) {
+    const wk = batchWikiIgnored([absPath], vaultRoot);
+    if (wk.has(absPath)) {
+      return {
+        ok: false,
+        reason: 'wikiignored',
+        detail: '.wikiignore matches this path',
+      };
+    }
+  }
   return { ok: true };
 }
 
@@ -77,7 +94,7 @@ export function refusalMessage(target: string, r: PathGuardResult): string {
     `refused: ${target}`,
     `  reason: ${r.reason} — ${r.detail}`,
     '',
-    '  rig wiki refuses to operate on hidden files/dirs or .gitignored content.',
+    '  rig wiki refuses to operate on hidden files/dirs, .gitignored, or .wikiignored content.',
     '  If you really need this content, copy it to a visible, tracked location first:',
     '',
     '    cp -R <hidden-or-ignored> <wiki>/raw/manual-copy/    # then `rig wiki ingest`',

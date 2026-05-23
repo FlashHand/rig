@@ -89,13 +89,39 @@ Note: page directories (`sources/`, `entities/`, `concepts/`, `synthesis/`, `que
 - **Never** init a vault at a **hidden path** (any segment starting with `.`) or a **.gitignored** path. rig wiki refuses at the CLI level.
 - **`rig wiki scan` exit 10 (RAW DRIFT)** = a `raw/` file's bytes changed since last scan. Do NOT auto-fix or re-ingest. Surface to the user as a data-integrity warning.
 - **`rig wiki lint` exit 11** = severe findings. Surface the report path and the top findings; do not auto-fix unless the user asks.
-- **Never** suggest editing `~/.rig/cache/qmd/*.sqlite` or `~/.cache/qmd/`. Those are rebuildable caches.
+- **Never** suggest editing `~/.rig/<project>/wiki/*.sqlite` or `~/.cache/qmd/`. Those are rebuildable caches.
 
 ## Auto-exclusions (no config needed)
 
 The scanner skips these automatically — do not waste user time adding them to `exclude`:
 - Any path segment starting with `.` (`.git/`, `.obsidian/`, `.vscode/`, `.DS_Store`, …).
 - Any path matched by the project's `.gitignore`.
+- Any path matched by `.wikiignore` (see below).
+
+### `.wikiignore` — wiki-only ignore file
+
+Same syntax as `.gitignore`. Lives anywhere from the vault root up to the
+scan-root project dir; the walker honors all `.wikiignore` files between
+a candidate and the vault root (nested files compose, gitignore-style).
+
+Use it for paths git tracks intentionally but the wiki MUST skip — the
+canonical case is a private repo's secrets dir (e.g. overmind's
+`keychain/`, `secrets/`, `.env*` outside of `.gitignore`). The same
+filter applies to both `rig wiki sync` walk and `rig wiki ingest <path>`,
+so an explicit `ingest keychain/foo.md` is refused, not just silently
+unscanned.
+
+Drop it at the scan root:
+
+```
+# <project>/.wikiignore — same syntax as .gitignore
+keychain/
+secrets/
+personal/life/        # remove if you want this indexed
+```
+
+`rig wiki init` prints a tip suggesting `.wikiignore` when the scan root
+has none.
 
 Defaults in `.rig/config.yml` from `init`:
 - `include: ['**']` — everything that survives the auto-skips
@@ -171,7 +197,7 @@ No global registry. No `package.rig.json5` wiki block (that file is for legacy r
 
 - Vector-only retrieval: Qwen3-Embedding-0.6B (~610MB) + Qwen3-Reranker-0.6B (~610MB), both CDN-mirrored at `assets.terncloud.com/rig/models/`.
 - Models auto-downloaded on first use into `~/.cache/qmd/models/`; subsequent runs are instant.
-- Per-vault SQLite at `~/.rig/cache/qmd/<vault-name>.sqlite` (sqlite-vec extension). `.gitignore`'d by default.
+- Per-vault SQLite at `~/.rig/<project>/wiki/<wiki-name>.sqlite` (sqlite-vec extension). `<project>` is resolved from the nearest `package.json#name` walking up from the vault root (legacy `~/.rig/cache/qmd/<wiki>.sqlite` migrates on first open). Machine-local cache, no need to gitignore inside the vault.
 - `ingest` triggers incremental embed at the end — no need to manually call `index` in routine use.
 - macOS-only in v1.
 

@@ -18,6 +18,7 @@ import print from '../print';
 import { requireVault, loadRigConfig, WikiEntry } from './config';
 import { isBinaryExtension } from './fileTypes';
 import { batchGitignored } from './gitignore';
+import { batchWikiIgnored } from './wikiignore';
 import { adapters } from './agent/registry';
 import { default as wikiIngest } from './ingest';
 
@@ -105,10 +106,15 @@ function collectCandidates(entry: WikiEntry): Candidate[] {
       }
     }
   }
-  // Gitignore filter via batch `git check-ignore --stdin -z` (best-effort,
-  // silent fallback outside a git repo)
-  const ignored = batchGitignored(out.map(c => c.abs));
-  return out.filter(c => !ignored.has(c.abs));
+  // Two-layer ignore filter:
+  //   1. .gitignore — multi-repo-aware via `git check-ignore --stdin`
+  //   2. .wikiignore — same syntax, wiki-only (lets us hide paths git
+  //      tracks intentionally, e.g. overmind's `keychain/`)
+  // A candidate is dropped if either layer matches.
+  const absList = out.map(c => c.abs);
+  const giIgnored = batchGitignored(absList);
+  const wkIgnored = batchWikiIgnored(absList, entry.root);
+  return out.filter(c => !giIgnored.has(c.abs) && !wkIgnored.has(c.abs));
 }
 
 async function classifyWithAgent(target: WikiEntry, candidates: Candidate[]): Promise<SurveyRow[]> {

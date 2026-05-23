@@ -40,7 +40,7 @@ export default async function wikiIngest(source: string, opts: IngestOpts): Prom
     print.error(`source not found: ${source}`);
     process.exit(1);
   }
-  const guard = guardPath(absSource, target.root || target.path);
+  const guard = guardPath(absSource, target.root || target.path, target.root);
   if (!guard.ok) {
     print.error('refusing to ingest from a hidden or gitignored path.');
     // eslint-disable-next-line no-console

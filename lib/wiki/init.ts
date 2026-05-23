@@ -229,6 +229,9 @@ export default function wikiInit(scope?: string): void {
   print.succeed(`vault initialized at ${shortPath(vaultDir)} (${scopeLabel})`);
   print.info(`next: edit ${shortPath(path.join(vaultDir, 'purpose.md'))} to describe what this wiki is for.`);
   print.info(`then run \`rig wiki sync\` from anywhere inside ${shortPath(cwd)} to ingest, update, and prune in one shot.`);
+  if (!fs.existsSync(path.join(scopeAbs, '.wikiignore'))) {
+    print.info(`tip: drop a \`.wikiignore\` (gitignore syntax) at ${shortPath(scopeAbs)} for paths the wiki should skip even though git tracks them (e.g. \`keychain/\`, \`secrets/\`).`);
+  }
 }
 
 function writeIfMissing(file: string, content: string) {
