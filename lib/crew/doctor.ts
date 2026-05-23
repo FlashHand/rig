@@ -10,7 +10,7 @@ interface DoctorOpts { crew?: string; }
 
 export default function crewDoctor(opts: DoctorOpts): void {
   const crew = requireCrew(opts.crew);
-  const checks: { name: string; ok: boolean; detail: string }[] = [];
+  const checks: { name: string; ok: boolean; detail: string; fatal?: boolean }[] = [];
   checks.push({ name: 'crew config', ok: fs.existsSync(crewPaths.config), detail: shortPath(crewPaths.config) });
   checks.push({ name: 'vault', ok: fs.existsSync(crew.vault), detail: shortPath(crew.vault) });
   checks.push({ name: 'crew root', ok: fs.existsSync(rootPath(crew, '')), detail: shortPath(rootPath(crew, '')) });
@@ -27,14 +27,18 @@ export default function crewDoctor(opts: DoctorOpts): void {
   for (const project of crew.projects || []) {
     const rig = path.join(project.path, 'RIG.md');
     const rigLower = path.join(project.path, 'rig.md');
-    checks.push({ name: `project ${project.name} RIG.md`, ok: fs.existsSync(rig) || fs.existsSync(rigLower), detail: shortPath(rig) });
+    checks.push({ name: `project ${project.name} RIG.md`, ok: fs.existsSync(rig) || fs.existsSync(rigLower), detail: shortPath(rig), fatal: false });
     checks.push({ name: `project ${project.name} path`, ok: fs.existsSync(project.path), detail: shortPath(project.path) });
+    checks.push({ name: `project ${project.name} agent tasks`, ok: fs.existsSync(rootPath(crew, path.join('Projects', project.name, 'Agents'))), detail: path.join(crew.root, 'Projects', project.name, 'Agents') });
   }
 
   let failed = 0;
   for (const c of checks) {
     if (c.ok) print.succeed(`${c.name}: ${c.detail}`);
-    else { failed++; print.warn(`${c.name}: missing (${c.detail})`); }
+    else {
+      if (c.fatal !== false) failed++;
+      print.warn(`${c.name}: missing (${c.detail})`);
+    }
   }
   if (failed > 0) process.exitCode = 1;
 }

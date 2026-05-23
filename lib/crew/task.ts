@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { CrewEntry } from './config';
-import { rootPath } from './vault';
-import { roleDefinitionsForCrew } from './role';
+import { projectAgentFolder, rootPath } from './vault';
+import { normalizeRoleName, roleDefinitionsForCrew } from './role';
 
 export interface CrewTask {
   id?: string;
@@ -76,17 +76,66 @@ function parseTaskLine(line: string): Omit<CrewTask, 'file' | 'line' | 'scope'> 
 function taskFiles(crew: CrewEntry): { file: string; scope: string }[] {
   const files = [
     { file: rootPath(crew, 'Inbox.md'), scope: 'inbox' },
-    ...roleDefinitionsForCrew(crew).map(role => ({
-      file: rootPath(crew, path.join(role.folder, 'Tasks.md')),
-      scope: `role:${role.name}`,
-    })),
   ];
+  const roles = roleDefinitionsForCrew(crew);
+
+  // Backward compatibility: old crew roots may still contain global role
+  // task files. New init writes role descriptions only and scopes concrete
+  // work under Projects/<project>/Agents/<role>/Tasks.md.
+  for (const role of roles) {
+    const legacy = rootPath(crew, path.join(role.folder, 'Tasks.md'));
+    if (fs.existsSync(legacy)) files.push({ file: legacy, scope: `legacy-role:${role.name}` });
+  }
+
   const projectsDir = rootPath(crew, 'Projects');
-  if (fs.existsSync(projectsDir)) {
-    for (const name of fs.readdirSync(projectsDir)) {
-      const file = path.join(projectsDir, name, 'Tasks.md');
-      if (fs.existsSync(file)) files.push({ file, scope: `project:${name}` });
+  const projectNames = configuredProjectNames(crew, projectsDir);
+  for (const name of projectNames) {
+    const base = path.join(projectsDir, name);
+    const file = path.join(base, 'Tasks.md');
+    if (fs.existsSync(file)) files.push({ file, scope: `project:${name}` });
+    files.push(...tasklistFiles(path.join(base, 'Tasklists', 'active'), `project:${name}:tasklist`));
+
+    const seenRoleFolders = new Set<string>();
+    for (const role of roles) {
+      const folder = projectAgentFolder(role);
+      seenRoleFolders.add(folder);
+      const roleFile = path.join(base, 'Agents', folder, 'Tasks.md');
+      if (fs.existsSync(roleFile)) files.push({ file: roleFile, scope: `project:${name}:role:${role.name}` });
+      files.push(...tasklistFiles(path.join(base, 'Agents', folder, 'Tasklists', 'active'), `project:${name}:role:${role.name}:tasklist`));
+    }
+
+    const agentsDir = path.join(base, 'Agents');
+    if (fs.existsSync(agentsDir)) {
+      for (const entry of fs.readdirSync(agentsDir, { withFileTypes: true })) {
+        if (!entry.isDirectory() || seenRoleFolders.has(entry.name)) continue;
+        const roleFile = path.join(agentsDir, entry.name, 'Tasks.md');
+        const roleName = normalizeRoleName(entry.name);
+        if (fs.existsSync(roleFile)) files.push({ file: roleFile, scope: `project:${name}:role:${roleName}` });
+        files.push(...tasklistFiles(path.join(agentsDir, entry.name, 'Tasklists', 'active'), `project:${name}:role:${roleName}:tasklist`));
+      }
     }
   }
   return files.filter(item => fs.existsSync(item.file));
+}
+
+function configuredProjectNames(crew: CrewEntry, projectsDir: string): string[] {
+  if (crew.projects && crew.projects.length > 0) return crew.projects.map(p => p.name);
+  if (!fs.existsSync(projectsDir)) return [];
+  return fs.readdirSync(projectsDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && !entry.name.startsWith('_') && !entry.name.startsWith('.'))
+    .map(entry => entry.name);
+}
+
+function tasklistFiles(dir: string, scope: string): { file: string; scope: string }[] {
+  if (!fs.existsSync(dir)) return [];
+  const files: { file: string; scope: string }[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...tasklistFiles(full, scope));
+    } else if (entry.isFile() && entry.name.endsWith('.md')) {
+      files.push({ file: full, scope });
+    }
+  }
+  return files.sort((a, b) => a.file.localeCompare(b.file));
 }

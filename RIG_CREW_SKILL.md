@@ -41,9 +41,12 @@ Project Owner management:
 rig crew project add rig --path /path/to/projects/rig --executor claude --test-command "yarn build"
 rig crew project add dsh-service --path /path/to/projects/dsh-service --executor codex --test-command "yarn test"
 rig crew project add demo-web --path /path/to/ObsidianVault/tmp/demo-web --executor codex
+rig crew project sync
 rig crew project list
 rig crew project status rig
 ```
+
+Use `rig crew project sync` after directories are added to or removed from the Vault `projects/` folder. It refreshes the active Project Owner registry and project-scoped agent task folders under `<crew-root>/Projects/`.
 
 ## State Model
 
@@ -57,8 +60,10 @@ rig crew project status rig
 - Shared context: `<crew-root>/Shared/**`
 - Role registry for Lead: `<crew-root>/Shared/Roles.md`
 - Project owner memory: `<crew-root>/Projects/<project>/**`
+- Project-scoped agent tasks: `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md`
+- Large active task batches: `<crew-root>/Projects/<project>/Tasklists/active/*.md` and `<crew-root>/Projects/<project>/Agents/<role>/Tasklists/active/*.md`
+- Reusable role descriptions: `<crew-root>/<role>/Role.md` and `<crew-root>/Roles/<custom-role>/Role.md`
 - Researcher memory and index: `<crew-root>/Researcher/**`
-- Custom role workspaces: `<crew-root>/Roles/<role>/**`
 - Vault agent instructions: `CLAUDE.md` and `AGENTS.md`
 - Local cache: `~/.rig/crew-state.json`
 - Config: `~/.rig/crew.config.json`
@@ -68,7 +73,24 @@ All multi-agent collaboration materials should live inside the Vault. Temporary 
 
 `rig crew` coordinates multiple roles on one device through one Vault. Do not assume a separate multi-agent runtime inside each project repository; project directories are execution workspaces, while tasks, reports, inbox, dashboard, and research indexes return to the Vault.
 
-`rig crew init` is additive and non-destructive. It may create missing folders/files and update managed blocks, but it must not overwrite existing agent work files such as `Tasks.md`, `Notes.md`, `Role.md`, `Index.md`, reports, specs, decisions, or user-authored notes.
+`rig crew init` is additive and non-destructive. It may create missing folders/files and update managed blocks, but it must not overwrite existing agent work files such as project `Tasks.md`, `Role.md`, `Index.md`, reports, specs, decisions, or user-authored notes.
+
+Built-in role directories are reusable role cards, not project task queues. Concrete PM/Coder/Tester/etc work should be assigned under a specific project:
+
+```text
+<crew-root>/Projects/<project>/Tasks.md
+<crew-root>/Projects/<project>/Agents/Coder/Tasks.md
+<crew-root>/Projects/<project>/Agents/Tester/Tasks.md
+```
+
+Keep each `Tasks.md` small. Use it as a current queue or index, not an unlimited backlog. When a project or role has many tasks, split the current work into focused files:
+
+```text
+<crew-root>/Projects/<project>/Tasklists/active/<feature-or-iteration>.md
+<crew-root>/Projects/<project>/Agents/<role>/Tasklists/active/<feature-or-iteration>.md
+```
+
+Move completed or stale batches to `Tasklists/archive/YYYY-MM.md`. The active dashboard scans `Tasks.md` and `Tasklists/active/**/*.md`; it does not scan archive files by default.
 
 ## Lead Orchestration
 
@@ -81,19 +103,20 @@ After handoff, read:
 - `<crew-root>/Team-Dashboard.md`
 - `<crew-root>/Inbox.md`
 - `<crew-root>/Shared/Roles.md`
-- role task files such as `<crew-root>/Tester/Tasks.md`
 - relevant `<crew-root>/Projects/<project>/Tasks.md`
+- relevant `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md`
+- relevant active tasklists under `<crew-root>/Projects/<project>/**/Tasklists/active/`
 
 If the CLI is unavailable, use the file protocol:
 
 1. Append the request to `<crew-root>/Current-Goal.md`.
-2. Create or update a Lead task in `<crew-root>/Lead/Tasks.md`.
+2. When a project is known, create or update small/current work in `<crew-root>/Projects/<project>/Tasks.md` or `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md`; split larger batches into `Tasklists/active/<feature-or-iteration>.md`.
 3. Route worker tasks with inline fields such as `[role:: tester]`, `[owner:: maintainer:rig]`, `[project:: rig]`, `[executor:: codex]`, `[status:: pending]`.
 4. Put user-facing questions or approvals in `<crew-root>/Inbox.md`.
 
 Lead communicates with workers through Markdown tasks, delegation packets, and result notes. Do not rely on private subagent chat state as the coordination source of truth. Subagents are optional executors for specific roles when the selected executor supports them; Vault files remain canonical.
 
-Maintain status awareness before and after work: scan dashboard, inbox, role tasks, project tasks, blockers, and todo status. The coding session should be able to answer what each role/project is doing without asking the human to inspect the Vault manually.
+Maintain status awareness before and after work: scan dashboard, inbox, project owner tasks, project-scoped agent tasks, active tasklists, blockers, and todo status. The coding session should be able to answer what each role/project is doing without asking the human to inspect the Vault manually.
 
 ## Mixed Executors
 
@@ -145,13 +168,13 @@ When a role is materialized in a Vault, use:
 
 ```text
 <crew-root>/Roles/<role>/
-├── Tasks.md
-├── Notes.md
 ├── Role.md
 └── Reports/
 ```
 
-`<crew-root>/Shared/Roles.md` is generated so Lead can load available roles. If the user asks Lead to use a specific role, match that role by `name` first, then route the task with `[role:: <name>]`. If the role defines `agent`, use that agent/subagent for role execution when the executor supports it.
+Built-in roles use `<crew-root>/<Role>/Role.md`. These role files are short editable descriptions. Do not use them as normal task queues.
+
+`<crew-root>/Shared/Roles.md` is generated so Lead can load available roles. If the user asks Lead to use a specific role, match that role by `name` first, then route the task into `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md` with `[role:: <name>]`. If the role defines `agent`, use that agent/subagent for role execution when the executor supports it.
 
 ## Researcher
 

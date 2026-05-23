@@ -223,16 +223,37 @@ function appendLog(wiki: WikiEntry, relSource: string, applied: string[], dryRun
 // ----------------------------------------------------------------------
 
 function buildPrompt(wiki: WikiEntry, sourceAbs: string): string {
-  const sourceRel = path.relative(wiki.path, sourceAbs);
   const sourceSha = crypto.createHash('sha256').update(fs.readFileSync(sourceAbs)).digest('hex');
   const today = new Date().toISOString();
 
+  // The Obsidian vault root is the parent of the rig-wiki/ metadata dir.
+  // The Obsidian vault NAME defaults to that dir's basename. All source-path
+  // references in generated pages use obsidian:// URLs so that links survive
+  // moves of the wiki dir and are clickable from inside Obsidian.
+  const obsidianRoot = path.dirname(wiki.path);
+  const obsidianVaultName = path.basename(obsidianRoot);
+  const sourceFromObsidianRoot = path.relative(obsidianRoot, sourceAbs);
+  const sourceObsidianUrl = obsidianUrl(obsidianVaultName, sourceFromObsidianRoot);
+  const ext = path.extname(sourceAbs).toLowerCase();
+  const isImage = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext);
+  const isPdf = ext === '.pdf';
+  const isSpreadsheet = ['.xlsx', '.xls', '.ods', '.numbers'].includes(ext);
+
   return [
     `You are running INGEST for the rig wiki at \`${wiki.path}\`.`,
+    `This wiki lives inside an Obsidian vault rooted at \`${obsidianRoot}\` (Obsidian vault name: "${obsidianVaultName}").`,
+    `Use obsidian:// URLs — never raw file paths — to reference sources or any file in the vault.`,
+    ``,
+    `Source for this ingest: ${sourceObsidianUrl}`,
+    `Source filesystem path (for your Read tool only): ${sourceAbs}`,
     ``,
     `Step 1 — ANALYSIS (do NOT write files yet):`,
-    `  - Read \`purpose.md\`, \`schema.md\`, \`overview.md\`, \`index.md\`.`,
-    `  - Read the source: \`${sourceRel}\`.`,
+    `  - Read \`purpose.md\`, \`schema.md\`, \`overview.md\`, \`index.md\` from the wiki.`,
+    `  - Read the source. Notes by type:`,
+    `      · text / markdown / json / code → use the Read tool normally`,
+    isImage ? `      · this source is an IMAGE (${ext}) — Read it; you'll receive it as a visual input. Describe what's depicted, plus any visible text / numbers / structures.` : '',
+    isPdf ? `      · this source is a PDF — Read it; if it is >10 pages, read in chunks with the \`pages\` parameter.` : '',
+    isSpreadsheet ? `      · this source is a SPREADSHEET (${ext}) — the Read tool does NOT natively decode spreadsheets in v1. Try Read first; if it fails, write a stub source page with the obsidian:// link + filename + last-modified date, and append a \`reviews.md\` bullet asking the user to export it as CSV / JSON for re-ingest. Do NOT invent contents.` : '',
     `  - In your head, list: entities mentioned, concepts touched, contradictions vs existing pages, items that need human review.`,
     ``,
     `Step 2 — GENERATION (write files):`,
@@ -251,16 +272,26 @@ function buildPrompt(wiki: WikiEntry, sourceAbs: string): string {
     `Source pages additionally need:`,
     '```yaml',
     `source-sha: ${sourceSha}`,
-    `source-path: ${sourceRel}`,
+    `source-path: ${sourceObsidianUrl}`,
     '```',
+    ``,
+    `Reference rules — IMPORTANT:`,
+    `  - To reference the original source file inside markdown body, use the obsidian:// URL: ${sourceObsidianUrl}`,
+    `  - To reference OTHER files in the same Obsidian vault, build URLs the same way: \`obsidian://open?vault=${obsidianVaultName}&file=<vault-relative-path>\`. URL-encode spaces / specials with encodeURI, keep forward slashes.`,
+    `  - To reference other wiki pages, use [[wikilink]] (slug only).`,
     ``,
     `Hard rules — the host will REJECT any patch that violates these:`,
     `  - DO NOT modify \`raw/\`, \`purpose.md\`, or \`schema.md\`.`,
     `  - Use kebab-case slugs; no spaces; no date prefixes in page filenames.`,
-    `  - Link related pages with [[wikilink]]. Every wiki page should link to ≥1 other page.`,
+    `  - Every wiki page should link to ≥1 other page (via [[wikilink]] or obsidian:// URL).`,
     `  - For contradictions, write inline: \`> Contradiction: A vs B (see [[page-A]], [[page-B]])\`.`,
     ``,
     `Output: stdout is for status only. All content goes to files via the Write/Edit tools.`,
     `When done, print a single line: \`INGEST DONE: <slug>\`.`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
+}
+
+/** Build an Obsidian URL. encodeURI preserves `/`, encodes spaces and Unicode. */
+function obsidianUrl(vaultName: string, fileRel: string): string {
+  return `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURI(fileRel)}`;
 }

@@ -6,7 +6,7 @@ import crewSync from './sync';
 import crewDoctor from './doctor';
 import crewAsk from './ask';
 import crewStub from './stub';
-import { projectAdd, projectList, projectStatus } from './project';
+import { projectAdd, projectList, projectStatus, projectSync } from './project';
 import { roleAdd, roleList, roleShow } from './roleCommand';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,6 +66,16 @@ export function registerCrewCommands(program: any): void {
     .option('--no-write', 'mark owner as read-only')
     .option('-c, --crew <name>', 'target crew name')
     .action(projectAdd);
+  project.command('sync')
+    .description('sync project owners from the vault projects/ directory')
+    .option('--from <path>', 'projects directory, relative to the vault (default: projects)')
+    .option('--executor <name>', 'default executor for newly discovered projects')
+    .option('--test-command <cmd>', 'default focused test command for newly discovered projects')
+    .option('--no-write', 'mark newly discovered owners as read-only')
+    .option('--keep-missing', 'keep projects that disappeared from the scanned directory')
+    .option('--no-archive-missing', 'do not archive stale rig-agents project folders')
+    .option('-c, --crew <name>', 'target crew name')
+    .action(projectSync);
   project.command('list')
     .description('list registered projects')
     .option('-c, --crew <name>', 'target crew name')

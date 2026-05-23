@@ -98,17 +98,30 @@ proposals/
  * Defaults for a freshly-scoped vault. The user can edit
  * `<vault>/.rig/config.yml` afterwards.
  *
- * Hidden directories (segments starting with `.`) and `.gitignore`'d files
- * are skipped automatically by the scanner — no need to list them here.
+ * `include` defaults to `**` (everything) — rig wiki is multimodal: Claude
+ * Read tool handles markdown / code / json natively, images and PDFs are
+ * read as visual / document inputs. The user can tighten this per-vault.
+ *
+ * `exclude` defaults to common binary-archive extensions whose contents
+ * can't be ingested without unpacking. Hidden directories (segments starting
+ * with `.`) and `.gitignore`'d files are skipped automatically by the
+ * scanner — no need to list them.
  */
 function defaultVaultConfig(scope: string, rootRel: string): VaultConfig {
   return {
     name: scope,
     root: rootRel,
-    include: ['**/*.md'],
-    exclude: [],
+    include: ['**'],
+    exclude: [
+      '*.zip', '**/*.zip',
+      '*.tar', '**/*.tar',
+      '*.tar.gz', '**/*.tar.gz',
+      '*.tgz', '**/*.tgz',
+      '*.7z', '**/*.7z',
+      '*.rar', '**/*.rar',
+    ],
     schedule: { scan: '0 */6 * * *', lint: '0 3 * * *', ingest: null },
-    ingestRules: [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
+    ingestRules: [{ match: 'raw/**/*.*', mode: 'auto-on-new' }],
   };
 }
 

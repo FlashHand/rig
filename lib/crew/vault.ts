@@ -46,9 +46,12 @@ export function ensureProject(crew: CrewEntry, project: CrewProject): void {
   ensureDir(base);
   writeProjectOwnerFile(path.join(base, 'Owner.md'), project);
   writeIfMissing(path.join(base, 'Context.md'), `# ${project.name} Context\n\n`);
-  writeIfMissing(path.join(base, 'Tasks.md'), `# ${project.name} Tasks\n\n`);
+  writeIfMissing(path.join(base, 'Tasks.md'), renderProjectTasksFile(project));
+  ensureTasklists(base);
   writeIfMissing(path.join(base, 'Decisions.md'), `# ${project.name} Decisions\n\n`);
   writeIfMissing(path.join(base, 'Test-Plan.md'), `# ${project.name} Test Plan\n\n`);
+  ensureDir(path.join(base, 'Agents'));
+  for (const role of roleDefinitionsForCrew(crew)) ensureProjectAgentTasks(base, project, role);
   ensureDir(path.join(base, 'PRDs'));
   writeIfMissing(path.join(base, 'PRDs', '.gitkeep'), '');
   ensureDir(path.join(base, 'Reports'));
@@ -77,16 +80,10 @@ function ensureRole(crew: CrewEntry, role: CrewRoleDefinition): void {
   const folder = role.folder;
   const base = rootPath(crew, folder);
   ensureDir(base);
-  writeIfMissing(path.join(base, 'Tasks.md'), `# ${folder} Tasks\n\n`);
-  writeIfMissing(path.join(base, 'Notes.md'), `# ${folder} Notes\n\n`);
+  writeIfMissing(path.join(base, 'Role.md'), renderRoleFile(role));
   if (role.name === 'lead') {
     ensureDir(path.join(base, 'Reports'));
     writeIfMissing(path.join(base, 'Reports', '.gitkeep'), '');
-  }
-  if (role.name === 'pm') {
-    ensureDir(path.join(base, 'PRDs'));
-    writeIfMissing(path.join(base, 'PRDs', '.gitkeep'), '');
-    writeIfMissing(path.join(base, 'Reviews.md'), '# PM Reviews\n\n');
   }
   if (role.name === 'researcher') {
     ensureDir(path.join(base, 'Reports'));
@@ -96,7 +93,6 @@ function ensureRole(crew: CrewEntry, role: CrewRoleDefinition): void {
   if (!role.builtIn) {
     ensureDir(path.join(base, 'Reports'));
     writeIfMissing(path.join(base, 'Reports', '.gitkeep'), '');
-    writeIfMissing(path.join(base, 'Role.md'), renderRoleFile(role));
   }
 }
 
@@ -146,14 +142,66 @@ function renderRoleFile(role: CrewRoleDefinition): string {
   return [
     `# ${role.title}`,
     '',
-    `Role: ${role.name}`,
-    `Agent: ${role.agent || '-'}`,
-    `Executor: ${role.defaultExecutor || '-'}`,
-    `Prompt: ${role.promptPath || '-'}`,
+    `Role: \`${role.name}\``,
+    `Agent: \`${role.agent || '-'}\``,
+    `Default executor: \`${role.defaultExecutor || '-'}\``,
+    `Prompt: \`${role.promptPath || '-'}\``,
+    '',
+    '## Purpose',
     '',
     role.description || '',
     '',
+    '## Task Location',
+    '',
+    'This role is reusable across projects. Do not keep normal project work here.',
+    'Assign concrete work under `Projects/<project>/Agents/<role>/Tasks.md`, or under `Projects/<project>/Tasks.md` for project-owner work.',
+    '',
+    'Users may edit this file to tune the role.',
+    '',
   ].join('\n');
+}
+
+function ensureProjectAgentTasks(base: string, project: CrewProject, role: CrewRoleDefinition): void {
+  const dir = path.join(base, 'Agents', projectAgentFolder(role));
+  ensureDir(dir);
+  writeIfMissing(path.join(dir, 'Tasks.md'), renderProjectAgentTasksFile(project, role));
+  ensureTasklists(dir);
+}
+
+export function projectAgentFolder(role: CrewRoleDefinition): string {
+  if (role.builtIn && !role.folder.includes(path.sep)) return role.folder;
+  return role.name;
+}
+
+function renderProjectTasksFile(project: CrewProject): string {
+  return [
+    `# ${project.name} Project Tasks`,
+    '',
+    'Keep this file short: current project-owner tasks and cross-role coordination only.',
+    'For larger plans, split current work into `Tasklists/active/<feature-or-iteration>.md`.',
+    'Move completed or stale batches to `Tasklists/archive/YYYY-MM.md`; archive files are not scanned for the active dashboard.',
+    'Role-specific current work belongs in `Agents/<role>/Tasks.md` or `Agents/<role>/Tasklists/active/*.md`.',
+    '',
+  ].join('\n');
+}
+
+function renderProjectAgentTasksFile(project: CrewProject, role: CrewRoleDefinition): string {
+  return [
+    `# ${project.name} ${role.title} Tasks`,
+    '',
+    `Use this file for the short current ${role.title} queue scoped to \`${project.name}\`.`,
+    'For larger batches, split current work into `Tasklists/active/<feature-or-iteration>.md`.',
+    'Move completed or stale batches to `Tasklists/archive/YYYY-MM.md`; archive files are not scanned for the active dashboard.',
+    `Default inline fields: [project:: ${project.name}] [role:: ${role.name}] [owner:: ${project.owner || `maintainer:${project.name}`}] [status:: pending]`,
+    '',
+  ].join('\n');
+}
+
+function ensureTasklists(base: string): void {
+  ensureDir(path.join(base, 'Tasklists', 'active'));
+  writeIfMissing(path.join(base, 'Tasklists', 'active', '.gitkeep'), '');
+  ensureDir(path.join(base, 'Tasklists', 'archive'));
+  writeIfMissing(path.join(base, 'Tasklists', 'archive', '.gitkeep'), '');
 }
 
 function crewPathForHome(): string {
@@ -204,8 +252,10 @@ function renderVaultAgentInstructions(crew: CrewEntry): string {
     `- Dashboard: \`${root}/Team-Dashboard.md\``,
     `- Inbox: \`${root}/Inbox.md\``,
     `- Role registry: \`${root}/Shared/Roles.md\``,
+    `- Reusable role descriptions: \`${root}/<role>/Role.md\` and \`${root}/Roles/<custom-role>/Role.md\``,
     `- Project owner memory: \`${root}/Projects/<project>/\``,
-    `- Custom role workspaces: \`${root}/Roles/<role>/\``,
+    `- Project-scoped agent tasks: \`${root}/Projects/<project>/Agents/<role>/Tasks.md\``,
+    `- Large active task batches: \`${root}/Projects/<project>/Tasklists/active/*.md\` and \`${root}/Projects/<project>/Agents/<role>/Tasklists/active/*.md\`. Keep \`Tasks.md\` short; archived tasklists are not part of the active dashboard.`,
     '- Vault-local scratch projects belong under `tmp/<project>/`.',
     '- User-level rules, test accounts, custom roles, and research output policy live under `~/.rig/`.',
     '- Coordinate through Vault files; do not start or assume a separate multi-agent runtime inside a project repo.',
@@ -217,10 +267,10 @@ function renderVaultAgentInstructions(crew: CrewEntry): string {
     '0. Do not treat `rig crew` as a human-facing command workflow. If you can run the command or update the Vault files yourself, do it instead of asking the human to run it.',
     '1. If the user asks for planning, multi-agent coordination, PRD, research, testing strategy, project owner work, role routing, reports, or broad project changes, hand the request to Crew Lead first.',
     `2. Preferred handoff: run \`rig crew "<user request>"\`, then read \`${root}/Team-Dashboard.md\`, \`${root}/Inbox.md\`, and \`${root}/Shared/Roles.md\`.`,
-    `3. Maintain status awareness before and after work by checking \`${root}/Team-Dashboard.md\`, \`${root}/Inbox.md\`, \`${root}/Shared/Roles.md\`, role \`Tasks.md\`, and project \`Tasks.md\` files.`,
-    `4. If the CLI is unavailable, append the request to \`${root}/Current-Goal.md\` and create/update a Lead task in \`${root}/Lead/Tasks.md\`; then refresh the dashboard when possible.`,
+    `3. Maintain status awareness before and after work by checking \`${root}/Team-Dashboard.md\`, \`${root}/Inbox.md\`, \`${root}/Shared/Roles.md\`, project \`Tasks.md\`, project agent \`Agents/<role>/Tasks.md\`, and active tasklists.`,
+    `4. If the CLI is unavailable, append the request to \`${root}/Current-Goal.md\`; when a project is known, route small/current work to \`${root}/Projects/<project>/Tasks.md\` or \`${root}/Projects/<project>/Agents/<role>/Tasks.md\`, and route larger batches to \`Tasklists/active/<feature-or-iteration>.md\`; then refresh the dashboard when possible.`,
     '5. Treat Crew Lead as the default orchestrator prompt/protocol, not as a required Claude/Codex subagent. Subagents may be used as optional executors for specific roles, but Vault files are the source of truth.',
-    '6. Lead communicates with other roles through Markdown tasks and delegation packets, not private chat state. Use `[role:: <role>]`, `[owner:: <owner>]`, `[project:: <project>]`, `[executor:: <executor>]`, and status fields in the relevant `Tasks.md`.',
+    '6. Lead communicates with other roles through Markdown tasks and delegation packets, not private chat state. Use `[role:: <role>]`, `[owner:: <owner>]`, `[project:: <project>]`, `[executor:: <executor>]`, and status fields in the relevant project-scoped `Tasks.md`.',
     `7. Worker results must be written back to the relevant role/project files under \`${root}/\`; user-facing questions go to \`${root}/Inbox.md\` for Lead to surface.`,
     '',
     AGENT_RULES_END,

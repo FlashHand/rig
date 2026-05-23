@@ -17,12 +17,12 @@ export interface CrewRoleDefinition {
 export const BUILTIN_ROLE_NAMES = ['lead', 'designer', 'pm', 'coder', 'tester', 'researcher'];
 
 const BUILTIN_ROLES: CrewRoleDefinition[] = [
-  { name: 'lead', title: 'Lead', folder: 'Lead', description: 'Primary user-facing coordinator.', builtIn: true },
-  { name: 'designer', title: 'Designer', folder: 'Designer', description: 'Interaction, UX, information architecture, and visual review.', builtIn: true },
-  { name: 'pm', title: 'PM', folder: 'PM', description: 'PRD generation, requirements review, scope, and acceptance criteria.', builtIn: true },
-  { name: 'coder', title: 'Coder', folder: 'Coder', description: 'Implementation work when no project owner is more specific.', builtIn: true },
-  { name: 'tester', title: 'Tester', folder: 'Tester', description: 'Verification, test planning, and PRD-scoped E2E checks.', builtIn: true },
-  { name: 'researcher', title: 'Researcher', folder: 'Researcher', description: 'Source-backed research and durable reports.', builtIn: true },
+  { name: 'lead', title: 'Lead', folder: 'Lead', description: 'Coordinates goals, project owners, roles, Inbox decisions, and dashboard status.', builtIn: true },
+  { name: 'designer', title: 'Designer', folder: 'Designer', description: 'Reviews user flows, interaction details, information architecture, and visual fit.', builtIn: true },
+  { name: 'pm', title: 'PM', folder: 'PM', description: 'Turns goals into PRDs, scope boundaries, acceptance criteria, and open questions.', builtIn: true },
+  { name: 'coder', title: 'Coder', folder: 'Coder', description: 'Implements project-scoped code tasks assigned by a Project Owner or Lead.', builtIn: true },
+  { name: 'tester', title: 'Tester', folder: 'Tester', description: 'Plans and runs verification, defaulting frontend work to PRD-scoped Playwright E2E.', builtIn: true },
+  { name: 'researcher', title: 'Researcher', folder: 'Researcher', description: 'Produces source-backed research reports and keeps a lightweight research index.', builtIn: true },
 ];
 
 export function normalizeRoleName(input: string): string {

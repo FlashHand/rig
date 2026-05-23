@@ -78,7 +78,7 @@ function projectTable(crew: ReturnType<typeof requireCrew>, tasks: CrewTask[]): 
   const projects = crew.projects || [];
   if (projects.length === 0) return '_No projects registered yet._';
   const rows = projects.map(p => {
-    const scoped = tasks.filter(t => t.scope !== 'inbox' && (t.scope === `project:${p.name}` || t.fields.project === p.name));
+    const scoped = tasks.filter(t => t.scope !== 'inbox' && (t.scope === `project:${p.name}` || t.scope.startsWith(`project:${p.name}:`) || t.fields.project === p.name));
     const s = summarize(scoped);
     const health = s.blocked > 0 ? 'At Risk' : 'On Track';
     return `| ${p.name} | ${p.owner} | ${p.defaultExecutor || crew.defaultExecutor || 'claude'} | ${health} | ${s.open} | ${s.blocked} | ${shortPath(p.path)} |`;
@@ -89,7 +89,7 @@ function projectTable(crew: ReturnType<typeof requireCrew>, tasks: CrewTask[]): 
 function roleTable(crew: ReturnType<typeof requireCrew>, tasks: CrewTask[]): string {
   const roles = roleDefinitionsForCrew(crew);
   const rows = roles.map(role => {
-    const scoped = tasks.filter(t => t.scope === `role:${role.name}` || t.fields.role === role.name || t.fields.owner === role.name);
+    const scoped = tasks.filter(t => t.scope === `legacy-role:${role.name}` || t.scope.includes(`:role:${role.name}`) || t.fields.role === role.name || t.fields.owner === role.name);
     const s = summarize(scoped);
     return `| ${role.title} | ${taskProgress(scoped)}% | ${s.doing} | ${s.blocked} | ${s.open} |`;
   });
@@ -111,7 +111,12 @@ function activeTable(tasks: CrewTask[]): string {
 }
 
 function displayScope(scope: string): string {
-  return scope.startsWith('role:') ? scope.slice('role:'.length) : scope;
+  if (scope.startsWith('legacy-role:')) return scope.slice('legacy-role:'.length);
+  const projectRole = scope.match(/^project:([^:]+):role:([^:]+)/);
+  if (projectRole) return `${projectRole[1]}/${projectRole[2]}`;
+  const projectTasklist = scope.match(/^project:([^:]+):tasklist/);
+  if (projectTasklist) return projectTasklist[1];
+  return scope;
 }
 
 function cleanTaskText(text: string): string {
