@@ -86,6 +86,9 @@ program.command('sync')
 import { registerWikiCommands } from '../wiki';
 registerWikiCommands(program);
 
+import { registerCrewCommands } from '../crew';
+registerCrewCommands(program);
+
 import env from '../env';
 
 program.option('--env <env>', 'specify env').action(env.load);
@@ -93,4 +96,3 @@ program.option('--env <env>', 'specify env').action(env.load);
 program.version(require('../../package.json').version, '-v,--version');
 program.option('-c, --versioncode', 'output the version code (YYMMDDNN)');
 program.parse(process.argv);
-

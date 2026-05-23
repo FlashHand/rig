@@ -38,6 +38,8 @@
     ".claude/skills/rig-wiki",
     ".claude-plugin",
     "RIG_WIKI_SKILL.md",
+    "RIG_CREW_SKILL.md",
+    "skills.md",
     "index.js",
     "README.md",
     "README_CN.md",

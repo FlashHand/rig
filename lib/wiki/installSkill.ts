@@ -3,8 +3,13 @@ import path from 'path';
 import print from '../print';
 import { paths } from './paths';
 
-/** Find rig's canonical skill file at `<rigjs>/RIG_WIKI_SKILL.md`. */
-function findBundledSkill(): string | undefined {
+const BUNDLED_SKILLS = [
+  { name: 'rig-wiki', file: 'RIG_WIKI_SKILL.md' },
+  { name: 'rig-crew', file: 'RIG_CREW_SKILL.md' },
+];
+
+/** Find rig's package root by walking up from built/ or lib/. */
+function findRigRoot(): string | undefined {
   // Walk up from `built/index.js` (prod) or `lib/wiki/installSkill.ts` (dev)
   // looking for the rigjs package root.
   let dir = __dirname;
@@ -13,10 +18,7 @@ function findBundledSkill(): string | undefined {
     if (fs.existsSync(pkg)) {
       try {
         const p = JSON.parse(fs.readFileSync(pkg, 'utf8'));
-        if (p.name === 'rigjs') {
-          const skill = path.join(dir, paths.builtinSkillRelative);
-          if (fs.existsSync(skill)) return skill;
-        }
+        if (p.name === 'rigjs') return dir;
       } catch { /* keep walking */ }
     }
     const parent = path.dirname(dir);
@@ -29,9 +31,9 @@ function findBundledSkill(): string | undefined {
 interface InstallOpts { force?: boolean; }
 
 export default function wikiInstallSkill(opts: InstallOpts): void {
-  const src = findBundledSkill();
-  if (!src) {
-    print.error('could not locate RIG_WIKI_SKILL.md inside the rigjs install. Reinstall rigjs?');
+  const root = findRigRoot();
+  if (!root) {
+    print.error('could not locate the rigjs install root. Reinstall rigjs?');
     process.exit(1);
   }
 
@@ -41,7 +43,20 @@ export default function wikiInstallSkill(opts: InstallOpts): void {
     process.exit(1);
   }
 
-  const targetDir = path.join(paths.claudeSkillsDir, 'rig-wiki');
+  for (const skill of BUNDLED_SKILLS) {
+    const src = path.join(root, skill.file);
+    if (!fs.existsSync(src)) {
+      print.warn(`skipping ${skill.name}: ${skill.file} not found inside rigjs install`);
+      continue;
+    }
+    linkSkill(skill.name, src, opts);
+  }
+
+  print.info('restart Claude Code to pick up new or updated skills.');
+}
+
+function linkSkill(name: string, src: string, opts: InstallOpts): void {
+  const targetDir = path.join(paths.claudeSkillsDir, name);
   const target = path.join(targetDir, 'SKILL.md');
   fs.mkdirSync(targetDir, { recursive: true });
 
@@ -61,7 +76,6 @@ export default function wikiInstallSkill(opts: InstallOpts): void {
 
   fs.symlinkSync(src, target);
   print.succeed(`linked ${target} -> ${src}`);
-  print.info('restart Claude Code to pick up the new skill.');
 }
 
 function safeReadlink(p: string): string | null {

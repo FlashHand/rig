@@ -5,13 +5,14 @@
 
 - **Multi-repo workspace tooling** (the original purpose): `rig init / add / dev / install / build / deploy / publish / sync / tag`. See [Get started](#get-started) below.
 - **`rig wiki *`** — Karpathy-style LLM Wiki ops (scan / fetch / ingest / query / lint), with a launchd daemon for periodic runs. Backed by Claude Code as the executor. macOS only, Node ≥ 22. See [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) and [`doc/architecture/wiki.md`](./doc/architecture/wiki.md).
-- **Bundled Claude Code skill** (`rig-wiki`) — shipped at `RIG_WIKI_SKILL.md` and registered as a Claude Code plugin via [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json).
+- **`rig crew *`** — file-backed, Leader-first multi-agent coordination over an Obsidian vault. Supports project owners, a human dashboard, inbox, and mixed executors such as Claude Code and Codex. See [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md).
+- **Bundled Claude Code skill** — `rig-wiki`, registered as a Claude Code plugin via [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json). `rig-crew` is Vault-level guidance rather than a project-local plugin copy. See the skill index: [`skills.md`](./skills.md).
 
-## Installing the rig-wiki skill (three paths)
+## Installing bundled skills (three paths)
 
-Pick one — they all end with Claude Code seeing the same skill at `~/.claude/skills/rig-wiki/SKILL.md`.
+Pick one — they all end with Claude Code seeing bundled skills under `~/.claude/skills/`.
 
-1. **`npm i -g rigjs`** — the package's `postinstall` script symlinks the skill into `~/.claude/skills/rig-wiki/` automatically. No further action.
+1. **`npm i -g rigjs`** — the package's `postinstall` script symlinks bundled skills into `~/.claude/skills/` automatically. No further action.
 2. **`npm i -g rigjs --ignore-scripts`** (security-conscious users) — postinstall is skipped, so finish with `rig wiki install-skill`.
 3. **Claude Code plugin marketplace** — once you (or anyone) host a `marketplace.json` pointing at `{ "source": "npm", "package": "rigjs" }`, users install via `/plugin install rig-wiki@<marketplace>` — Claude Code handles everything; postinstall does not run.
 
