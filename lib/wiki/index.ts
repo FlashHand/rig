@@ -8,6 +8,7 @@ import wikiIngest from './ingest';
 import wikiQuery from './query';
 import wikiLint from './lint';
 import wikiIndex from './indexCmd';
+import wikiRebuild from './rebuild';
 import wikiInstallSkill from './installSkill';
 import wikiUninstallSkill from './uninstallSkill';
 import { registerAgentCommands } from './agent';
@@ -73,10 +74,18 @@ export function registerWikiCommands(program: any): void {
     .action(wikiLint);
 
   wiki.command('index')
-    .description('build/refresh qmd index (no-op when qmd absent)')
+    .description('build/refresh qmd vector index (incremental by default)')
     .option('-w, --wiki <name>', 'target wiki name')
     .option('-a, --all', 'index every registered wiki')
+    .option('-f, --force', 'force full re-embed (use after switching embed models)')
     .action(wikiIndex);
+
+  wiki.command('rebuild')
+    .description('refresh local-only caches (sha index + qmd vectors) — use on new devices or after switching embed models')
+    .option('-w, --wiki <name>', 'target wiki name')
+    .option('-a, --all', 'rebuild every registered wiki')
+    .option('--skip-embed', 'only clear ~/.rig/state.db rows, do not call qmd embed')
+    .action(wikiRebuild);
 
   wiki.command('install-skill')
     .description('symlink bundled rig-wiki skill into ~/.claude/skills/')

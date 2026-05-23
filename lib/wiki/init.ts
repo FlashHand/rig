@@ -54,6 +54,26 @@ const SCHEMA_TMPL = `# Schema
 
 const SUBDIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'];
 
+// What lives inside the wiki dir but must not enter git / Obsidian Sync:
+// - qmd's project-local vector cache (sqlite-vec, non-deterministic, rebuilds
+//   locally with `rig wiki index` / `rig wiki rebuild`)
+// - lint reports (auto-regenerated)
+// - daemon proposal diffs (transient, per-machine)
+// - editor scratch
+const GITIGNORE_TMPL = `# rig wiki — local-only artifacts (do not commit)
+# qmd vector cache (sqlite-vec, machine-specific, rebuildable)
+.qmd/index.sqlite*
+.qmd/*.sqlite-wal
+.qmd/*.sqlite-shm
+# auto-generated reports
+lint-report-*.md
+# daemon proposal queue (per-machine)
+proposals/
+# editor scratch
+.DS_Store
+*.swp
+`;
+
 export default function wikiInit(givenPath?: string): void {
   const root = path.resolve(givenPath || process.cwd());
   fs.mkdirSync(root, { recursive: true });
@@ -64,6 +84,7 @@ export default function wikiInit(givenPath?: string): void {
   writeIfMissing(path.join(root, 'overview.md'), '# Overview\n');
   writeIfMissing(path.join(root, 'log.md'), '# Log\n');
   writeIfMissing(path.join(root, 'reviews.md'), '# Reviews\n');
+  writeIfMissing(path.join(root, '.gitignore'), GITIGNORE_TMPL);
 
   fs.mkdirSync(path.join(root, 'raw'), { recursive: true });
   writeIfMissing(path.join(root, 'raw', '.gitkeep'), '');
@@ -76,6 +97,7 @@ export default function wikiInit(givenPath?: string): void {
 
   print.succeed(`wiki initialized at ${root}`);
   print.info(`next: edit purpose.md + schema.md, then \`rig wiki register ${shortPath(root)}\``);
+  print.info('on a new device, after cloning, run `rig wiki rebuild` to refresh local caches.');
 }
 
 function writeIfMissing(file: string, content: string) {

@@ -1,48 +1,143 @@
-import { execSync, spawnSync } from 'child_process';
+// qmd integration — in-process Node SDK (`@tobilu/qmd`).
+//
+// rig bundles @tobilu/qmd as a hard dependency since v4.0.1 — no separate
+// `npm i -g qmd` step. The package is ESM-only and uses native modules
+// (better-sqlite3, sqlite-vec, node-llama-cpp), so we dynamic-import it from
+// the bundled CJS build and let Node resolve native deps at runtime.
+//
+// Per-wiki SQLite DB lives at `~/.rig/cache/qmd/<wiki>.sqlite` — never inside
+// the project tree, never via XDG_CACHE_HOME. Embedding model GGUFs cache in
+// `~/.cache/qmd/models/` (hardcoded inside @tobilu/qmd; not configurable).
+//
+// Concurrency note: qmd's `setConfigSource` is module-global; serialize
+// store lifetimes by opening + closing inside each call (no daemons-style
+// long-lived store yet). If we ever add one, route everything through a
+// single shared store instance.
+
+import fs from 'fs';
+import path from 'path';
+import { paths } from './paths';
 
 export interface QmdInfo {
-  installed: boolean;
-  version?: string;
-  binPath?: string;
+  installed: true;
+  version: string;
+  bundled: true;
 }
 
-let cache: QmdInfo | null = null;
+let infoCache: QmdInfo | null = null;
 
-export function detectQmd(force = false): QmdInfo {
-  if (cache && !force) return cache;
+export function detectQmd(): QmdInfo {
+  if (infoCache) return infoCache;
+  infoCache = { installed: true, version: qmdVersion(), bundled: true };
+  return infoCache;
+}
+
+// qmd is ESM-only and its `exports` field blocks both `require('@tobilu/qmd')`
+// and `require('@tobilu/qmd/package.json')`, so `require.resolve` doesn't
+// work either. Walk up from this file's __dirname looking for a
+// node_modules/@tobilu/qmd/package.json. Works in both bundled (built/) and
+// ts-node (lib/wiki/) layouts because both share an ancestor that contains
+// the rig package's node_modules.
+function qmdVersion(): string {
   try {
-    const binPath = execSync('command -v qmd', { encoding: 'utf8' }).trim();
-    if (!binPath) {
-      cache = { installed: false };
-      return cache;
+    let dir = __dirname;
+    for (let i = 0; i < 8; i++) {
+      const p = path.join(dir, 'node_modules', '@tobilu', 'qmd', 'package.json');
+      if (fs.existsSync(p)) {
+        const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
+        if (pkg.name === '@tobilu/qmd' && typeof pkg.version === 'string') return pkg.version;
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
     }
-    const versionLine = spawnSync('qmd', ['--version'], { encoding: 'utf8' }).stdout || '';
-    const version = versionLine.trim().split(/\s+/).pop();
-    cache = { installed: true, binPath, version };
-  } catch {
-    cache = { installed: false };
-  }
-  return cache;
+  } catch { /* fall through */ }
+  return 'unknown';
+}
+
+function dbPathFor(wikiName: string): string {
+  const dir = path.join(paths.cache, 'qmd');
+  fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, `${wikiName}.sqlite`);
+}
+
+// Dynamic-import shim. qmd is ESM-only; rig is bundled to CJS via esbuild
+// with @tobilu/qmd marked external, so `await import('@tobilu/qmd')` lands at
+// runtime as a Node native ESM import.
+async function loadQmd(): Promise<{ createStore: any }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m: any = await import('@tobilu/qmd');
+  return { createStore: m.createStore };
 }
 
 /**
- * Run `qmd query --json <q>` and return the parsed result, or null if qmd absent
- * / non-zero exit.
+ * Embed a wiki dir into its per-wiki qmd store. Incremental by default;
+ * pass `{ force: true }` to re-embed everything (e.g. after a model swap).
  */
-export function qmdQuery(q: string, collection?: string): unknown | null {
-  if (!detectQmd().installed) return null;
-  const args = ['query', '--json'];
-  if (collection) args.push('--collection', collection);
-  args.push(q);
-  const res = spawnSync('qmd', args, { encoding: 'utf8' });
-  if (res.status !== 0) return null;
-  try { return JSON.parse(res.stdout); } catch { return null; }
+export async function qmdEmbed(
+  wikiName: string,
+  dir: string,
+  opts: { force?: boolean } = {}
+): Promise<{ ok: boolean; stderr: string }> {
+  try {
+    const { createStore } = await loadQmd();
+    const store = await createStore({
+      dbPath: dbPathFor(wikiName),
+      config: {
+        collections: {
+          [wikiName]: { path: dir, pattern: '**/*.md' },
+        },
+      },
+    });
+    try {
+      await store.update({});
+      await store.embed({ chunkStrategy: 'auto', force: !!opts.force });
+    } finally {
+      await store.close();
+    }
+    return { ok: true, stderr: '' };
+  } catch (e) {
+    return { ok: false, stderr: errMsg(e) };
+  }
 }
 
-export function qmdEmbed(collection: string, dir: string): { ok: boolean; stderr: string } {
-  if (!detectQmd().installed) return { ok: false, stderr: 'qmd not installed' };
-  // ensure collection exists; idempotent — qmd should no-op on duplicates
-  spawnSync('qmd', ['collection', 'add', dir, '--name', collection], { encoding: 'utf8' });
-  const res = spawnSync('qmd', ['embed', '--collection', collection], { encoding: 'utf8' });
-  return { ok: res.status === 0, stderr: res.stderr || '' };
+/**
+ * Hybrid search (BM25 + sqlite-vec + optional LLM rerank). Returns the raw
+ * SDK result array, or null on failure. Caller is responsible for shaping.
+ */
+export async function qmdQuery(
+  q: string,
+  wikiName: string,
+  opts: { limit?: number; rerank?: boolean } = {}
+): Promise<unknown[] | null> {
+  try {
+    const { createStore } = await loadQmd();
+    const store = await createStore({ dbPath: dbPathFor(wikiName) });
+    try {
+      const results = await store.search({
+        query: q,
+        limit: opts.limit ?? 10,
+        rerank: opts.rerank ?? false,
+      });
+      return Array.isArray(results) ? results : [];
+    } finally {
+      await store.close();
+    }
+  } catch {
+    return null;
+  }
+}
+
+/** Wipe the per-wiki SQLite store on disk. Caller should then qmdEmbed. */
+export function qmdResetStore(wikiName: string): void {
+  const p = dbPathFor(wikiName);
+  for (const suffix of ['', '-wal', '-shm']) {
+    const f = p + suffix;
+    if (fs.existsSync(f)) fs.rmSync(f, { force: true });
+  }
+}
+
+function errMsg(e: unknown): string {
+  if (e && typeof e === 'object' && 'message' in e) return String((e as { message: unknown }).message);
+  return String(e);
 }

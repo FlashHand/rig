@@ -16,6 +16,15 @@ if (semver.gte(nodeMin,process.version)){
 }
 import {Command} from 'commander';
 
+// Short-circuit `-c` / `--versioncode` before commander parses subcommands,
+// mirroring how commander handles `-v` itself.
+if (process.argv.some(a => a === '-c' || a === '--versioncode')) {
+	const pkg = require('../../package.json');
+	// eslint-disable-next-line no-console
+	console.log(pkg.versionCode ?? '');
+	process.exit(0);
+}
+
 const program = new Command();
 
 import check from '../check';
@@ -28,6 +37,14 @@ import install from '../install';
 
 program.command('install').action(install);
 program.command('i').action(install);
+
+import installLocal from '../installLocal';
+
+program.command('install-local')
+	.description('build the current source tree and install it as the global `rig`')
+	.option('--skip-build', 'skip `yarn build` (use existing built/index.js)')
+	.option('--manager <name>', 'npm | yarn (default: npm)')
+	.action(installLocal);
 
 program.command('preinstall').action(preinstall);
 program.command('postinstall').action(postinstall);
@@ -74,5 +91,6 @@ import env from '../env';
 program.option('--env <env>', 'specify env').action(env.load);
 
 program.version(require('../../package.json').version, '-v,--version');
+program.option('-c, --versioncode', 'output the version code (YYMMDDNN)');
 program.parse(process.argv);
 
