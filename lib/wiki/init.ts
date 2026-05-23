@@ -75,7 +75,13 @@ proposals/
 `;
 
 export default function wikiInit(givenPath?: string): void {
-  const root = path.resolve(givenPath || process.cwd());
+  if (!givenPath || !givenPath.trim()) {
+    print.error('rig wiki init requires a target subdirectory.');
+    print.info('usage: rig wiki init <subdir>     (e.g. `rig wiki init knowledge` / `rig wiki init harness/llm-wiki`)');
+    print.info('refusing to default to CWD — that would litter the project root with wiki templates.');
+    process.exit(1);
+  }
+  const root = path.resolve(givenPath);
   fs.mkdirSync(root, { recursive: true });
 
   writeIfMissing(path.join(root, 'purpose.md'), PURPOSE_TMPL);

@@ -44,23 +44,76 @@ A later `yarn global add rigjs` cleanly overrides the local install.
 
 To remove the skill link: `rig wiki uninstall-skill`.
 
-## Quickstart
+## Quickstart — first-time setup
 
-Project already registered (`rig wiki list` shows it):
+> `rig wiki init` **requires a target subdirectory**. The CLI rejects bare `rig wiki init` to prevent dumping templates into the project root.
 
-- `rig wiki scan`              → NEW/MODIFIED/DELETED report
-- `rig wiki fetch <url>`       → verbatim download into `raw/YYYY-MM-DD-<slug>.md`
-- `rig wiki ingest <path>`     → two-step CoT, then prompt to apply diff
-- `rig wiki query "..."`       → vector + reranker, top-k with `[[wikilink]]` citations
-- `rig wiki lint`              → produce `lint-report-YYYY-MM-DD.md`
-- `rig wiki rebuild`           → refresh local sha index + qmd vectors
+```bash
+# 1. Bootstrap a wiki dir (a subdir under the project — pick any name)
+rig wiki init knowledge          # creates ./knowledge/{raw,wiki/...,purpose.md,schema.md,...}
 
-Not registered yet:
+# 2. Edit purpose.md + schema.md (human-only, one-time scoping)
+$EDITOR knowledge/purpose.md
 
-- `rig wiki register` from project root → adds entry to `~/.rig/wiki.config.json5`
-- Or `rig wiki init <subdir>` to bootstrap a fresh wiki dir.
+# 3. Register so subsequent commands resolve it automatically from CWD
+rig wiki register knowledge
 
-> Don't run `rig wiki init` in a project root — pass a subdir (`wiki`, `knowledge`, `harness/llm-wiki`, …), otherwise the templates litter the root.
+# 4. (Optional) Verify
+rig wiki list
+```
+
+## Quickstart — incremental updates
+
+After init, you typically work in two flows. **Both end with the same single command — `ingest`** — which calls Claude in two-step CoT to write/update wiki pages AND triggers an incremental qmd embed automatically. You almost never need to think about indexing manually.
+
+### Flow A — new raw source arrives
+
+```bash
+# Option 1: pull a URL
+rig wiki fetch https://example.com/article          # writes raw/2026-05-24-article.md
+
+# Option 2: manually drop a file
+cp ~/Downloads/note.md knowledge/raw/2026-05-24-note.md
+
+# Then ingest it (Claude writes new wiki/sources, entities, concepts pages
+# + updates index.md/overview.md + re-embeds incrementally)
+rig wiki ingest raw/2026-05-24-article.md
+```
+
+### Flow B — existing source / living-doc changed
+
+```bash
+# Show what's new/modified/deleted vs the recorded sha baseline
+rig wiki scan
+# Output:
+#   NEW (1)
+#     harness/dev/api-design.md
+#   MODIFIED (1)
+#     raw/2026-05-24-article.md
+#   DELETED (0)
+
+# Re-process only the changed ones (one ingest call per file)
+rig wiki ingest harness/dev/api-design.md
+rig wiki ingest raw/2026-05-24-article.md
+```
+
+`ingest` is **always incremental** — Claude reads the existing wiki, knows what already exists, and writes only the pages affected. The vector index re-embed is also incremental (qmd diffs chunks).
+
+### Flow C — query
+
+```bash
+rig wiki query "你的问题"                            # vector + Qwen3 rerank
+rig wiki query "concept" --synth                    # + Claude-synthesized paragraph
+```
+
+### Flow D — maintenance
+
+```bash
+rig wiki lint        # contradictions / orphans / broken refs / stale source-sha
+rig wiki rebuild     # nuclear: clear sha index + drop qmd sqlite + full re-embed
+```
+
+> Use `rebuild` only on a new device or after switching the embed model. Day-to-day, `ingest` keeps the index incrementally fresh.
 
 ## Output
 

@@ -22,8 +22,8 @@ import { registerDaemonCommands } from './daemon';
 export function registerWikiCommands(program: any): void {
   const wiki = program.command('wiki').description('Karpathy-style LLM Wiki ops (macOS only in v1)');
 
-  wiki.command('init [path]')
-    .description('bootstrap a wiki dir at <path> (default CWD)')
+  wiki.command('init <path>')
+    .description('bootstrap a wiki dir at <path> (required; refuses to default to CWD)')
     .action(wikiInit);
 
   wiki.command('register [path]')
