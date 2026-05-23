@@ -1,81 +1,105 @@
 # rig Skills
 
-This page is the skill index for the `rigjs` package.
-
-Keep the root `README.md` short: it should link here and to the canonical skill files, while this page explains how the bundled skills relate to the CLI.
+This page is the skill index for the `rigjs` package. The root `README.md` keeps a one-line pointer here; everything skill-related — what ships, how to install, how to maintain — lives in this file.
 
 ## Bundled Skills
 
 | Skill | Canonical file | Plugin copy | CLI area | Purpose |
 |---|---|---|---|---|
-| `rig-wiki` | [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) | [`.claude/skills/rig-wiki/SKILL.md`](./.claude/skills/rig-wiki/SKILL.md) | `rig wiki *` | Karpathy-style LLM wiki operations: scan, fetch, ingest, query, lint, and rebuild. |
-| `rig-crew` | [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md) | None; use the Vault/overmind skill copy | `rig crew *` | File-backed, Leader-first multi-agent coordination over an Obsidian vault. |
+| `rig-wiki` | [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) | [`.claude/skills/rig-wiki/SKILL.md`](./.claude/skills/rig-wiki/SKILL.md) | `rig wiki *` | Karpathy-style LLM wiki operations: scan, fetch, ingest, query, lint, rebuild. |
+| `rig-crew` | [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md) | (none — vault-level guidance) | `rig crew *` | File-backed, Leader-first multi-agent coordination over an Obsidian vault. |
 
-`rig-crew` is intentionally not copied into `projects/rig/.claude/skills/`. In the overmind workflow, `rig` is just one project inside the Vault. The active crew instructions come from the Vault root `CLAUDE.md` / `AGENTS.md` managed block plus the overmind/user-level skill installation, so a project-local Claude skill copy would be misleading.
+`rig-crew` is intentionally not copied into the rigjs package's own `.claude/skills/`. Its instructions belong at the Vault level (the project that uses crew), not at the tool level (rigjs itself).
 
 ## Install
 
-### Global install (default — affects every project on the machine)
+### Global install — default (per-machine, auto-updates with rigjs)
 
 ```bash
 yarn global add rigjs
 ```
 
-The `postinstall` script links bundled skills into `~/.claude/skills/` (Claude Code's user-level skill directory). If you prefer to skip the postinstall:
+The `postinstall` hook **symlinks** the bundled skills into Claude Code's user-level skill directory:
+
+- `~/.claude/skills/rig-wiki/SKILL.md` → `<rigjs-install>/RIG_WIKI_SKILL.md`
+- `~/.claude/skills/rig-crew/SKILL.md` → `<rigjs-install>/RIG_CREW_SKILL.md`
+
+Symlink is the right call here because `~/.claude/skills/` is not committed to any repo — the link merely follows whichever rigjs version you have installed locally. `yarn global add rigjs` next month and the skill description updates the next Claude Code restart.
+
+If `--ignore-scripts` was used, do it manually:
 
 ```bash
-yarn global add rigjs --ignore-scripts
-rig wiki install-skill
+rig wiki install-skill          # idempotent; safe to re-run
+rig wiki install-skill --force  # overwrite an existing entry pointing elsewhere
 ```
 
-### Project-level install (per-project override, Claude Code + Codex)
+### Project-level install — for committed, reproducible setups
 
-For "monorepo of work projects" setups — e.g. overmind — you can install the skills **into the project itself** so they live alongside the code and override the global ones whenever the user is inside that project:
+For a project (any rigjs consumer — your repo doesn't need to live inside `rig` or be a monorepo) that wants its own pinned skill files committed to git so any clone of the project gets the same agent behaviour:
 
 ```bash
 cd <project>
 rig wiki install-skill --project
 ```
 
-This creates symlinks at:
+This **writes real file copies** at:
 
-- `<project>/.claude/skills/rig-wiki/SKILL.md` → `<rigjs-install>/RIG_WIKI_SKILL.md`
-- `<project>/.claude/skills/rig-crew/SKILL.md` → `<rigjs-install>/RIG_CREW_SKILL.md`
-- `<project>/.agents/skills/rig-wiki/SKILL.md` → (same target, for Codex)
-- `<project>/.agents/skills/rig-crew/SKILL.md` → (same target, for Codex)
+- `<project>/.claude/skills/rig-wiki/SKILL.md`   (Claude Code)
+- `<project>/.claude/skills/rig-crew/SKILL.md`
+- `<project>/.agents/skills/rig-wiki/SKILL.md`   (Codex)
+- `<project>/.agents/skills/rig-crew/SKILL.md`
 
-Both Claude Code (`.claude/skills/`) and Codex (`.agents/skills/`) read from project-local skill dirs when invoked inside the project, so a single `--project` install covers both agents.
+Both Claude Code (`.claude/skills/`) and Codex (`.agents/skills/`) read from these project-local dirs when invoked inside the project, and **project-local skills override the global ones**. A single `--project` install covers both agents.
 
-Project-local skills take precedence over `~/.claude/skills/` while the user is in that project. To remove:
+**Files, not symlinks.** A symlink pointing at `<rigjs-install>/RIG_WIKI_SKILL.md` would be machine-specific — it might be `/usr/local/lib/node_modules/rigjs/...` on macOS, `/opt/homebrew/lib/node_modules/rigjs/...` on Apple Silicon, somewhere under `~/.yarn/...` on a yarn-prefix setup, or simply missing on CI. Committing such a symlink to git would break the repo for anyone else. Real-file copies remove that variable: the skill the agent sees comes from the repo, not from a system path.
+
+To refresh project-local copies after a rigjs upgrade:
 
 ```bash
-cd <project>
+rig wiki install-skill --project --force
+```
+
+To remove:
+
+```bash
 rig wiki uninstall-skill --project
 ```
 
 ### Why project-level over global
 
-- Pins the skill version to the rigjs install in `node_modules` (or wherever the global rig lives), so the skill the agent sees matches the CLI it's about to call.
-- Lets the project decide which agent gets which skill — committing `.claude/skills/rig-wiki/` to the repo makes the agent behaviour reproducible across machines.
-- Works in CI / sandboxes where there's no home-dir `~/.claude/skills/` to install into.
+- Pins the skill description to the rigjs version that exists at install time. The agent reads from your repo, not from whatever rigjs is current.
+- Survives across machines, CI, and collaborator laptops — the skill is committed, not synthesized.
+- Lets a single repo override the user-global skill for that project (useful when one repo's `rig wiki` workflow differs from the user's default).
 
-## Maintenance
+### Special case — rig in a sibling submodule
 
-Canonical files live at the package root:
+If your project hosts rigjs as a git submodule (rig's own development workflow with the `overmind` vault is the canonical example), you can choose to **symlink** the project skill files at the dev source instead of copying. This is a deliberate opt-out, not the default:
+
+```bash
+# from <project>/, with rigjs cloned as a submodule under projects/rig
+ln -sf ../../../projects/rig/RIG_WIKI_SKILL.md .claude/skills/rig-wiki/SKILL.md
+ln -sf ../../../projects/rig/RIG_CREW_SKILL.md .claude/skills/rig-crew/SKILL.md
+```
+
+This makes edits in the submodule's `RIG_*_SKILL.md` immediately visible to the agent without a publish-and-reinstall cycle. **Don't use this pattern in projects where rigjs is not in-tree** — the symlink target won't exist and the skill won't load.
+
+## Maintenance (rig contributors)
+
+Canonical skill files live at the package root:
 
 - [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md)
 - [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md)
 
-Plugin copies that belong to the `rig` package live under `.claude/skills/` and are synchronized by:
+A package-internal mirror lives under `.claude/skills/` so the rig package itself (when checked out by another agent) can read its own skills:
 
 ```bash
 node scripts/sync-skill.mjs
 ```
 
-`prepublishOnly` runs the sync script before packaging. Today this plugin-copy set only includes `rig-wiki`; `rig-crew` remains Vault-level guidance.
+`prepublishOnly` runs the sync script before packaging. Today this plugin-copy set only includes `rig-wiki`; `rig-crew` remains Vault-level guidance and has no in-package `.claude/skills/` copy.
 
 ## Documentation Policy
 
-- Put one-line skill visibility and high-level links in `README.md`.
-- Put all skill references, maintenance notes, and plugin-copy details in this file.
-- Keep each canonical `RIG_*_SKILL.md` self-contained so users can read exactly what they are enabling.
+- One-line skill visibility + high-level links in `README.md`.
+- All skill references, install variants, and maintenance notes in this file.
+- Each canonical `RIG_*_SKILL.md` stays self-contained — a user opening it should be able to read exactly what they're enabling, without needing this index.

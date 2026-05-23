@@ -30,15 +30,24 @@ function findRigRoot(): string | undefined {
 interface InstallOpts { force?: boolean; project?: boolean; }
 
 /**
- * Install bundled skills (rig-wiki, rig-crew) as symlinks.
+ * Install bundled skills (rig-wiki, rig-crew).
  *
- * Default (global): link into `~/.claude/skills/<name>/SKILL.md`. Affects
- * every project that uses Claude Code on this machine.
+ * Default (global): symlink into `~/.claude/skills/<name>/SKILL.md`. Affects
+ * every project that uses Claude Code on this machine. Symlink because
+ * `~/.claude/skills/` is not committed; the link should auto-track
+ * whichever rigjs version is installed.
  *
- * `--project` (project-level override for overmind-style monorepos):
- * link into BOTH `<cwd>/.claude/skills/<name>/SKILL.md` (Claude Code) AND
- * `<cwd>/.agents/skills/<name>/SKILL.md` (Codex). When the user is inside
- * the project, the project-local skill files override the global ones.
+ * `--project`: **copy actual file contents** into BOTH
+ * `<cwd>/.claude/skills/<name>/SKILL.md` (Claude Code) AND
+ * `<cwd>/.agents/skills/<name>/SKILL.md` (Codex). Copy because:
+ *   1. these paths get committed to the project's repo and need to work
+ *      after a fresh clone on any machine, regardless of where rigjs lives
+ *      on that machine's disk;
+ *   2. a symlink targeting `/usr/local/lib/node_modules/rigjs/...` would
+ *      be machine-specific and meaningless on CI / colleague's laptop /
+ *      a different install prefix.
+ * To refresh project-local copies after a rigjs upgrade, re-run
+ * `rig wiki install-skill --project --force`.
  */
 export default function wikiInstallSkill(opts: InstallOpts): void {
   const root = findRigRoot();
@@ -102,22 +111,50 @@ function linkSkill(name: string, src: string, parentDir: string, opts: InstallOp
   const target = path.join(targetDir, 'SKILL.md');
   fs.mkdirSync(targetDir, { recursive: true });
 
+  const useCopy = !!opts.project;
+
   if (fs.existsSync(target) || isBrokenSymlink(target)) {
-    const existing = safeReadlink(target);
-    if (existing === src) {
-      print.info(`already linked: ${shortPath(target)}`);
-      return;
+    const existingLink = safeReadlink(target);
+
+    if (useCopy) {
+      // Copy mode: same-content existing copy is a no-op; otherwise overwrite
+      // when --force, error when not.
+      if (!existingLink) {
+        try {
+          if (fs.readFileSync(target, 'utf8') === fs.readFileSync(src, 'utf8')) {
+            print.info(`already up to date: ${shortPath(target)}`);
+            return;
+          }
+        } catch { /* fall through to the force-check below */ }
+      }
+      if (!opts.force) {
+        const what = existingLink ? `symlink -> ${existingLink}` : 'a different file';
+        print.error(`${shortPath(target)} exists as ${what}. Pass --force to replace.`);
+        process.exit(1);
+      }
+      fs.rmSync(target, { force: true });
+    } else {
+      // Symlink mode (global): same-target existing symlink is a no-op.
+      if (existingLink === src) {
+        print.info(`already linked: ${shortPath(target)}`);
+        return;
+      }
+      if (!opts.force) {
+        const what = existingLink ? `symlink -> ${existingLink}` : 'a regular file';
+        print.error(`${shortPath(target)} exists as ${what}. Pass --force to replace.`);
+        process.exit(1);
+      }
+      fs.rmSync(target, { force: true });
     }
-    if (!opts.force) {
-      const what = existing ? `symlink -> ${existing}` : 'a regular file';
-      print.error(`${shortPath(target)} exists as ${what}. Pass --force to replace.`);
-      process.exit(1);
-    }
-    fs.rmSync(target, { force: true });
   }
 
-  fs.symlinkSync(src, target);
-  print.succeed(`linked ${shortPath(target)} -> ${shortPath(src)}`);
+  if (useCopy) {
+    fs.copyFileSync(src, target);
+    print.succeed(`wrote ${shortPath(target)}`);
+  } else {
+    fs.symlinkSync(src, target);
+    print.succeed(`linked ${shortPath(target)} -> ${shortPath(src)}`);
+  }
 }
 
 function safeReadlink(p: string): string | null {
