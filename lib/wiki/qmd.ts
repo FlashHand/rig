@@ -1,41 +1,41 @@
 // qmd integration — in-process Node SDK (`@tobilu/qmd`).
 //
-// rig bundles @tobilu/qmd as a hard dependency since v4.0.1 — no separate
-// `npm i -g qmd` step. The package is ESM-only and uses native modules
-// (better-sqlite3, sqlite-vec, node-llama-cpp), so we dynamic-import it from
-// the bundled CJS build and let Node resolve native deps at runtime.
+// rig wiki is vector-only: indexing always embeds, queries are pure
+// `searchVector` followed by a Qwen3-Reranker pass. No BM25, no query
+// expansion, no language-specific tokenizer headaches.
 //
-// Per-wiki SQLite DB lives at `~/.rig/cache/qmd/<wiki>.sqlite` — never inside
-// the project tree, never via XDG_CACHE_HOME. Embedding model GGUFs cache in
-// `~/.cache/qmd/models/` (hardcoded inside @tobilu/qmd; not configurable).
+// Two models, both mirrored on the personal CDN for zero-config global
+// acceleration (China + worldwide via Aliyun PoPs):
+//   - Embed: Qwen3-Embedding-0.6B   (~610MB, sets QMD_EMBED_MODEL)
+//   - Rerank: Qwen3-Reranker-0.6B   (~610MB, sets QMD_RERANK_MODEL)
+//
+// Per-wiki SQLite DB lives at `~/.rig/cache/qmd/<wiki>.sqlite`. Model GGUFs
+// cache in `~/.cache/qmd/models/` (hardcoded inside qmd).
 //
 // Concurrency note: qmd's `setConfigSource` is module-global; serialize
-// store lifetimes by opening + closing inside each call (no daemons-style
-// long-lived store yet). If we ever add one, route everything through a
-// single shared store instance.
+// store lifetimes by opening + closing inside each call.
 
 import fs from 'fs';
 import path from 'path';
 import { paths } from './paths';
 
-// CDN-backed default embed model — Qwen3-Embedding-0.6B Q8_0 GGUF.
-// Globally accelerated via Aliyun CDN; node-llama-cpp's resolveModelFile
-// accepts https:// URIs natively. qmd's `isQwen3EmbeddingModel` matches the
-// "Qwen.*Embed" pattern in this URL, so the Qwen3 instruction template
-// (Instruct:/Query:) is applied automatically.
+// CDN-backed defaults. node-llama-cpp's resolveModelFile accepts https://.
+// qmd's `isQwen3EmbeddingModel` matches "Qwen.*Embed" in the URI, so the
+// Qwen3 query-instruction template (Instruct:/Query:) is auto-applied.
 const DEFAULT_EMBED_MODEL_URL = 'https://assets.terncloud.com/rig/models/Qwen3-Embedding-0.6B-Q8_0.gguf';
+const DEFAULT_RERANK_MODEL_URL = 'https://assets.terncloud.com/rig/models/qwen3-reranker-0.6b-q8_0.gguf';
 
-// Apply the rig default unless the user pinned a different model. This runs
-// at module load so every qmd call inherits it without the caller worrying.
-if (!process.env.QMD_EMBED_MODEL) {
-  process.env.QMD_EMBED_MODEL = DEFAULT_EMBED_MODEL_URL;
-}
+// Apply rig defaults unless the user pinned different ones. Runs at module
+// load so every qmd call inherits without the caller worrying.
+if (!process.env.QMD_EMBED_MODEL) process.env.QMD_EMBED_MODEL = DEFAULT_EMBED_MODEL_URL;
+if (!process.env.QMD_RERANK_MODEL) process.env.QMD_RERANK_MODEL = DEFAULT_RERANK_MODEL_URL;
 
 export interface QmdInfo {
   installed: true;
   version: string;
   bundled: true;
   embedModel: string;
+  rerankModel: string;
 }
 
 let infoCache: QmdInfo | null = null;
@@ -47,16 +47,13 @@ export function detectQmd(): QmdInfo {
     version: qmdVersion(),
     bundled: true,
     embedModel: process.env.QMD_EMBED_MODEL || DEFAULT_EMBED_MODEL_URL,
+    rerankModel: process.env.QMD_RERANK_MODEL || DEFAULT_RERANK_MODEL_URL,
   };
   return infoCache;
 }
 
-// qmd is ESM-only and its `exports` field blocks both `require('@tobilu/qmd')`
-// and `require('@tobilu/qmd/package.json')`, so `require.resolve` doesn't
-// work either. Walk up from this file's __dirname looking for a
-// node_modules/@tobilu/qmd/package.json. Works in both bundled (built/) and
-// ts-node (lib/wiki/) layouts because both share an ancestor that contains
-// the rig package's node_modules.
+// qmd's `exports` field blocks `require.resolve('@tobilu/qmd')`; walk up
+// from __dirname looking for node_modules/@tobilu/qmd/package.json instead.
 function qmdVersion(): string {
   try {
     let dir = __dirname;
@@ -80,9 +77,6 @@ function dbPathFor(wikiName: string): string {
   return path.join(dir, `${wikiName}.sqlite`);
 }
 
-// Dynamic-import shim. qmd is ESM-only; rig is bundled to CJS via esbuild
-// with @tobilu/qmd marked external, so `await import('@tobilu/qmd')` lands at
-// runtime as a Node native ESM import.
 async function loadQmd(): Promise<{ createStore: any }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const m: any = await import('@tobilu/qmd');
@@ -90,8 +84,8 @@ async function loadQmd(): Promise<{ createStore: any }> {
 }
 
 /**
- * Embed a wiki dir into its per-wiki qmd store. Incremental by default;
- * pass `{ force: true }` to re-embed everything (e.g. after a model swap).
+ * Embed a wiki dir. Incremental by default; pass `{ force: true }` to
+ * re-embed everything (e.g. after switching the embed model).
  */
 export async function qmdEmbed(
   wikiName: string,
@@ -103,9 +97,7 @@ export async function qmdEmbed(
     const store = await createStore({
       dbPath: dbPathFor(wikiName),
       config: {
-        collections: {
-          [wikiName]: { path: dir, pattern: '**/*.md' },
-        },
+        collections: { [wikiName]: { path: dir, pattern: '**/*.md' } },
       },
     });
     try {
@@ -120,48 +112,82 @@ export async function qmdEmbed(
   }
 }
 
-export type QmdQueryMode = 'lex' | 'vector' | 'hybrid';
+export interface QmdHit {
+  file: string;
+  displayPath?: string;
+  title?: string;
+  body?: string;
+  score: number;
+  rerankScore?: number;
+}
 
 /**
- * Query the per-wiki qmd store. Three modes:
- *   - 'lex'    : BM25 only via searchLex. No model load. Always works.
- *   - 'vector' : sqlite-vec only via searchVector. Uses the embed model
- *                (already downloaded for `index` / `embed`).
- *   - 'hybrid' : full BM25 + vec + rerank via search(). Triggers a one-time
- *                ~1GB download of qmd's query-expansion model from HF —
- *                slow / sometimes blocked in CN. Opt-in.
+ * Pure vector search + Qwen3 reranker.
+ *
+ * Pipeline:
+ *   1. searchVector(top 40, dedup'd by docid via qmd internals)
+ *   2. Store.rerank() against the candidate set's chunk bodies
+ *   3. Sort by rerank score, return top-k
+ *
+ * Set `{ rerank: false }` to skip step 2 (faster, no reranker model load).
  */
 export async function qmdQuery(
   q: string,
   wikiName: string,
-  opts: { limit?: number; mode?: QmdQueryMode; rerank?: boolean } = {}
-): Promise<unknown[] | null> {
-  const mode: QmdQueryMode = opts.mode || 'lex';
+  opts: { limit?: number; candidateLimit?: number; rerank?: boolean } = {}
+): Promise<QmdHit[] | null> {
+  const limit = opts.limit ?? 10;
+  const candidateLimit = Math.max(limit, opts.candidateLimit ?? 40);
+  const doRerank = opts.rerank !== false; // default ON
+
   try {
     const { createStore } = await loadQmd();
     const store = await createStore({ dbPath: dbPathFor(wikiName) });
     try {
-      const limit = opts.limit ?? 10;
-      let results: unknown;
-      if (mode === 'lex') {
-        results = await store.searchLex(q, { limit, collection: wikiName });
-      } else if (mode === 'vector') {
-        results = await store.searchVector(q, { limit, collection: wikiName });
-      } else {
-        results = await store.search({
-          query: q,
-          limit,
-          collection: wikiName,
-          skipRerank: !opts.rerank,
-        });
+      const raw = await store.searchVector(q, { limit: candidateLimit, collection: wikiName });
+      const candidates: QmdHit[] = Array.isArray(raw) ? raw.map(normalizeHit) : [];
+      if (!doRerank || candidates.length === 0) return candidates.slice(0, limit);
+
+      const docs = candidates
+        .filter(c => c.file && (c.body || ''))
+        .map(c => ({ file: c.file, text: c.body || '' }));
+      if (docs.length === 0) return candidates.slice(0, limit);
+
+      // qmd 2.5.x exposes `rerank` only on store.internal (not on the public
+      // QMDStore). store.search(opts) does include reranking but also runs
+      // BM25 + query expansion, which we want to avoid.
+      const reranker = store.internal && store.internal.rerank;
+      if (typeof reranker !== 'function') {
+        // No standalone rerank available — return vector hits as-is.
+        return candidates.slice(0, limit);
       }
-      return Array.isArray(results) ? results : [];
+      const ranked: { file: string; score: number }[] = await reranker(q, docs);
+      const scoreByFile = new Map(ranked.map(r => [r.file, r.score]));
+      const merged = candidates.map(c => ({
+        ...c,
+        rerankScore: scoreByFile.get(c.file) ?? 0,
+      }));
+      merged.sort((a, b) => (b.rerankScore ?? 0) - (a.rerankScore ?? 0));
+      return merged.slice(0, limit);
     } finally {
       await store.close();
     }
-  } catch {
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(`qmd query error: ${errMsg(e)}`);
     return null;
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeHit(h: any): QmdHit {
+  return {
+    file: h.file ?? h.displayPath ?? '',
+    displayPath: h.displayPath,
+    title: h.title,
+    body: h.bestChunk ?? h.body ?? '',
+    score: typeof h.score === 'number' ? h.score : 0,
+  };
 }
 
 /** Wipe the per-wiki SQLite store on disk. Caller should then qmdEmbed. */

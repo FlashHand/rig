@@ -63,12 +63,10 @@ export function registerWikiCommands(program: any): void {
     .action(wikiIngest);
 
   wiki.command('query <q>')
-    .description('search the wiki — BM25 by default; --vector for semantic; --hybrid for both (one-time ~1GB expansion-model download)')
+    .description('semantic search — Qwen3 vector + Qwen3 reranker, cross-lingual CN/EN')
     .option('-w, --wiki <name>', 'target wiki name')
     .option('-l, --limit <n>', 'top-k hits (1-50, default 10)', (v) => parseInt(v, 10))
-    .option('--vector', 'semantic vector search (uses already-downloaded embed model)')
-    .option('--hybrid', 'full hybrid + query expansion (slow first run)')
-    .option('-r, --rerank', 'with --hybrid: enable LLM reranker (higher precision, slower)')
+    .option('--no-rerank', 'skip the reranker pass (faster, no reranker model load)')
     .option('-s, --synth', 'use Claude to synthesize a paragraph answer with citations')
     .option('--json', 'machine-readable output')
     .action(wikiQuery);
@@ -88,10 +86,10 @@ export function registerWikiCommands(program: any): void {
     .action(wikiIndex);
 
   wiki.command('rebuild')
-    .description('refresh local-only caches (sha index + qmd vectors) — use on new devices or after switching embed models')
+    .description('refresh local caches (sha index + qmd vectors) — for new devices or after switching embed models')
     .option('-w, --wiki <name>', 'target wiki name')
     .option('-a, --all', 'rebuild every registered wiki')
-    .option('--skip-embed', 'only clear ~/.rig/state.db rows, do not call qmd embed')
+    .option('--skip-embed', 'only clear ~/.rig/state.db rows, do not touch qmd at all')
     .action(wikiRebuild);
 
   wiki.command('install-skill')

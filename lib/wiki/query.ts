@@ -1,16 +1,17 @@
-// `rig wiki query` — hybrid retrieval over a registered wiki.
+// `rig wiki query` — vector retrieval over a registered wiki.
 //
-// Path: qmd hybrid (BM25 + sqlite-vec) → render top-k hits with
-// [[wikilink]] citations where the hit lives in <wiki>/wiki/<sub>/.
+// Pipeline: Qwen3-Embedding-0.6B (sqlite-vec) → Qwen3-Reranker-0.6B → top-k.
+// No BM25, no query expansion. Cross-lingual (Chinese ↔ English) works
+// because both Qwen3 models are multilingual.
 //
-// Default output is human-readable; --json emits the raw qmd payload.
-// --synth invokes the Claude adapter to write a short answer paragraph that
-// cites the top hits (gated because it spawns the agent).
+// Default output is human-readable; --json emits the raw payload. --synth
+// invokes the Claude adapter to write a short answer paragraph with
+// [[wikilink]] citations.
 
 import path from 'path';
 import print from '../print';
 import { loadWikiConfig, resolveWiki, loadRigConfig, WikiEntry } from './config';
-import { qmdQuery, QmdQueryMode } from './qmd';
+import { qmdQuery, QmdHit } from './qmd';
 import { adapters } from './agent/registry';
 
 interface QueryOpts {
@@ -18,22 +19,8 @@ interface QueryOpts {
   json?: boolean;
   limit?: number;
   synth?: boolean;
+  // Commander resolves `--no-rerank` → `opts.rerank: false`. Default true.
   rerank?: boolean;
-  vector?: boolean;
-  hybrid?: boolean;
-}
-
-// Subset of qmd's HybridQueryResult we actually care about. Keep loose typing
-// to absorb minor SDK shape drift.
-interface QmdHit {
-  file?: string;
-  displayPath?: string;
-  title?: string;
-  body?: string;
-  bestChunk?: string;
-  score?: number;
-  context?: unknown;
-  docid?: string;
 }
 
 export default async function wikiQuery(q: string, opts: QueryOpts): Promise<void> {
@@ -49,13 +36,11 @@ export default async function wikiQuery(q: string, opts: QueryOpts): Promise<voi
   }
 
   const limit = Math.max(1, Math.min(50, opts.limit || 10));
-  const mode: QmdQueryMode = opts.hybrid ? 'hybrid' : opts.vector ? 'vector' : 'lex';
-  const raw = await qmdQuery(q, target.name, { limit, mode, rerank: !!opts.rerank });
-  if (raw === null) {
+  const hits = await qmdQuery(q, target.name, { limit, rerank: opts.rerank !== false });
+  if (hits === null) {
     print.error('qmd query failed. Run `rig wiki index` first to (re)build the vector store.');
     process.exit(1);
   }
-  const hits = (raw as QmdHit[]).slice(0, limit);
 
   if (opts.json) {
     // eslint-disable-next-line no-console
@@ -64,7 +49,6 @@ export default async function wikiQuery(q: string, opts: QueryOpts): Promise<voi
   }
 
   printHits(target, q, hits);
-
   if (opts.synth) await synthesize(target, q, hits);
 }
 
@@ -79,11 +63,12 @@ function printHits(wiki: WikiEntry, q: string, hits: QmdHit[]): void {
   hits.forEach((h, i) => {
     const filePath = h.file || h.displayPath || '<unknown>';
     const wlink = toWikilink(wiki, filePath);
-    const score = typeof h.score === 'number' ? h.score.toFixed(4) : '—';
+    const score = typeof h.rerankScore === 'number' ? h.rerankScore : h.score;
+    const scoreStr = typeof score === 'number' ? score.toFixed(4) : '—';
     const head = wlink ? `[[${wlink}]]` : filePath;
     // eslint-disable-next-line no-console
-    console.log(`${String(i + 1).padStart(2)}. ${head}  (score=${score})`);
-    const snippet = (h.bestChunk || h.body || '').trim().replace(/\s+/g, ' ').slice(0, 220);
+    console.log(`${String(i + 1).padStart(2)}. ${head}  (score=${scoreStr})`);
+    const snippet = (h.body || '').trim().replace(/\s+/g, ' ').slice(0, 220);
     if (snippet) {
       // eslint-disable-next-line no-console
       console.log(`    ${snippet}${snippet.length === 220 ? '…' : ''}`);
@@ -93,8 +78,8 @@ function printHits(wiki: WikiEntry, q: string, hits: QmdHit[]): void {
   console.log('');
 }
 
-// Translate "/abs/.../wiki/sources/foo.md" → "foo" (wikilink slug). Anything
-// outside the wiki's wiki/<sub>/ tree falls back to a literal path.
+// "/abs/.../wiki/sources/foo.md" → "foo". Outside wiki/<sub>/ → null so the
+// caller falls back to printing the literal path.
 function toWikilink(wiki: WikiEntry, filePath: string): string | null {
   try {
     const abs = path.isAbsolute(filePath) ? filePath : path.resolve(wiki.path, filePath);
@@ -122,7 +107,7 @@ async function synthesize(wiki: WikiEntry, q: string, hits: QmdHit[]): Promise<v
     const filePath = h.file || h.displayPath || '<unknown>';
     const wlink = toWikilink(wiki, filePath);
     const cite = wlink ? `[[${wlink}]]` : filePath;
-    const body = (h.bestChunk || h.body || '').trim().slice(0, 1200);
+    const body = (h.body || '').trim().slice(0, 1200);
     return `## hit ${i + 1} ${cite}\n${body}`;
   }).join('\n\n');
 
