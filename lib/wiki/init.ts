@@ -1,8 +1,31 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import print from '../print';
 import { guardPath, refusalMessage } from './pathGuard';
-import { saveVaultConfig, VaultConfig } from './config';
+import { saveVaultConfig, loadVaultConfig, VaultConfig } from './config';
+import { vaultConfigPath } from './paths';
+
+/**
+ * `rig wiki init <scope>`
+ *
+ * The user runs this from a project root. The CWD is treated as the project
+ * (the conceptual "vault"); `<scope>` names a data subdir under it that the
+ * wiki should ingest from (e.g. `personal` for `<project>/personal/`).
+ *
+ * Vault metadata always lives at `<CWD>/rig-wiki/` (fixed name). The scope
+ * is recorded in `<CWD>/rig-wiki/.rig/config.yml` as the scan root, so the
+ * user's data dir stays untouched.
+ *
+ *   $ cd overmind
+ *   $ rig wiki init personal
+ *   ⇒ creates overmind/rig-wiki/ with templates + .rig/config.yml
+ *   ⇒ config.yml.root = "../personal", config.yml.name = "personal"
+ *
+ * Idempotent for the same scope. Errors if rig-wiki/ already exists with a
+ * different scope (manual `.rig/config.yml` edit required to switch).
+ */
+const VAULT_DIRNAME = 'rig-wiki';
 
 const PURPOSE_TMPL = `# Purpose
 
@@ -57,12 +80,6 @@ const SCHEMA_TMPL = `# Schema
 
 const SUBDIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'];
 
-// What lives inside the vault but must not enter git / Obsidian Sync:
-// - qmd's project-local vector cache (sqlite-vec, non-deterministic, rebuilds
-//   locally with `rig wiki index` / `rig wiki rebuild`)
-// - lint reports (auto-regenerated)
-// - daemon proposal diffs (transient, per-machine)
-// - editor scratch
 const GITIGNORE_TMPL = `# rig wiki — local-only artifacts (do not commit)
 # qmd vector cache (sqlite-vec, machine-specific, rebuildable)
 .qmd/index.sqlite*
@@ -78,71 +95,107 @@ proposals/
 `;
 
 /**
- * Sensible defaults for a fresh vault. The user can edit
+ * Defaults for a freshly-scoped vault. The user can edit
  * `<vault>/.rig/config.yml` afterwards.
  *
- * Note: hidden directories (any path segment starting with `.`) and files
- * matched by the project's `.gitignore` are skipped automatically by the
- * scanner — there is no need to add `.git/**` or `node_modules/**` here.
+ * Hidden directories (segments starting with `.`) and `.gitignore`'d files
+ * are skipped automatically by the scanner — no need to list them here.
  */
-const DEFAULT_VAULT_CONFIG = (vaultBasename: string): VaultConfig => ({
-  name: vaultBasename,
-  root: '..',
-  include: ['**/*.md'],
-  exclude: [`${vaultBasename}/**`],
-  schedule: { scan: '0 */6 * * *', lint: '0 3 * * *', ingest: null },
-  ingestRules: [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
-});
+function defaultVaultConfig(scope: string, rootRel: string): VaultConfig {
+  return {
+    name: scope,
+    root: rootRel,
+    include: ['**/*.md'],
+    exclude: [],
+    schedule: { scan: '0 */6 * * *', lint: '0 3 * * *', ingest: null },
+    ingestRules: [{ match: 'raw/**/*.md', mode: 'auto-on-new' }],
+  };
+}
 
-export default function wikiInit(givenPath?: string): void {
-  if (!givenPath || !givenPath.trim()) {
-    print.error('rig wiki init requires a target subdirectory.');
-    print.info('usage: rig wiki init <subdir>     (recommended: `rig wiki init rig-wiki` at the project root)');
-    print.info('refusing to default to CWD — that would litter the project root with vault templates.');
+export default function wikiInit(scope?: string): void {
+  if (!scope || !scope.trim()) {
+    print.error('rig wiki init requires a scope.');
+    print.info('usage: rig wiki init <scope>     (e.g. `rig wiki init personal` to ingest from ./personal/)');
+    print.info(`<scope> is an existing data subdir of the project. Vault metadata is auto-created at ./${VAULT_DIRNAME}/.`);
     process.exit(1);
   }
-  const root = path.resolve(givenPath);
-  const guard = guardPath(root, process.cwd());
+
+  const cwd = process.cwd();
+  const vaultDir = path.join(cwd, VAULT_DIRNAME);
+  const scopeAbs = path.resolve(cwd, scope);
+
+  // The scope must already exist — pointing the wiki at a missing dir would
+  // hide what is almost certainly a typo.
+  if (!fs.existsSync(scopeAbs) || !fs.statSync(scopeAbs).isDirectory()) {
+    print.error(`scope dir not found: ${scope}`);
+    print.info(`expected an existing data subdir at ${shortPath(scopeAbs)}`);
+    process.exit(1);
+  }
+  // The scope can't be (or contain) the vault dir itself.
+  if (scopeAbs === vaultDir || vaultDir.startsWith(scopeAbs + path.sep)) {
+    print.error(`scope cannot be or contain the vault dir (${VAULT_DIRNAME}/).`);
+    process.exit(1);
+  }
+
+  const guard = guardPath(vaultDir, cwd);
   if (!guard.ok) {
-    print.error('refusing to initialize a vault at a hidden or gitignored path.');
+    print.error(`refusing to initialize the vault at a hidden or gitignored path.`);
     // eslint-disable-next-line no-console
-    console.error(refusalMessage(root, guard));
+    console.error(refusalMessage(vaultDir, guard));
     process.exit(1);
   }
-  fs.mkdirSync(root, { recursive: true });
 
-  writeIfMissing(path.join(root, 'purpose.md'), PURPOSE_TMPL);
-  writeIfMissing(path.join(root, 'schema.md'), SCHEMA_TMPL);
-  writeIfMissing(path.join(root, 'index.md'), '# Index\n');
-  writeIfMissing(path.join(root, 'overview.md'), '# Overview\n');
-  writeIfMissing(path.join(root, 'log.md'), '# Log\n');
-  writeIfMissing(path.join(root, 'reviews.md'), '# Reviews\n');
-  writeIfMissing(path.join(root, '.gitignore'), GITIGNORE_TMPL);
+  // If the vault already has a config, it must already be scoped to the
+  // same data dir — otherwise the user is trying to re-target an existing
+  // vault, which we won't do silently. Manual config edit only.
+  const cfgFile = vaultConfigPath(vaultDir);
+  if (fs.existsSync(cfgFile)) {
+    const existing = loadVaultConfig(vaultDir);
+    const existingRootAbs = existing?.root
+      ? path.resolve(vaultDir, existing.root)
+      : path.dirname(vaultDir);
+    if (existingRootAbs !== scopeAbs) {
+      print.error(`vault already initialized at ${shortPath(vaultDir)} for scope "${existing?.name ?? '?'}" (root: ${existing?.root ?? '..'}).`);
+      print.info(`to switch scopes, edit ${shortPath(cfgFile)} (name + root) by hand.`);
+      process.exit(1);
+    }
+  }
 
-  fs.mkdirSync(path.join(root, 'raw'), { recursive: true });
-  writeIfMissing(path.join(root, 'raw', '.gitkeep'), '');
+  fs.mkdirSync(vaultDir, { recursive: true });
+  writeIfMissing(path.join(vaultDir, 'purpose.md'), PURPOSE_TMPL);
+  writeIfMissing(path.join(vaultDir, 'schema.md'), SCHEMA_TMPL);
+  writeIfMissing(path.join(vaultDir, 'index.md'), '# Index\n');
+  writeIfMissing(path.join(vaultDir, 'overview.md'), '# Overview\n');
+  writeIfMissing(path.join(vaultDir, 'log.md'), '# Log\n');
+  writeIfMissing(path.join(vaultDir, 'reviews.md'), '# Reviews\n');
+  writeIfMissing(path.join(vaultDir, '.gitignore'), GITIGNORE_TMPL);
 
-  // Page tree lives at the vault root — no extra `wiki/` nesting.
+  fs.mkdirSync(path.join(vaultDir, 'raw'), { recursive: true });
+  writeIfMissing(path.join(vaultDir, 'raw', '.gitkeep'), '');
+
   for (const sub of SUBDIRS) {
-    const d = path.join(root, sub);
+    const d = path.join(vaultDir, sub);
     fs.mkdirSync(d, { recursive: true });
     writeIfMissing(path.join(d, '.gitkeep'), '');
   }
 
-  // Seed `<vault>/.rig/config.yml` with sensible defaults. Idempotent: if the
-  // user has already authored one, leave it alone.
-  const vaultCfgFile = path.join(root, '.rig', 'config.yml');
-  if (!fs.existsSync(vaultCfgFile)) {
-    saveVaultConfig(root, DEFAULT_VAULT_CONFIG(path.basename(root)));
+  if (!fs.existsSync(cfgFile)) {
+    const rootRel = path.relative(vaultDir, scopeAbs);
+    saveVaultConfig(vaultDir, defaultVaultConfig(scope, rootRel));
   }
 
-  print.succeed(`vault initialized at ${root}`);
-  print.info('next: edit purpose.md + schema.md (and .rig/config.yml if scope differs from defaults).');
-  print.info('discovery is automatic — cd into this dir (or any subdir) and run `rig wiki *` commands.');
-  print.info('on a new device, after cloning, run `rig wiki rebuild` to refresh local caches.');
+  print.succeed(`vault initialized at ${shortPath(vaultDir)} (scope: ${scope})`);
+  print.info(`next: edit ${shortPath(path.join(vaultDir, 'purpose.md'))} to describe what this wiki is for.`);
+  print.info(`then run \`rig wiki scan\` from anywhere inside ${shortPath(cwd)} to see what will be ingested.`);
 }
 
 function writeIfMissing(file: string, content: string) {
   if (fs.existsSync(file)) return;
   fs.writeFileSync(file, content, 'utf8');
+}
+
+function shortPath(p: string): string {
+  const home = os.homedir();
+  if (p.startsWith(home + path.sep)) return '~' + p.slice(home.length);
+  return p;
 }

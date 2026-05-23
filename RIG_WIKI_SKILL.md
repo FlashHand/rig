@@ -15,15 +15,17 @@ metadata:
 
 **Positioning.** rig wiki is an **agent-facing tool**. Humans don't memorise the CLI; they tell their agent (you) what they want, and you orchestrate `rig wiki *`. Treat any direct user-typed `rig wiki ...` invocation as a fallback — your job is to make raw CLI use unnecessary. Never just hand the user a command and walk away; run it, observe, report.
 
-## Vault discovery (no registry)
+## Vault model — one fixed dir per project
 
-There is **no global registry**. The active vault is resolved by walking up from the current working directory looking for a `.rig/config.yml`. The directory that contains that file IS the vault.
+A vault is **a single `rig-wiki/` dir at the project root** holding metadata (purpose.md, schema.md, page tree, `.rig/config.yml`). The project root itself is the conceptual "vault" — `rig-wiki/` is just the metadata subdir living inside it, named `rig-wiki/` by convention. User-authored data (`personal/`, `research/`, etc.) lives in sibling dirs and is NEVER touched.
+
+- **The scope** — which sibling data dir(s) the wiki actually ingests — is recorded in `<rig-wiki>/.rig/config.yml` (`name`, `root`, `include`).
+- **Discovery is automatic.** Any `rig wiki *` command walks up from CWD; at each level it checks both `<dir>/.rig/config.yml` (you're inside the vault) and `<dir>/rig-wiki/.rig/config.yml` (you're at the project root). So `cd` anywhere inside the project works.
 
 This means:
-- **Always `cd` into the project first.** If the user is in some other CWD, change directory before running any `rig wiki *` command.
 - **No `--wiki <name>` flag exists.** Don't try to pass one.
 - **No `rig wiki list`, `register`, or `unregister` commands.** They've been removed.
-- If the user is in a project that has no vault, the next step is `rig wiki init <subdir>` (see "Setup" below).
+- If the user is in a project that has no vault, the next step is `rig wiki init <scope>` (see "Setup" below).
 
 ## Intent → command map
 
@@ -42,31 +44,35 @@ This means:
 ## Vault layout (flat — no inner `wiki/` subdir)
 
 ```
-<vault>/
-  purpose.md          ← human-authored, never write
-  schema.md           ← human-authored, never write
-  index.md            ← LLM-writable
-  overview.md         ← LLM-writable
-  log.md              ← append-only LLM log
-  reviews.md          ← LLM-writable backlog of human-review items
-  raw/                ← immutable source files (never edit existing)
-  sources/            ← one .md per ingested source — page tree at vault root
-  entities/
-  concepts/
-  synthesis/
-  queries/
-  .rig/config.yml     ← per-vault settings (name, root, include, exclude, …)
-  .gitignore
+<project>/                       ← the conceptual vault (e.g. overmind/)
+  rig-wiki/                      ← fixed metadata-dir name; created by `rig wiki init`
+    purpose.md                   ← human-authored, never write
+    schema.md                    ← human-authored, never write
+    index.md                     ← LLM-writable
+    overview.md                  ← LLM-writable
+    log.md                       ← append-only LLM log
+    reviews.md                   ← LLM-writable backlog of human-review items
+    raw/                         ← immutable source files (never edit existing)
+    sources/                     ← one .md per ingested source — page tree at vault root
+    entities/
+    concepts/
+    synthesis/
+    queries/
+    .rig/config.yml              ← per-vault settings (name, root, include, exclude, …)
+    .gitignore
+  personal/                      ← user-authored data — scope target (NEVER touched)
+  research/                      ← (other sibling data dirs)
+  ...
 ```
 
-Note: there is no `<vault>/wiki/` subdirectory. Page directories (`sources/`, `entities/`, `concepts/`, `synthesis/`, `queries/`) live directly under the vault root.
+Note: page directories (`sources/`, `entities/`, `concepts/`, `synthesis/`, `queries/`) live directly under `rig-wiki/` — no nested `wiki/` subdir.
 
 ## Argument inference rules
 
 - **slug** = kebab-case, no dates in page filenames; dates only on `raw/YYYY-MM-DD-*` prefix.
 - **raw filename** = `YYYY-MM-DD-<slug>.md`. Pick today's local date; if filename collides, append `-2`, `-3`.
 - **URL → slug**: last path segment, drop extension, lowercase, replace non-`[a-z0-9-]` with `-`, max 64 chars.
-- **Default vault dir name** when the user says "init a vault / make a wiki here" without specifying: suggest `rig-wiki` at the project root. Never default silently — confirm the name once.
+- **`rig wiki init <scope>` arg** is a data subdir NAME, not a path to create. Examples: `rig wiki init personal` (scopes to `./personal/`), `rig wiki init research`. The vault metadata dir is always `./rig-wiki/`. Never pass a path like `rig-wiki` — that's the metadata dir, not the scope.
 
 ## Hard rules — refuse and explain if violated
 
@@ -113,19 +119,20 @@ What you DO need to put in `exclude` are content-type filters the user cares abo
 
 ## Setup — if no vault is found
 
-`rig wiki scan` (or any command) reports `No rig wiki vault found.` → ask the user **once** (don't list multiple defaults; pick one suggestion and confirm):
+`rig wiki scan` (or any command) reports `No rig wiki vault found.` → ask the user **once** which sibling data dir to scope this wiki to (don't guess silently):
 
-> "No vault here. Want me to init one as `rig-wiki/` at the project root? (or pick another path)"
+> "No vault here. Which subdir should this wiki ingest from — `personal/`, `research/`, …?"
 
 Then orchestrate without further prompting:
 
 ```bash
-rig wiki init rig-wiki    # creates <project>/rig-wiki/ with templates + .rig/config.yml
+cd <project>                  # the root that contains the scope dir
+rig wiki init <scope>         # e.g. `rig wiki init personal` → creates ./rig-wiki/, scope = ./personal/
 ```
 
-After init, **pause and ask the user to edit `<vault>/purpose.md`** (one-time human scoping — define what this wiki is for, in/out of scope). Don't write purpose.md yourself; it's the only human-authored anchor for everything downstream.
+After init, **pause and ask the user to edit `<project>/rig-wiki/purpose.md`** (one-time human scoping — define what this wiki is for, in/out of scope). Don't write purpose.md yourself; it's the only human-authored anchor for everything downstream.
 
-If the user describes a scan scope that differs from the defaults (e.g. "include every md file in `personal/` but ignore zip files"), translate that into edits to `<vault>/.rig/config.yml`. Fields: `name`, optional `root` (relative scan base, default `..`), `include[]`, `exclude[]`, `schedule`, `ingestRules`. The vault is self-contained — nothing about its identity or scope lives outside its own directory.
+If the user wants finer scoping than a single subdir (e.g. "ingest `personal/` but ignore zip files"), translate that into edits to `<project>/rig-wiki/.rig/config.yml`. Fields: `name`, `root` (relative scan base, default `../<scope>`), `include[]`, `exclude[]`, `schedule`, `ingestRules`. Everything about the vault lives in that dir — nothing leaks outside.
 
 ## Configuration files
 

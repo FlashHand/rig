@@ -19,8 +19,8 @@ import { registerDaemonCommands } from './daemon';
 export function registerWikiCommands(program: any): void {
   const wiki = program.command('wiki').description('Karpathy-style LLM Wiki ops (macOS only in v1)');
 
-  wiki.command('init <path>')
-    .description('bootstrap a vault at <path> (recommended: `rig-wiki` at the project root)')
+  wiki.command('init <scope>')
+    .description('bootstrap a vault scoped to <scope>/ — an existing data subdir of the project. Metadata is auto-created at ./rig-wiki/.')
     .action(wikiInit);
 
   wiki.command('scan')
