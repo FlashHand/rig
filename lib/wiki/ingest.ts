@@ -112,7 +112,7 @@ export default async function wikiIngest(source: string, opts: IngestOpts): Prom
 
   // Real ingest — trigger incremental embed.
   print.info(`applied ${applied.length} file change${applied.length === 1 ? '' : 's'}; rejected ${rejected.length}.`);
-  const embedRes = await qmdEmbed(target.name, target.path);
+  const embedRes = await qmdEmbed(target.name, target.path, target.root);
   if (!embedRes.ok) {
     print.warn(`qmd embed failed after ingest: ${embedRes.stderr.trim().slice(0, 300)}`);
     print.warn('your wiki content is committed to disk; only the vector index is stale.');

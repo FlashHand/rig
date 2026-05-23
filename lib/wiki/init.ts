@@ -109,10 +109,7 @@ cases.
 const SUBDIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'];
 
 const GITIGNORE_TMPL = `# rig wiki — local-only artifacts (do not commit)
-# qmd vector cache (sqlite-vec, machine-specific, rebuildable)
-.qmd/index.sqlite*
-.qmd/*.sqlite-wal
-.qmd/*.sqlite-shm
+# (vector cache lives outside the vault at ~/.rig/<project>/wiki/)
 # auto-generated reports
 lint-report-*.md
 # daemon proposal queue (per-machine)

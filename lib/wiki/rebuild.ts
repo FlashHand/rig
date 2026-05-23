@@ -2,7 +2,7 @@
 //
 // Use cases:
 //   1. New device: source markdown is checked out, but ~/.rig/state.db and
-//      ~/.rig/cache/qmd/<wiki>.sqlite are empty. Rebuild populates both.
+//      ~/.rig/<project>/wiki/<wiki>.sqlite are empty. Rebuild populates both.
 //   2. Switched embedding model: old vectors are now meaningless. Rebuild
 //      re-embeds against the current QMD_EMBED_MODEL.
 //   3. Local cache corruption: nuke and start over.
@@ -27,10 +27,10 @@ export default async function wikiRebuild(opts: RebuildOpts): Promise<void> {
   const del = db.prepare('DELETE FROM source_sha WHERE wiki = ?').run(t.name);
   print.info(`  cleared ${del.changes} source_sha rows for ${t.name}`);
 
-  qmdResetStore(t.name);
+  qmdResetStore(t.name, t.root);
 
   if (!opts.skipEmbed) {
-    const res = await qmdEmbed(t.name, t.path, { force: true });
+    const res = await qmdEmbed(t.name, t.path, t.root, { force: true });
     if (res.ok) print.info(`  qmd embed: ${t.name} done`);
     else {
       print.error(`  qmd embed: ${t.name} failed: ${res.stderr.trim()}`);

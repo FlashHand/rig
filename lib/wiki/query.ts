@@ -30,7 +30,7 @@ export default async function wikiQuery(q: string, opts: QueryOpts): Promise<voi
   const target = requireVault();
 
   const limit = Math.max(1, Math.min(50, opts.limit || 10));
-  const hits = await qmdQuery(q, target.name, { limit, rerank: opts.rerank !== false });
+  const hits = await qmdQuery(q, target.name, target.root, { limit, rerank: opts.rerank !== false });
   if (hits === null) {
     print.error('qmd query failed. Run `rig wiki index` first to (re)build the vector store.');
     process.exit(1);

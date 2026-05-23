@@ -9,8 +9,13 @@
 //   - Embed: Qwen3-Embedding-0.6B   (~610MB, sets QMD_EMBED_MODEL)
 //   - Rerank: Qwen3-Reranker-0.6B   (~610MB, sets QMD_RERANK_MODEL)
 //
-// Per-wiki SQLite DB lives at `~/.rig/cache/qmd/<wiki>.sqlite`. Model GGUFs
-// cache in `~/.cache/qmd/models/` (hardcoded inside qmd).
+// Per-wiki SQLite DB lives at `~/.rig/<project>/wiki/<wiki>.sqlite`, where
+// `<project>` is the `name` from the nearest `package.json` walking up from
+// the vault root (fallback: vault-root basename). The extra `wiki/` segment
+// reserves room for other per-project rig artifacts as siblings. Legacy
+// `~/.rig/cache/qmd/<wiki>.sqlite` is migrated lazily on first open.
+//
+// Model GGUFs still cache in `~/.cache/qmd/models/` (hardcoded inside qmd).
 //
 // Concurrency note: qmd's `setConfigSource` is module-global; serialize
 // store lifetimes by opening + closing inside each call.
@@ -71,10 +76,58 @@ function qmdVersion(): string {
   return 'unknown';
 }
 
-function dbPathFor(wikiName: string): string {
-  const dir = path.join(paths.cache, 'qmd');
+/**
+ * Resolve the project name for a vault: read the `name` field from the
+ * nearest `package.json` walking up from `vaultRoot`. Falls back to
+ * `basename(vaultRoot)` if no package.json with a usable name is found.
+ * Scoped names (`@scope/foo`) are flattened to `scope_foo`.
+ */
+function resolveProjectName(vaultRoot: string): string {
+  let dir = path.resolve(vaultRoot);
+  while (true) {
+    const pkg = path.join(dir, 'package.json');
+    if (fs.existsSync(pkg)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(pkg, 'utf8'));
+        if (typeof parsed.name === 'string' && parsed.name.trim()) {
+          return sanitizeSegment(parsed.name.trim());
+        }
+      } catch { /* malformed package.json — keep walking */ }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return sanitizeSegment(path.basename(vaultRoot)) || 'unknown';
+}
+
+function sanitizeSegment(s: string): string {
+  // npm scoped names use `/`; flatten so we don't create unintended nesting.
+  // Also defang filesystem-hostile chars and leading dots.
+  return s
+    .replace(/^@/, '')
+    .replace(/[/\\]/g, '_')
+    .replace(/[<>:"|?*\x00-\x1f]/g, '_')
+    .replace(/^\.+/, '');
+}
+
+function dbPathFor(wikiName: string, vaultRoot: string): string {
+  const projectName = resolveProjectName(vaultRoot);
+  const dir = path.join(paths.home, projectName, 'wiki');
   fs.mkdirSync(dir, { recursive: true });
-  return path.join(dir, `${wikiName}.sqlite`);
+  const target = path.join(dir, `${wikiName}.sqlite`);
+  // One-shot migration from the legacy flat layout.
+  const legacy = path.join(paths.cache, 'qmd', `${wikiName}.sqlite`);
+  if (!fs.existsSync(target) && fs.existsSync(legacy)) {
+    for (const suffix of ['', '-wal', '-shm']) {
+      const src = legacy + suffix;
+      if (fs.existsSync(src)) {
+        try { fs.renameSync(src, target + suffix); }
+        catch { /* cross-device? leave the legacy file in place */ }
+      }
+    }
+  }
+  return target;
 }
 
 async function loadQmd(): Promise<{ createStore: any }> {
@@ -90,12 +143,13 @@ async function loadQmd(): Promise<{ createStore: any }> {
 export async function qmdEmbed(
   wikiName: string,
   dir: string,
+  vaultRoot: string,
   opts: { force?: boolean } = {}
 ): Promise<{ ok: boolean; stderr: string }> {
   try {
     const { createStore } = await loadQmd();
     const store = await createStore({
-      dbPath: dbPathFor(wikiName),
+      dbPath: dbPathFor(wikiName, vaultRoot),
       config: {
         collections: { [wikiName]: { path: dir, pattern: '**/*.md' } },
       },
@@ -134,6 +188,7 @@ export interface QmdHit {
 export async function qmdQuery(
   q: string,
   wikiName: string,
+  vaultRoot: string,
   opts: { limit?: number; candidateLimit?: number; rerank?: boolean } = {}
 ): Promise<QmdHit[] | null> {
   const limit = opts.limit ?? 10;
@@ -142,7 +197,7 @@ export async function qmdQuery(
 
   try {
     const { createStore } = await loadQmd();
-    const store = await createStore({ dbPath: dbPathFor(wikiName) });
+    const store = await createStore({ dbPath: dbPathFor(wikiName, vaultRoot) });
     try {
       const raw = await store.searchVector(q, { limit: candidateLimit, collection: wikiName });
       const candidates: QmdHit[] = Array.isArray(raw) ? raw.map(normalizeHit) : [];
@@ -191,8 +246,8 @@ function normalizeHit(h: any): QmdHit {
 }
 
 /** Wipe the per-wiki SQLite store on disk. Caller should then qmdEmbed. */
-export function qmdResetStore(wikiName: string): void {
-  const p = dbPathFor(wikiName);
+export function qmdResetStore(wikiName: string, vaultRoot: string): void {
+  const p = dbPathFor(wikiName, vaultRoot);
   for (const suffix of ['', '-wal', '-shm']) {
     const f = p + suffix;
     if (fs.existsSync(f)) fs.rmSync(f, { force: true });
