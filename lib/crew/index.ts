@@ -8,6 +8,7 @@ import crewAsk from './ask';
 import crewStub from './stub';
 import { projectAdd, projectList, projectStatus, projectSync } from './project';
 import { roleAdd, roleList, roleShow } from './roleCommand';
+import { pendingAdd, pendingAnswer, pendingList, pendingRemove } from './pending';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function registerCrewCommands(program: any): void {
@@ -104,6 +105,36 @@ export function registerCrewCommands(program: any): void {
     .description('show one role definition')
     .option('-c, --crew <name>', 'target crew name')
     .action(roleShow);
+
+  const pending = crew.command('pending')
+    .description('list and manage materials the user must supply (per project)');
+  pending.command('list', { isDefault: true })
+    .description('list pending questions (default action; runs when `crew pending` is used without a subcommand)')
+    .option('--crew <name>', 'target crew name')
+    .option('-p, --project <name>', 'limit to one project')
+    .option('--all', 'include resolved questions')
+    .option('--json', 'machine-readable output')
+    .action(pendingList);
+  pending.command('add <title...>')
+    .description('record a new pending question / missing material')
+    .option('--crew <name>', 'target crew name')
+    .option('-p, --project <name>', 'project name (auto-detected from CWD if omitted)')
+    .option('--why <text>', 'why this information is needed')
+    .option('--need <text>', 'what to provide (file path, value, decision, etc.)')
+    .option('--priority <level>', 'high | medium | low')
+    .option('--asked-by <role>', 'role or person who raised the question (default: lead)')
+    .action((title: string[], opts: { crew?: string; project?: string; why?: string; need?: string; priority?: string; askedBy?: string }) => pendingAdd(title, opts));
+  pending.command('answer <id>')
+    .description('mark a pending question as resolved')
+    .option('--crew <name>', 'target crew name')
+    .option('-p, --project <name>', 'limit to one project')
+    .option('-n, --note <text>', 'short note describing what the user supplied')
+    .action(pendingAnswer);
+  pending.command('remove <id>')
+    .description('delete a pending question (use answer to keep history)')
+    .option('--crew <name>', 'target crew name')
+    .option('-p, --project <name>', 'limit to one project')
+    .action(pendingRemove);
 
   crew.command('plan').description('planned: Lead refine + decompose').action(crewStub('plan'));
   crew.command('refine').description('planned: update Shared/Spec.md').action(crewStub('refine'));

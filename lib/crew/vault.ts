@@ -47,6 +47,7 @@ export function ensureProject(crew: CrewEntry, project: CrewProject): void {
   writeProjectOwnerFile(path.join(base, 'Owner.md'), project);
   writeIfMissing(path.join(base, 'Context.md'), `# ${project.name} Context\n\n`);
   writeIfMissing(path.join(base, 'Tasks.md'), renderProjectTasksFile(project));
+  writeIfMissing(path.join(base, 'Pending-Questions.md'), renderProjectPendingFile(project));
   ensureTasklists(base);
   writeIfMissing(path.join(base, 'Decisions.md'), `# ${project.name} Decisions\n\n`);
   writeIfMissing(path.join(base, 'Test-Plan.md'), `# ${project.name} Test Plan\n\n`);
@@ -185,6 +186,26 @@ function renderProjectTasksFile(project: CrewProject): string {
   ].join('\n');
 }
 
+function renderProjectPendingFile(project: CrewProject): string {
+  return [
+    `# ${project.name} Pending Questions`,
+    '',
+    '<!-- rig-crew-pending:v1 -->',
+    '',
+    'Materials / facts / decisions the user must supply before the crew can proceed.',
+    'Add with `rig crew pending add "<title>" --project <name>`; resolve with `rig crew pending answer <id> --note "..."`.',
+    '',
+    '## Open',
+    '',
+    '_No open questions._',
+    '',
+    '## Resolved',
+    '',
+    '_No resolved questions yet._',
+    '',
+  ].join('\n');
+}
+
 function renderProjectAgentTasksFile(project: CrewProject, role: CrewRoleDefinition): string {
   return [
     `# ${project.name} ${role.title} Tasks`,
@@ -254,6 +275,7 @@ function renderVaultAgentInstructions(crew: CrewEntry): string {
     `- Role registry: \`${root}/Shared/Roles.md\``,
     `- Reusable role descriptions: \`${root}/<role>/Role.md\` and \`${root}/Roles/<custom-role>/Role.md\``,
     `- Project owner memory: \`${root}/Projects/<project>/\``,
+    `- Per-project pending questions (待补充资料): \`${root}/Projects/<project>/Pending-Questions.md\` — managed by \`rig crew pending\``,
     `- Project-scoped agent tasks: \`${root}/Projects/<project>/Agents/<role>/Tasks.md\``,
     `- Large active task batches: \`${root}/Projects/<project>/Tasklists/active/*.md\` and \`${root}/Projects/<project>/Agents/<role>/Tasklists/active/*.md\`. Keep \`Tasks.md\` short; archived tasklists are not part of the active dashboard.`,
     '- Vault-local scratch projects belong under `tmp/<project>/`.',
@@ -272,6 +294,7 @@ function renderVaultAgentInstructions(crew: CrewEntry): string {
     '5. Treat Crew Lead as the default orchestrator prompt/protocol, not as a required Claude/Codex subagent. Subagents may be used as optional executors for specific roles, but Vault files are the source of truth.',
     '6. Lead communicates with other roles through Markdown tasks and delegation packets, not private chat state. Use `[role:: <role>]`, `[owner:: <owner>]`, `[project:: <project>]`, `[executor:: <executor>]`, and status fields in the relevant project-scoped `Tasks.md`.',
     `7. Worker results must be written back to the relevant role/project files under \`${root}/\`; user-facing questions go to \`${root}/Inbox.md\` for Lead to surface.`,
+    `8. Whenever a project is blocked by missing user-supplied material (API key, screenshot, vendor decision, sample data), record it with \`rig crew pending add ...\` rather than silently asking the human; when the user supplies it, the agent itself calls \`rig crew pending answer <id> --note "<summary>"\` and continues. Check \`rig crew pending --project <name>\` before starting any new tick on that project.`,
     '',
     AGENT_RULES_END,
   ].join('\n');
