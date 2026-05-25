@@ -3,6 +3,7 @@ import path from 'path';
 import CICD from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
 import AliOSS from '@/classes/cicd/Deploy/AliDeploy';
+import { redactTarget } from '@/utils/redact';
 
 let filesList: string[] = [];
 const traverseFolder = (url: string) => {
@@ -33,7 +34,7 @@ export default async (cmd: any) => {
     const target = Array.isArray(cicdCmd.cicd.target)
       ? cicdCmd.cicd.target[0]
       : cicdCmd.cicd.target;
-    console.log('oss tagert', target);
+    console.log('oss tagert', redactTarget(target));
     const aliOss = new AliOSS(target);
     console.log('Please Wait for Upload OSS...');
     if (!cicdCmd.endpoints || cicdCmd.endpoints.length === 0) {

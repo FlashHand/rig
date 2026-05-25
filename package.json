@@ -1,7 +1,7 @@
 {
   "name": "rigjs",
-  "version": "4.0.17",
-  "versionCode": 26052424,
+  "version": "4.0.18",
+  "versionCode": 26052501,
   "description": "A multi-repos dev tool based on yarn and git.Rigjs is intended to be the simplest way to develop,share and deliver codes between different developers or different projects.",
   "keywords": [
     "modular",
@@ -36,9 +36,13 @@
     "doc",
     "scripts",
     ".claude/skills/rig-wiki",
+    ".claude/skills/rig-package",
+    ".claude/skills/rig-cicd",
     ".claude-plugin",
     "RIG_WIKI_SKILL.md",
     "RIG_CREW_SKILL.md",
+    "RIG_PACKAGE_SKILL.md",
+    "RIG_CICD_SKILL.md",
     "skills.md",
     "index.js",
     "README.md",

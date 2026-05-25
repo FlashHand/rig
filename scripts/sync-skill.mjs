@@ -14,6 +14,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 const skills = [
   ['RIG_WIKI_SKILL.md', '.claude/skills/rig-wiki/SKILL.md'],
+  ['RIG_PACKAGE_SKILL.md', '.claude/skills/rig-package/SKILL.md'],
+  ['RIG_CICD_SKILL.md', '.claude/skills/rig-cicd/SKILL.md'],
 ];
 
 for (const [srcRel, destRel] of skills) {

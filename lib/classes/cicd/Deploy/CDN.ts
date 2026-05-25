@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import axios from 'axios';
 import * as uuid from 'uuid';
 import { DeployTarget } from '../CICD';
+import { redactCdnUrl } from '@/utils/redact';
 
 type TFlag = 'break' | 'enhance_break' | null;
 
@@ -64,7 +65,7 @@ class CDN {
     });
 
     const url = `http://cdn.ap-southeast-1.aliyuncs.com?${paramConfig}`;
-    console.log('cdn update url:', url);
+    console.log('cdn update url:', redactCdnUrl(url));
     const res = await axios.create().get(url);
     return res.data;
   }

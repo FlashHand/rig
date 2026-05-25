@@ -6,7 +6,19 @@
  */
 import print from '../print';
 import fs from 'fs';
-import axios from 'axios';
+
+const PACKAGE_RIG_TEMPLATE = `{
+  // package.rig.json5 — rig configuration
+  // Field reference: see the rig-package / rig-cicd skills.
+  dependencies: {
+    // 'lib-name': {
+    //   source: 'git@github.com:org/repo.git', // git ssh url
+    //   version: '1.0.0',                      // git tag (semver)
+    //   dev: false                             // true => clone into rig_dev/ and develop locally
+    // }
+  }
+}
+`;
 
 export default async () => {
   try {
@@ -19,11 +31,9 @@ export default async () => {
     if (fs.existsSync('package.rig.json5')) {
       print.info('package.rig.json5 already exists~');
     } else {
-      //创建package.rig.json5
+      //创建package.rig.json5 — 本地模板,留空 dependencies,无示例库引用
       print.info('create package.rig.json5');
-      const resPackageRigJSON5 = await axios.get('https://gist.githubusercontent.com/FlashHand/ea156ac4930b05832ad7c568f7f00cdd/raw/48a4321ccf1b0339a15f6454336f289b8b5bad58/package.rig.json5');
-      const packageRigJSON5 = resPackageRigJSON5.data;
-      fs.writeFileSync('./package.rig.json5', packageRigJSON5);
+      fs.writeFileSync('./package.rig.json5', PACKAGE_RIG_TEMPLATE);
     }
     //检查是否存在rig_helper.js
     // if (fs.existsSync(`${process.cwd()}/rig_helper.js`)) {
@@ -95,8 +105,7 @@ export default async () => {
         postinstall: "rig postinstall",
       },
       devDependencies: {
-        json5: '2.2.1',
-        "rig-helper": '^1.0.2'
+        json5: '2.2.1'
       }
     }
     pkgJSON.private = inserted.private;
@@ -125,11 +134,9 @@ export default async () => {
     }
     if (pkgJSON.devDependencies) {
       pkgJSON.devDependencies.json5 = inserted.devDependencies.json5;
-      pkgJSON.devDependencies["rig-helper"] = inserted.devDependencies["rig-helper"];
     } else {
       pkgJSON.devDependencies = inserted.devDependencies;
     }
-    //检查是否存在rig-helper
     fs.writeFileSync('package.json', JSON.stringify(pkgJSON, null, 2));
     print.succeed('rig init succeed');
   } catch (e) {
