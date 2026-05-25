@@ -8,6 +8,8 @@ This page is the skill index for the `rigjs` package. The root `README.md` keeps
 |---|---|---|---|---|
 | `rig-wiki` | [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) | [`.claude/skills/rig-wiki/SKILL.md`](./.claude/skills/rig-wiki/SKILL.md) | `rig wiki *` | Karpathy-style LLM wiki operations: scan, fetch, ingest, query, lint, rebuild. |
 | `rig-crew` | [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md) | (none — vault-level guidance) | `rig crew *` | File-backed, Leader-first multi-agent coordination over an Obsidian vault. |
+| `rig-package` | [`RIG_PACKAGE_SKILL.md`](./RIG_PACKAGE_SKILL.md) | [`.claude/skills/rig-package/SKILL.md`](./.claude/skills/rig-package/SKILL.md) | `rig init` / `install` / `add` / `dev` / `tag` | Git-tag + ssh package manager that replaces a private npm registry; documents every `package.rig.json5#dependencies` field. |
+| `rig-cicd` | [`RIG_CICD_SKILL.md`](./RIG_CICD_SKILL.md) | [`.claude/skills/rig-cicd/SKILL.md`](./.claude/skills/rig-cicd/SKILL.md) | `rig build` / `deploy` / `publish` | Aliyun OSS + CDN static-site CI/CD; one bucket → many sites via CDN URI rewrites set during `rig publish`. Supports hash, history, mpa, pre-built HTML dirs. |
 
 `rig-crew` is intentionally not copied into the rigjs package's own `.claude/skills/`. Its instructions belong at the Vault level (the project that uses crew), not at the tool level (rigjs itself).
 
@@ -89,6 +91,8 @@ Canonical skill files live at the package root:
 
 - [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md)
 - [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md)
+- [`RIG_PACKAGE_SKILL.md`](./RIG_PACKAGE_SKILL.md)
+- [`RIG_CICD_SKILL.md`](./RIG_CICD_SKILL.md)
 
 A package-internal mirror lives under `.claude/skills/` so the rig package itself (when checked out by another agent) can read its own skills:
 
@@ -96,7 +100,7 @@ A package-internal mirror lives under `.claude/skills/` so the rig package itsel
 node scripts/sync-skill.mjs
 ```
 
-`prepublishOnly` runs the sync script before packaging. Today this plugin-copy set only includes `rig-wiki`; `rig-crew` remains Vault-level guidance and has no in-package `.claude/skills/` copy.
+`prepublishOnly` runs the sync script before packaging. The plugin-copy set covers `rig-wiki`, `rig-package`, and `rig-cicd`; `rig-crew` remains Vault-level guidance and has no in-package `.claude/skills/` copy.
 
 ## Documentation Policy
 
