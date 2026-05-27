@@ -42,6 +42,7 @@ interface Findings {
 const REQUIRED_KEYS = ['type', 'sources', 'ingested-at', 'last-updated'] as const;
 const SOURCE_EXTRA_KEYS = ['source-sha', 'source-path'] as const;
 const WIKI_SUBDIRS = ['sources', 'entities', 'concepts', 'synthesis', 'queries'] as const;
+const TOP_LEVEL_WIKILINK_TARGETS = ['index', 'overview', 'log', 'reviews', 'purpose', 'schema'] as const;
 
 export default async function wikiLint(opts: LintOpts): Promise<void> {
   const target = requireVault();
@@ -89,6 +90,10 @@ function lintOne(wiki: WikiEntry): Findings {
   }
 
   const slugToRel = new Map<string, string>();
+  for (const slug of TOP_LEVEL_WIKILINK_TARGETS) {
+    const rel = `${slug}.md`;
+    if (fs.existsSync(path.join(wiki.path, rel))) slugToRel.set(slug, rel);
+  }
   for (const p of pages) slugToRel.set(p.slug, p.rel);
 
   const linkedSlugs = new Set<string>();
@@ -103,7 +108,7 @@ function lintOne(wiki: WikiEntry): Findings {
       }
       const sourcePath = String(p.frontmatter['source-path'] || '');
       if (sourcePath) {
-        const abs = path.isAbsolute(sourcePath) ? sourcePath : path.resolve(wiki.path, sourcePath);
+        const abs = resolveSourcePath(wiki, sourcePath);
         if (!fs.existsSync(abs)) {
           f.missingRawSource.push({ rel: p.rel, sourcePath });
         } else {
@@ -186,6 +191,23 @@ function extractWikilinks(body: string): string[] {
     if (slug) out.push(slug);
   }
   return out;
+}
+
+function resolveSourcePath(wiki: WikiEntry, sourcePath: string): string {
+  const obsidian = parseObsidianFilePath(sourcePath);
+  if (obsidian) return path.resolve(path.dirname(wiki.path), obsidian);
+  return path.isAbsolute(sourcePath) ? sourcePath : path.resolve(wiki.path, sourcePath);
+}
+
+function parseObsidianFilePath(sourcePath: string): string | null {
+  if (!sourcePath.startsWith('obsidian://open?')) return null;
+  try {
+    const url = new URL(sourcePath);
+    const file = url.searchParams.get('file');
+    return file && file.trim() ? file : null;
+  } catch {
+    return null;
+  }
 }
 
 function sha256(file: string): string {
