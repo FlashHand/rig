@@ -38,6 +38,23 @@ export interface DeployTarget {
 		original_regexp?: string;
 		final?: string;
 	} | undefined;
+	/**
+	 * Edge provider for `rig publish` (回源改写 + 刷缓存).
+	 * - 'cdn' (default): traditional Aliyun CDN, BatchSetCdnDomainConfig.
+	 * - 'esa': Aliyun ESA (Edge Security Acceleration), site-scoped rewrite rules.
+	 */
+	edge_provider?: 'cdn' | 'esa';
+	/**
+	 * ESA OpenAPI endpoint. Only used when edge_provider === 'esa'.
+	 * Defaults to 'esa.cn-hangzhou.aliyuncs.com'.
+	 */
+	esa_endpoint?: string;
+	/**
+	 * ESA site name (registrable zone, e.g. 'terncloud.com'). Only used when
+	 * edge_provider === 'esa'. If omitted, derived from the endpoint domain's
+	 * last two labels.
+	 */
+	esa_site_name?: string;
 }
 
 /**

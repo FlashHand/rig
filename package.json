@@ -60,13 +60,17 @@
     "t": "node lib/rig/index.js tag",
     "deliver": "node scripts/publish.mjs",
     "deliver:alpha": "rig tag && yarn build && node scripts/publish.mjs --tag alpha",
-    "build": "esbuild lib/rig/index.ts --platform=node --bundle --sourcemap=inline --minify --outfile=built/index.js --external:shelljs --external:better-sqlite3 --external:bindings --external:proxy-agent --external:@tobilu/qmd",
+    "build": "esbuild lib/rig/index.ts --platform=node --bundle --sourcemap=inline --minify --outfile=built/index.js --external:shelljs --external:better-sqlite3 --external:bindings --external:proxy-agent --external:@tobilu/qmd && yarn scan:built",
+    "scan:built": "GOMAXPROCS=2 gitleaks detect --source built --no-git --no-banner --redact --exit-code 1",
     "version:code": "node scripts/version-code.mjs",
     "version:code:peek": "node scripts/version-code.mjs --peek",
     "prepublishOnly": "node scripts/version-code.mjs && node scripts/sync-skill.mjs && yarn build",
     "postinstall": "node scripts/postinstall.mjs"
   },
   "dependencies": {
+    "@alicloud/esa20240910": "^3.1.2",
+    "@alicloud/openapi-client": "^0.4.15",
+    "@alicloud/tea-util": "^1.4.11",
     "@tobilu/qmd": "~2.5.2",
     "@types/ali-oss": "^6.16.3",
     "@types/json5": "^2.2.0",

@@ -1,6 +1,7 @@
-import CICD from '@/classes/cicd/CICD';
+import CICD, { DeployTarget } from '@/classes/cicd/CICD';
 import CICDCmd from '@/classes/cicd/CICDCmd';
 import CDN from '@/classes/cicd/Deploy/CDN';
+import ESA from '@/classes/cicd/Deploy/ESA';
 
 const delay = async (ms: number) => {
   await new Promise((resolve) => {
@@ -69,6 +70,76 @@ const refreshCache = async (urls: string[], cdn: CDN) => {
   console.log('RefreshCache Done');
 };
 
+/**
+ * ESA publish path (edge_provider === 'esa'). Sets back-to-origin URI rewrite
+ * rules per domain, then purges the entry URLs.
+ *
+ * Mapping vs CDN: hash mode only needs the entry page rewritten to
+ * `/<deployDir>/index.html` (publicPath already carries deployDir so static
+ * files resolve at the OSS origin directly). history/mpa additionally prepend
+ * deployDir for static files and fall back to the entry for extension-less
+ * routes — those dynamic-rewrite expressions need validation on a live ESA site.
+ */
+const publishViaEsa = async (
+  cicd: CICD,
+  cicdCmd: CICDCmd,
+  target: DeployTarget
+) => {
+  const esa = new ESA(target);
+  if (!cicdCmd.endpoints || cicdCmd.endpoints.length === 0) {
+    throw new Error('Endpoints.length Can Not Be 0!');
+  }
+  const purgeByDomain: { [domain: string]: string[] } = {};
+  for (const endpoint of cicdCmd.endpoints) {
+    const deployDir = endpoint.deployDir.replace(/\\/g, '/');
+    const webEntryPath = endpoint.web_entry_path || target.web_entry_path || '/';
+    const ruleBase = `rig-${deployDir.replace(/[^\w]+/g, '-')}`.replace(
+      /-+/g,
+      '-'
+    );
+    for (const domain of endpoint.domains) {
+      if (cicd.web_type === 'hash') {
+        await esa.setRewriteRule(
+          domain,
+          `${ruleBase}-entry`,
+          `(http.request.uri.path eq "${webEntryPath}")`,
+          'static',
+          `/${deployDir}/index.html`,
+          1
+        );
+      } else {
+        await esa.setRewriteRule(
+          domain,
+          `${ruleBase}-file`,
+          `(http.request.uri.path.extension ne "")`,
+          'dynamic',
+          `concat("/${deployDir}", http.request.uri.path)`,
+          1
+        );
+        await esa.setRewriteRule(
+          domain,
+          `${ruleBase}-entry`,
+          'true',
+          cicd.web_type === 'mpa' ? 'dynamic' : 'static',
+          cicd.web_type === 'mpa'
+            ? `concat("/${deployDir}", http.request.uri.path, ".html")`
+            : `/${deployDir}/index.html`,
+          2
+        );
+      }
+      if (!purgeByDomain[domain]) {
+        purgeByDomain[domain] = [];
+      }
+      purgeByDomain[domain].push(`https://${domain}${webEntryPath}`);
+    }
+  }
+  for (const domain of Object.keys(purgeByDomain)) {
+    console.log(`ESA purge ${domain}:`, purgeByDomain[domain]);
+    await esa.purgeCache(domain, purgeByDomain[domain]);
+  }
+  console.log('ESA rewrite rules + purge done');
+};
+
 export default async (cmd: any) => {
   try {
     const rewriteConfigs: {
@@ -98,6 +169,12 @@ export default async (cmd: any) => {
     const target = Array.isArray(cicdCmd.cicd.target)
       ? cicdCmd.cicd.target[0]
       : cicdCmd.cicd.target;
+
+    if (target.edge_provider === 'esa') {
+      await publishViaEsa(cicd, cicdCmd, target);
+      console.log('Publish Done-----');
+      return;
+    }
 
     const cdn = new CDN(target);
     const urls: string[] = [];
