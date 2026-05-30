@@ -1,5 +1,7 @@
 import os from 'os';
-import { runCommand, buildEngineInvocation } from './runtime';
+import fs from 'fs';
+import path from 'path';
+import { runCommand, buildEngineInvocation, createTaskWorktree, removeTaskWorktree, runParallel, dispatchTask } from './runtime';
 
 const NODE = process.execPath; // verify mechanics with a harmless command, not real engines
 
@@ -57,5 +59,77 @@ describe('buildEngineInvocation', () => {
   });
   it('throws for unknown engine', () => {
     expect(() => buildEngineInvocation('gpt' as any, 'x')).toThrow(/unknown engine/);
+  });
+});
+
+describe('worktree lifecycle', () => {
+  let repo: string;
+
+  beforeAll(async () => {
+    repo = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-wt-'));
+    await runCommand('git', ['init', '-q'], { cwd: repo });
+    fs.writeFileSync(path.join(repo, 'f.txt'), 'hello');
+    await runCommand('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'add', '-A'], { cwd: repo });
+    await runCommand('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'init'], { cwd: repo });
+  });
+
+  afterAll(() => {
+    try { fs.rmSync(repo, { recursive: true, force: true }); } catch { /* best-effort */ }
+  });
+
+  it('creates and removes a task worktree on a task/<id> branch', async () => {
+    const wt = await createTaskWorktree(repo, 'demo-001');
+    expect(wt.branch).toBe('task/demo-001');
+    expect(fs.existsSync(wt.path)).toBe(true);
+    const br = await runCommand('git', ['branch', '--list', 'task/demo-001'], { cwd: repo });
+    expect(br.stdout).toContain('task/demo-001');
+    await removeTaskWorktree(repo, wt.path, { force: true });
+    expect(fs.existsSync(wt.path)).toBe(false);
+  });
+
+  it('throws when the worktree/branch already exists', async () => {
+    const wt = await createTaskWorktree(repo, 'dup-001');
+    await expect(createTaskWorktree(repo, 'dup-001')).rejects.toThrow(/worktree add failed/);
+    await removeTaskWorktree(repo, wt.path, { force: true });
+  });
+
+  it('dispatchTask runs the invocation inside the task worktree (kept on success)', async () => {
+    const inv = { cmd: process.execPath, args: ['-e', 'process.stdout.write(process.cwd())'] };
+    const { worktree, result } = await dispatchTask(repo, 'disp-001', inv);
+    expect(result.code).toBe(0);
+    // ran inside the worktree (cwd echoed); realpath to dodge macOS /var symlink
+    expect(fs.realpathSync(result.stdout.trim())).toBe(fs.realpathSync(worktree.path));
+    expect(fs.existsSync(worktree.path)).toBe(true); // kept until merge
+    await removeTaskWorktree(repo, worktree.path, { force: true });
+  });
+
+  it('dispatchTask removes the worktree on spawn failure', async () => {
+    await expect(dispatchTask(repo, 'disp-fail', { cmd: 'definitely-not-a-real-binary-xyz', args: [] }))
+      .rejects.toThrow();
+    expect(fs.existsSync(path.join(repo, '.worktrees', 'task-disp-fail'))).toBe(false);
+  });
+});
+
+describe('runParallel', () => {
+  it('preserves order and returns all results', async () => {
+    const out = await runParallel([1, 2, 3, 4, 5], async n => n * 2, 2);
+    expect(out).toEqual([2, 4, 6, 8, 10]);
+  });
+
+  it('never exceeds the concurrency limit', async () => {
+    let active = 0;
+    let maxActive = 0;
+    await runParallel(
+      Array.from({ length: 8 }, (_, i) => i),
+      async () => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        await new Promise(r => setTimeout(r, 15));
+        active--;
+      },
+      3,
+    );
+    expect(maxActive).toBeLessThanOrEqual(3);
+    expect(maxActive).toBeGreaterThan(1); // actually ran concurrently
   });
 });

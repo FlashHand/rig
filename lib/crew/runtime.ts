@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import path from 'path';
 import { Engine } from './engine';
 
 // Agent runtime — engine-agnostic process primitives (design §2.2 "agent runtime").
@@ -92,5 +93,84 @@ export function buildEngineInvocation(engine: Engine, prompt: string): Invocatio
     case 'codex': return { cmd: 'codex', args: ['exec', prompt] };
     case 'pi': throw new Error('pi engine invocation is not implemented yet');
     default: throw new Error(`unknown engine: ${engine as string}`);
+  }
+}
+
+// --- Worktree lifecycle (design §2.2 "worktree 隔离") ---
+// Each dispatched task runs in its own git worktree on a `task/<id>` branch, so
+// parallel engines never collide in one working tree. Created before dispatch,
+// removed after merge/abandon.
+
+export interface Worktree { path: string; branch: string; }
+
+/** `git worktree add <dir> -b task/<taskId> <base>` in `repoDir`. */
+export async function createTaskWorktree(
+  repoDir: string,
+  taskId: string,
+  opts: { base?: string; worktreeDir?: string } = {},
+): Promise<Worktree> {
+  const branch = `task/${taskId}`;
+  const wtDir = opts.worktreeDir || path.join(repoDir, '.worktrees', `task-${taskId}`);
+  const base = opts.base || 'HEAD';
+  const r = await runCommand('git', ['worktree', 'add', wtDir, '-b', branch, base], { cwd: repoDir });
+  if (r.code !== 0) throw new Error(`git worktree add failed (${r.code}): ${(r.stderr || r.stdout).trim()}`);
+  return { path: wtDir, branch };
+}
+
+/** `git worktree remove <path> [--force]` in `repoDir`. */
+export async function removeTaskWorktree(
+  repoDir: string,
+  worktreePath: string,
+  opts: { force?: boolean } = {},
+): Promise<void> {
+  const args = ['worktree', 'remove', worktreePath];
+  if (opts.force) args.push('--force');
+  const r = await runCommand('git', args, { cwd: repoDir });
+  if (r.code !== 0) throw new Error(`git worktree remove failed (${r.code}): ${(r.stderr || r.stdout).trim()}`);
+}
+
+// --- Dispatch + parallel scheduling (design §2.2 "并行调度") ---
+
+/** Run `worker` over `items` with at most `limit` concurrent; results keep input order. */
+export async function runParallel<T, R>(
+  items: T[],
+  worker: (item: T, index: number) => Promise<R>,
+  limit = 4,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const lim = Math.max(1, limit);
+  async function runner(): Promise<void> {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      results[i] = await worker(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(lim, items.length) }, () => runner()));
+  return results;
+}
+
+export interface DispatchResult { worktree: Worktree; result: RunResult; }
+
+/**
+ * Create a task worktree, run `invocation` inside it, return its worktree + RunResult.
+ * On success the worktree is KEPT (the work lives there until merge/abandon); on spawn
+ * failure it is removed so no orphan worktree is left. The engine→invocation mapping is
+ * the caller's job (`buildEngineInvocation`), keeping dispatch engine-agnostic.
+ */
+export async function dispatchTask(
+  repoDir: string,
+  taskId: string,
+  invocation: Invocation,
+  opts: { base?: string; timeoutMs?: number } = {},
+): Promise<DispatchResult> {
+  const worktree = await createTaskWorktree(repoDir, taskId, { base: opts.base });
+  try {
+    const result = await runCommand(invocation.cmd, invocation.args, { cwd: worktree.path, timeoutMs: opts.timeoutMs });
+    return { worktree, result };
+  } catch (err) {
+    try { await removeTaskWorktree(repoDir, worktree.path, { force: true }); } catch { /* best-effort */ }
+    throw err;
   }
 }
