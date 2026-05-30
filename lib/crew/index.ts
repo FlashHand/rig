@@ -18,7 +18,7 @@ export function registerCrewCommands(program: any): void {
   const orchestrate = program.command('orchestrate [message...]')
     .alias('crew')
     .description('Orchestrator-first multi-agent workspace over an Obsidian vault (alias: crew)')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action((message: string[] | undefined, opts: { crew?: string }) => crewAsk(message, opts));
 
   orchestrate.command('init')
@@ -31,40 +31,40 @@ export function registerCrewCommands(program: any): void {
 
   orchestrate.command('ask <message...>')
     .description('send a message to the Orchestrator (MVP appends to Current-Goal.md)')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(crewAsk);
 
   orchestrate.command('status')
     .description('show crew progress summary')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .option('--json', 'machine-readable output')
     .action(crewStatus);
 
   orchestrate.command('pending-questions')
     .alias('inbox')
     .description('show open system→user pending questions (alias: inbox)')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .option('--json', 'machine-readable output')
     .action(crewPendingQuestions);
 
   orchestrate.command('board')
     .description('refresh Dashboard.md')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(crewBoard);
 
   orchestrate.command('sync')
     .description('scan Markdown tasks and update crew state cache')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(crewSync);
 
   orchestrate.command('doctor')
     .description('check crew config, vault, rules, and project wiring')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(crewDoctor);
 
   orchestrate.command('engine')
     .description('show which execution engine resolves and why (5-level order; debug)')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .option('-p, --project <name>', 'resolve as if dispatching for this project')
     .option('--engine <engine>', 'explicit task-level engine override (claude | codex | pi)')
     .option('--json', 'machine-readable output')
@@ -76,7 +76,7 @@ export function registerCrewCommands(program: any): void {
     .option('--engine <engine>', 'engine override (claude | codex | pi); else resolved from project/crew/host')
     .option('--task <id>', 'task id for the worktree branch (default: adhoc-<ts>)')
     .option('--timeout <ms>', 'timeout in ms (default 600000)')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(crewDispatch);
 
   const project = orchestrate.command('project').description('manage project owners');
@@ -87,7 +87,7 @@ export function registerCrewCommands(program: any): void {
     .option('--executor <name>', 'claude | codex | pi (default: crew defaultExecutor)')
     .option('--test-command <cmd>', 'default focused test command')
     .option('--no-write', 'mark owner as read-only')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(projectAdd);
   project.command('sync')
     .description('sync project owners from the vault projects/ directory')
@@ -97,15 +97,15 @@ export function registerCrewCommands(program: any): void {
     .option('--no-write', 'mark newly discovered owners as read-only')
     .option('--keep-missing', 'keep projects that disappeared from the scanned directory')
     .option('--no-archive-missing', 'do not archive stale rig-agents project folders')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(projectSync);
   project.command('list')
     .description('list registered projects')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(projectList);
   project.command('status <name>')
     .description('show one project status')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(projectStatus);
 
   const role = orchestrate.command('role').description('manage global crew roles');
@@ -117,15 +117,15 @@ export function registerCrewCommands(program: any): void {
     .option('--agent <name>', 'agent/subagent name to use for this role')
     .option('--executor <name>', 'claude | codex | pi')
     .option('--force', 'update an existing custom role')
-    .option('-c, --crew <name>', 'also materialize role files in this crew vault')
+    .option('--crew <name>', 'also materialize role files in this crew vault')
     .action(roleAdd);
   role.command('list')
     .description('list built-in and custom roles')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(roleList);
   role.command('show <name>')
     .description('show one role definition')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(roleShow);
 
   const pending = orchestrate.command('pending')
@@ -166,7 +166,7 @@ export function registerCrewCommands(program: any): void {
     .option('--concurrency <n>', 'max parallel dispatches (default 4)')
     .option('--timeout <ms>', 'per-task timeout in ms (default 600000)')
     .option('--dry-run', 'show what would dispatch without running')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(crewRun);
   orchestrate.command('research <topic...>').description('planned: ask Researcher to write a report').action(crewStub('research'));
   orchestrate.command('report').description('planned: generate Orchestrator report').action(crewStub('report'));

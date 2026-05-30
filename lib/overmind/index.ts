@@ -13,17 +13,17 @@ export function registerOvermindCommands(program: any): void {
 
   om.command('journal [date]')
     .description('aggregate completed tasks (status done + done-at; default today) into journal/<entity>/<YYMM>.md')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(omJournal);
 
   om.command('status')
     .description('cross-entity task-status rollup (per project, from journal/INDEX.md + docs/plan/tasks)')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(omStatus);
 
   om.command('sync')
     .description('(re)generate overmind.md — distilled cross-entity project + task-status index')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(omSync);
 
   om.command('task <project> <id>')
@@ -31,6 +31,6 @@ export function registerOvermindCommands(program: any): void {
     .option('--role <role>', 'coder | designer | tester | researcher (default coder)')
     .option('--engine <engine>', 'engine override (claude | codex | pi)')
     .option('--status <status>', 'initial status (default draft)')
-    .option('-c, --crew <name>', 'target crew name')
+    .option('--crew <name>', 'target crew name')
     .action(omTaskNew);
 }
