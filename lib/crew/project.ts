@@ -70,7 +70,7 @@ export function projectStatus(name: string, opts: ProjectOpts): void {
     print.error(`unknown project: ${name}`);
     process.exit(1);
   }
-  const tasks = scanTasks(crew).filter(t => t.scope !== 'inbox' && (t.scope === `project:${name}` || t.scope.startsWith(`project:${name}:`) || t.fields.project === name));
+  const tasks = scanTasks(crew).filter(t => t.scope !== 'pending' && (t.scope === `project:${name}` || t.scope.startsWith(`project:${name}:`) || t.fields.project === name));
   const s = summarize(tasks);
   print.info(`project: ${name} (${project.owner})`);
   // eslint-disable-next-line no-console

@@ -33,7 +33,7 @@ export interface CrewConfig {
 }
 
 export const DEFAULT_ROLES: CrewRole[] = BUILTIN_ROLE_NAMES;
-export const DEFAULT_CREW_ROOT = 'rig-agents';
+export const DEFAULT_CREW_ROOT = 'rig-crew';
 
 const DEFAULT_CONFIG: CrewConfig = { crews: [] };
 
@@ -86,7 +86,7 @@ export function normalizeCrew(entry: CrewEntry): CrewEntry {
   return {
     ...entry,
     root: entry.root || DEFAULT_CREW_ROOT,
-    dashboard: entry.dashboard || path.join(entry.root || DEFAULT_CREW_ROOT, 'Team-Dashboard.md'),
+    dashboard: entry.dashboard || path.join(entry.root || DEFAULT_CREW_ROOT, 'Dashboard.md'),
     defaultExecutor: entry.defaultExecutor || 'claude',
     mode: entry.mode || 'leader-first',
     state: entry.state || { backend: 'json' },

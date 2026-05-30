@@ -1,9 +1,9 @@
 ---
 name: rig-crew
 description: >-
-  Agent-facing Leader-first multi-agent workflow over an Obsidian vault using
-  `rig crew`. Use when the current coding agent should initialize a crew vault,
-  refresh a human-readable dashboard, inspect inbox/status, register project
+  Agent-facing Orchestrator-first multi-agent workflow over an Obsidian vault using
+  `rig orchestrate` (alias: `rig crew`). Use when the current coding agent should initialize a crew vault,
+  refresh a human-readable dashboard, inspect pending-questions/status, register project
   owners, or coordinate PRD-driven project work through Vault files.
   For frontend testing, default to PRD-scoped Playwright E2E only: do not add
   or run frontend unit/integration tests unless the user or project explicitly
@@ -19,46 +19,46 @@ metadata:
 
 # rig-crew
 
-Use this skill when the current coding agent is inside or coordinating an Obsidian Vault that uses `rig crew`: a file-backed, Leader-first agent workflow using Obsidian Markdown as the source of truth.
+Use this skill when the current coding agent is inside or coordinating an Obsidian Vault that uses `rig orchestrate` (alias: `rig crew`): a file-backed, Orchestrator-first agent workflow using Obsidian Markdown as the source of truth.
 
-`rig crew` is primarily for coding agents, not a human-operated daily CLI. The human talks to the active Claude/Codex session; that coding agent should use `rig crew` commands and Vault files to communicate with Crew Lead, coordinate other roles, and stay aware of all agent/todo status.
+`rig orchestrate` is primarily for coding agents, not a human-operated daily CLI. The human talks to the active Claude/Codex session; that coding agent should use `rig orchestrate` commands and Vault files to communicate with the Orchestrator, coordinate other roles, and stay aware of all agent/todo status.
 
 ## Agent Quickstart
 
 ```bash
-rig crew init --vault "/path/to/ObsidianVault" --as personal
-rig crew "推进当前目标"
-rig crew role add security-reviewer --from ./security-reviewer.md --agent security-reviewer --executor codex
-rig crew research "比较 Playwright agents 的最佳实践"
-rig crew inbox
-rig crew board
-rig crew status
+rig orchestrate init --vault "/path/to/ObsidianVault" --as personal
+rig orchestrate "推进当前目标"
+rig orchestrate role add security-reviewer --from ./security-reviewer.md --agent security-reviewer --executor codex
+rig orchestrate research "比较 Playwright agents 的最佳实践"
+rig orchestrate pending-questions
+rig orchestrate board
+rig orchestrate status
 ```
 
 Project Owner management:
 
 ```bash
-rig crew project add rig --path /path/to/projects/rig --executor claude --test-command "yarn build"
-rig crew project add dsh-service --path /path/to/projects/dsh-service --executor codex --test-command "yarn test"
-rig crew project add demo-web --path /path/to/ObsidianVault/tmp/demo-web --executor codex
-rig crew project sync
-rig crew project list
-rig crew project status rig
+rig orchestrate project add rig --path /path/to/projects/rig --executor claude --test-command "yarn build"
+rig orchestrate project add dsh-service --path /path/to/projects/dsh-service --executor codex --test-command "yarn test"
+rig orchestrate project add demo-web --path /path/to/ObsidianVault/tmp/demo-web --executor codex
+rig orchestrate project sync
+rig orchestrate project list
+rig orchestrate project status rig
 ```
 
-Use `rig crew project sync` after directories are added to or removed from the Vault `projects/` folder. It refreshes the active Project Owner registry and project-scoped agent task folders under `<crew-root>/Projects/`.
+Use `rig orchestrate project sync` after directories are added to or removed from the Vault `projects/` folder. It refreshes the active Project Owner registry and project-scoped agent task folders under `<crew-root>/Projects/`.
 
 ## State Model
 
-`rig crew` is file-backed. Do not assume a long-running multi-agent runtime exists.
+`rig orchestrate` is file-backed. Do not assume a long-running multi-agent runtime exists.
 
-- Default crew root: `rig-agents/`
-- Vault source of truth: `rig-agents/**` by default, or the configured `crew.root`.
+- Default crew root: `rig-crew/`
+- Vault source of truth: `rig-crew/**` by default, or the configured `crew.root`.
 - Vault-local scratch projects: `tmp/<project>/**`
-- Human dashboard: `<crew-root>/Team-Dashboard.md`
-- User decisions: `<crew-root>/Inbox.md`
+- Human dashboard: `<crew-root>/Dashboard.md`
+- User decisions: `<crew-root>/Pending-Questions.md`
 - Shared context: `<crew-root>/Shared/**`
-- Role registry for Lead: `<crew-root>/Shared/Roles.md`
+- Role registry for the Orchestrator: `<crew-root>/Shared/Roles.md`
 - Project owner memory: `<crew-root>/Projects/<project>/**`
 - Project-scoped agent tasks: `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md`
 - Large active task batches: `<crew-root>/Projects/<project>/Tasklists/active/*.md` and `<crew-root>/Projects/<project>/Agents/<role>/Tasklists/active/*.md`
@@ -71,9 +71,9 @@ Use `rig crew project sync` after directories are added to or removed from the V
 
 All multi-agent collaboration materials should live inside the Vault. Temporary demo or test projects should be created under `Vault/tmp/<project>` and registered with their own Project Owner.
 
-`rig crew` coordinates multiple roles on one device through one Vault. Do not assume a separate multi-agent runtime inside each project repository; project directories are execution workspaces, while tasks, reports, inbox, dashboard, and research indexes return to the Vault.
+`rig orchestrate` coordinates multiple roles on one device through one Vault. Do not assume a separate multi-agent runtime inside each project repository; project directories are execution workspaces, while tasks, reports, inbox, dashboard, and research indexes return to the Vault.
 
-`rig crew init` is additive and non-destructive. It may create missing folders/files and update managed blocks, but it must not overwrite existing agent work files such as project `Tasks.md`, `Role.md`, `Index.md`, reports, specs, decisions, or user-authored notes.
+`rig orchestrate init` is additive and non-destructive. It may create missing folders/files and update managed blocks, but it must not overwrite existing agent work files such as project `Tasks.md`, `Role.md`, `Index.md`, reports, specs, decisions, or user-authored notes.
 
 Built-in role directories are reusable role cards, not project task queues. Concrete PM/Coder/Tester/etc work should be assigned under a specific project:
 
@@ -92,16 +92,16 @@ Keep each `Tasks.md` small. Use it as a current queue or index, not an unlimited
 
 Move completed or stale batches to `Tasklists/archive/YYYY-MM.md`. The active dashboard scans `Tasks.md` and `Tasklists/active/**/*.md`; it does not scan archive files by default.
 
-## Lead Orchestration
+## Orchestrator
 
-Lead is the default orchestration protocol, not a mandatory Claude/Codex subagent.
+The Orchestrator is the default orchestration protocol, not a mandatory Claude/Codex subagent.
 
-As the coding agent, use `rig crew "<request>"` when the user asks for planning, multi-agent coordination, PRD, research, testing strategy, owner routing, role routing, reports, or broad project changes. Do not ask the human to run the command when you can run it yourself.
+As the coding agent, use `rig orchestrate "<request>"` when the user asks for planning, multi-agent coordination, PRD, research, testing strategy, owner routing, role routing, reports, or broad project changes. Do not ask the human to run the command when you can run it yourself.
 
 After handoff, read:
 
-- `<crew-root>/Team-Dashboard.md`
-- `<crew-root>/Inbox.md`
+- `<crew-root>/Dashboard.md`
+- `<crew-root>/Pending-Questions.md`
 - `<crew-root>/Shared/Roles.md`
 - relevant `<crew-root>/Projects/<project>/Tasks.md`
 - relevant `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md`
@@ -112,15 +112,15 @@ If the CLI is unavailable, use the file protocol:
 1. Append the request to `<crew-root>/Current-Goal.md`.
 2. When a project is known, create or update small/current work in `<crew-root>/Projects/<project>/Tasks.md` or `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md`; split larger batches into `Tasklists/active/<feature-or-iteration>.md`.
 3. Route worker tasks with inline fields such as `[role:: tester]`, `[owner:: maintainer:rig]`, `[project:: rig]`, `[executor:: codex]`, `[status:: pending]`.
-4. Put user-facing questions or approvals in `<crew-root>/Inbox.md`.
+4. Put user-facing questions or approvals in `<crew-root>/Pending-Questions.md`.
 
-Lead communicates with workers through Markdown tasks, delegation packets, and result notes. Do not rely on private subagent chat state as the coordination source of truth. Subagents are optional executors for specific roles when the selected executor supports them; Vault files remain canonical.
+The Orchestrator communicates with workers through Markdown tasks, delegation packets, and result notes. Do not rely on private subagent chat state as the coordination source of truth. Subagents are optional executors for specific roles when the selected executor supports them; Vault files remain canonical.
 
 Maintain status awareness before and after work: scan dashboard, inbox, project owner tasks, project-scoped agent tasks, active tasklists, blockers, and todo status. The coding session should be able to answer what each role/project is doing without asking the human to inspect the Vault manually.
 
 ## Mixed Executors
 
-`rig crew` can mix Claude Code, Codex, and future executors because state lives in files, not in one long-running agent process.
+`rig orchestrate` can mix Claude Code, Codex, and future executors because state lives in files, not in one long-running agent process.
 
 Executor selection order:
 
@@ -133,11 +133,11 @@ Executor selection order:
 Use project-level executors when teams prefer different coding agents per repo:
 
 ```bash
-rig crew project add rig --path /path/to/projects/rig --executor claude
-rig crew project add dsh-service --path /path/to/projects/dsh-service --executor codex
+rig orchestrate project add rig --path /path/to/projects/rig --executor claude
+rig orchestrate project add dsh-service --path /path/to/projects/dsh-service --executor codex
 ```
 
-The executor only affects code-running / project-local work. Vault Markdown updates should still be written by the `rig crew` host so Claude and Codex share the same source of truth.
+The executor only affects code-running / project-local work. Vault Markdown updates should still be written by the `rig orchestrate` host so Claude and Codex share the same source of truth.
 
 ## Custom Roles
 
@@ -158,10 +158,10 @@ Directory layout:
 Commands:
 
 ```bash
-rig crew role add security-reviewer --from ./security-reviewer.md --agent security-reviewer --executor codex
-rig crew role add security-reviewer --from ./security-reviewer.md --agent security-reviewer --executor codex --crew personal
-rig crew role list
-rig crew role show security-reviewer
+rig orchestrate role add security-reviewer --from ./security-reviewer.md --agent security-reviewer --executor codex
+rig orchestrate role add security-reviewer --from ./security-reviewer.md --agent security-reviewer --executor codex --crew personal
+rig orchestrate role list
+rig orchestrate role show security-reviewer
 ```
 
 When a role is materialized in a Vault, use:
@@ -174,7 +174,7 @@ When a role is materialized in a Vault, use:
 
 Built-in roles use `<crew-root>/<Role>/Role.md`. These role files are short editable descriptions. Do not use them as normal task queues.
 
-`<crew-root>/Shared/Roles.md` is generated so Lead can load available roles. If the user asks Lead to use a specific role, match that role by `name` first, then route the task into `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md` with `[role:: <name>]`. If the role defines `agent`, use that agent/subagent for role execution when the executor supports it.
+`<crew-root>/Shared/Roles.md` is generated so the Orchestrator can load available roles. If the user asks the Orchestrator to use a specific role, match that role by `name` first, then route the task into `<crew-root>/Projects/<project>/Agents/<role>/Tasks.md` with `[role:: <name>]`. If the role defines `agent`, use that agent/subagent for role execution when the executor supports it.
 
 ## Researcher
 
@@ -201,13 +201,13 @@ Recommended `~/.rig/RIG.md` section:
 | project:<name> | <crew-root>/Projects/<name>/Research | Project-specific research notes |
 ```
 
-If the destination is unclear, create or ask Lead to create an Inbox question instead of guessing. When a report is written outside `<crew-root>/Researcher/Reports`, keep an index entry in `<crew-root>/Researcher/Index.md`.
+If the destination is unclear, create or ask the Orchestrator to create a Pending-Questions entry instead of guessing. When a report is written outside `<crew-root>/Researcher/Reports`, keep an index entry in `<crew-root>/Researcher/Index.md`.
 
 ## Rules Files
 
 Read rules in this order:
 
-1. Vault agent rules: `CLAUDE.md` and `AGENTS.md` at the Vault root. `rig crew init` maintains a managed `rig-crew` block in both files.
+1. Vault agent rules: `CLAUDE.md` and `AGENTS.md` at the Vault root. `rig orchestrate init` maintains a managed `rig-crew` block in both files.
 2. Project rules: `projects/<project>/RIG.md` (also accept `rig.md` for compatibility).
 3. Project testing guide: `docs/testing.md`, `test/README.md`, or `tests/README.md`.
 4. User rules: `~/.rig/RIG.md`.
@@ -225,7 +225,7 @@ For frontend/UI behavior:
 - Use PRD-scoped Playwright E2E as the default and preferred test type.
 - Do not add frontend unit tests by default.
 - Do not add frontend integration tests by default.
-- Do not run old frontend unit/integration suites as part of normal `rig crew` verification.
+- Do not run old frontend unit/integration suites as part of normal `rig orchestrate` verification.
 - Do not run the full historical E2E suite unless risk requires it.
 
 Default frontend verification is:
@@ -235,7 +235,7 @@ PM PRD / Acceptance Criteria
 -> Tester creates current Test Scope
 -> Playwright planner/generator creates or updates focused E2E
 -> Tester runs only current PRD E2E + minimal smoke
--> Lead reports what was run and what was intentionally skipped
+-> The Orchestrator reports what was run and what was intentionally skipped
 ```
 
 Run full regression only when:
@@ -243,7 +243,7 @@ Run full regression only when:
 - Project Owner asks for it.
 - The change touches auth, routing, shared layout, build config, data migration, checkout/payment, or release flow.
 - Focused PRD E2E cannot cover the risk.
-- Lead marks the task `risk: high`.
+- The Orchestrator marks the task `risk: high`.
 
 Tester reports must include:
 
@@ -291,7 +291,7 @@ yarn playwright test --project=chromium-production --grep @prod-readonly --trace
 - Do not run a separate multi-agent state machine inside a project repo; coordinate through one local Vault.
 - Do not store custom role prompts in project repos; use `~/.rig/crew/roles/<role>/`.
 - Do not overwrite unrelated Vault `CLAUDE.md` / `AGENTS.md` content; update only the managed `rig-crew` block.
-- Do not overwrite existing agent work files on repeated `rig crew init`; only create missing files or update explicit managed blocks.
+- Do not overwrite existing agent work files on repeated `rig orchestrate init`; only create missing files or update explicit managed blocks.
 - Researcher reports default to Vault paths configured in `~/.rig/RIG.md`.
 - For frontend testing, prefer one high-value PRD E2E over many low-signal unit/integration tests.
-- If a required account alias is missing, run or recommend `rig crew doctor`; do not guess credentials.
+- If a required account alias is missing, run or recommend `rig orchestrate doctor`; do not guess credentials.

@@ -51,8 +51,8 @@ export function summarize(tasks: CrewTask[]): CrewSummary {
   return { total: tasks.length, done, open: tasks.length - done, blocked, doing };
 }
 
-export function openInboxTasks(crew: CrewEntry): CrewTask[] {
-  return parseTasks(rootPath(crew, 'Inbox.md'), 'inbox').filter(t => !t.done);
+export function openPendingQuestions(crew: CrewEntry): CrewTask[] {
+  return parseTasks(rootPath(crew, 'Pending-Questions.md'), 'pending').filter(t => !t.done);
 }
 
 export function taskProgress(tasks: CrewTask[]): number {
@@ -75,7 +75,7 @@ function parseTaskLine(line: string): Omit<CrewTask, 'file' | 'line' | 'scope'> 
 
 function taskFiles(crew: CrewEntry): { file: string; scope: string }[] {
   const files = [
-    { file: rootPath(crew, 'Inbox.md'), scope: 'inbox' },
+    { file: rootPath(crew, 'Pending-Questions.md'), scope: 'pending' },
   ];
   const roles = roleDefinitionsForCrew(crew);
 

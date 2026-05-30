@@ -34,7 +34,7 @@ export default function crewInit(opts: InitOpts): void {
     root,
     defaultExecutor: existing?.defaultExecutor || 'claude',
     mode: 'leader-first',
-    dashboard: path.join(root, 'Team-Dashboard.md'),
+    dashboard: path.join(root, 'Dashboard.md'),
     state: existing?.state || { backend: 'json' },
     roles: existing?.roles || DEFAULT_ROLES,
     projects: existing?.projects || [],
@@ -47,7 +47,7 @@ export default function crewInit(opts: InitOpts): void {
   writeUserRulesIfMissing();
   ensureCrewVault(entry);
   print.succeed(`crew "${name}" initialized at ${shortPath(vault)}`);
-  print.info(`agent next: use \`rig crew "<user request>"\` or update ${path.join(root, 'Current-Goal.md')} when coordinating this Vault`);
+  print.info(`agent next: use \`rig orchestrate "<user request>"\` or update ${path.join(root, 'Current-Goal.md')} when coordinating this Vault`);
 }
 
 function isUnderProjects(p: string): boolean {
@@ -89,7 +89,7 @@ function writeUserRulesIfMissing(): void {
 - Default research report directory: <crew-root>/Researcher/Reports
 - Resolve relative paths from the current crew Vault root.
 - If the user requests an explicit output directory, use that directory unless it is inside a project submodule or contains secrets.
-- If neither the user request nor this section gives a clear destination, ask Lead to create an Inbox question instead of guessing.
+- If neither the user request nor this section gives a clear destination, ask the Orchestrator to create a Pending-Questions entry instead of guessing.
 
 | Scope | Directory | Notes |
 |---|---|---|

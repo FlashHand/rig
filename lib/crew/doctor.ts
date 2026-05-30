@@ -15,7 +15,7 @@ export default function crewDoctor(opts: DoctorOpts): void {
   checks.push({ name: 'vault', ok: fs.existsSync(crew.vault), detail: shortPath(crew.vault) });
   checks.push({ name: 'crew root', ok: fs.existsSync(rootPath(crew, '')), detail: shortPath(rootPath(crew, '')) });
   checks.push({ name: 'current goal', ok: fs.existsSync(rootPath(crew, 'Current-Goal.md')), detail: path.join(crew.root, 'Current-Goal.md') });
-  checks.push({ name: 'inbox', ok: fs.existsSync(rootPath(crew, 'Inbox.md')), detail: path.join(crew.root, 'Inbox.md') });
+  checks.push({ name: 'pending questions', ok: fs.existsSync(rootPath(crew, 'Pending-Questions.md')), detail: path.join(crew.root, 'Pending-Questions.md') });
   checks.push({ name: 'vault CLAUDE.md', ok: fs.existsSync(path.join(crew.vault, 'CLAUDE.md')), detail: 'CLAUDE.md' });
   checks.push({ name: 'vault AGENTS.md', ok: fs.existsSync(path.join(crew.vault, 'AGENTS.md')), detail: 'AGENTS.md' });
   checks.push({ name: 'user RIG.md', ok: fs.existsSync(crewPaths.userRules), detail: shortPath(crewPaths.userRules) });

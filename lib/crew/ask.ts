@@ -10,14 +10,14 @@ export default function crewAsk(messageParts: string[] | string | undefined, opt
   const crew = requireCrew(opts.crew);
   const message = Array.isArray(messageParts) ? messageParts.join(' ') : (messageParts || '');
   if (!message.trim()) {
-    print.info('no message supplied; running a lightweight Lead tick.');
-    print.info('MVP Lead tick only refreshes status. LLM delegation will be added in a later phase.');
+    print.info('no message supplied; running a lightweight Orchestrator tick.');
+    print.info('MVP Orchestrator tick only refreshes status. LLM delegation will be added in a later phase.');
     crewBoard({ crew: crew.name });
     return;
   }
   const file = rootPath(crew, 'Current-Goal.md');
   fs.appendFileSync(file, `\n- ${new Date().toISOString()} ${message.trim()}\n`, 'utf8');
-  appendLog(crew, `Lead input: ${message.trim()}`);
+  appendLog(crew, `Orchestrator input: ${message.trim()}`);
   print.succeed(`added goal input to ${file}`);
   crewBoard({ crew: crew.name });
 }

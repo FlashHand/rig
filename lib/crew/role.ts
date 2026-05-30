@@ -14,13 +14,13 @@ export interface CrewRoleDefinition {
   builtIn?: boolean;
 }
 
-export const BUILTIN_ROLE_NAMES = ['lead', 'designer', 'pm', 'coder', 'tester', 'researcher'];
+export const BUILTIN_ROLE_NAMES = ['orchestrator', 'designer', 'pm', 'coder', 'tester', 'researcher'];
 
 const BUILTIN_ROLES: CrewRoleDefinition[] = [
-  { name: 'lead', title: 'Lead', folder: 'Lead', description: 'Coordinates goals, project owners, roles, Inbox decisions, and dashboard status.', builtIn: true },
+  { name: 'orchestrator', title: 'Orchestrator', folder: 'Orchestrator', description: 'Orchestrates across and within projects: selects projects, sequences cross-project dependencies, dispatches engines, manages pending questions and the dashboard. As project manager, decomposes analysis into tasks, schedules, dispatches develop/verify, tracks status, and drives merges.', builtIn: true },
   { name: 'designer', title: 'Designer', folder: 'Designer', description: 'Reviews user flows, interaction details, information architecture, and visual fit.', builtIn: true },
   { name: 'pm', title: 'PM', folder: 'PM', description: 'Turns goals into PRDs, scope boundaries, acceptance criteria, and open questions.', builtIn: true },
-  { name: 'coder', title: 'Coder', folder: 'Coder', description: 'Implements project-scoped code tasks assigned by a Project Owner or Lead.', builtIn: true },
+  { name: 'coder', title: 'Coder', folder: 'Coder', description: 'Implements project-scoped code tasks assigned by a Project Owner or the Orchestrator.', builtIn: true },
   { name: 'tester', title: 'Tester', folder: 'Tester', description: 'Plans and runs verification, defaulting frontend work to PRD-scoped Playwright E2E.', builtIn: true },
   { name: 'researcher', title: 'Researcher', folder: 'Researcher', description: 'Produces source-backed research reports and keeps a lightweight research index.', builtIn: true },
 ];

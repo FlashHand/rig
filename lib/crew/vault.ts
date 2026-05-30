@@ -21,8 +21,8 @@ export function ensureCrewVault(crew: CrewEntry): void {
   writeIfMissing(crewPath(crew, 'tmp/.gitkeep'), '');
   fs.mkdirSync(crewRoot(crew), { recursive: true });
   writeIfMissing(rootPath(crew, 'Current-Goal.md'), '# Current Goal\n\n');
-  writeIfMissing(rootPath(crew, 'Team-Dashboard.md'), '# Team Dashboard\n\nCoding agents can run `rig crew board` to refresh this dashboard.\n');
-  writeIfMissing(rootPath(crew, 'Inbox.md'), '# Crew Inbox\n\n## Open\n\n## Resolved\n');
+  writeIfMissing(rootPath(crew, 'Dashboard.md'), '# Dashboard\n\nCoding agents can run `rig orchestrate board` to refresh this dashboard.\n');
+  writeIfMissing(rootPath(crew, 'Pending-Questions.md'), '# Pending Questions\n\nSystem→user questions the Orchestrator needs answered. Answer via the overmind `inbox/` (or reply in chat); the Orchestrator then resolves the matching item here.\n\n## Open\n\n## Resolved\n');
 
   ensureDir(rootPath(crew, 'Shared'));
   writeIfMissing(rootPath(crew, 'Shared/Spec.md'), '# Spec\n\n');
@@ -82,7 +82,7 @@ function ensureRole(crew: CrewEntry, role: CrewRoleDefinition): void {
   const base = rootPath(crew, folder);
   ensureDir(base);
   writeIfMissing(path.join(base, 'Role.md'), renderRoleFile(role));
-  if (role.name === 'lead') {
+  if (role.name === 'orchestrator') {
     ensureDir(path.join(base, 'Reports'));
     writeIfMissing(path.join(base, 'Reports', '.gitkeep'), '');
   }
@@ -267,15 +267,15 @@ function renderVaultAgentInstructions(crew: CrewEntry): string {
     AGENT_RULES_START,
     '## Rig Crew',
     '',
-    'This Vault uses `rig crew` as an agent-facing coordination layer. Humans talk to the current Claude/Codex coding session; the coding agent uses `rig crew` and Vault files to communicate with Crew Lead and coordinate other roles.',
+    'This Vault uses `rig orchestrate` (alias: `rig crew`) as an agent-facing coordination layer. Humans talk to the current Claude/Codex coding session; the coding agent uses `rig orchestrate` and Vault files to communicate with the Orchestrator and coordinate other roles.',
     '',
     `- Crew root: \`${root}\``,
-    `- Dashboard: \`${root}/Team-Dashboard.md\``,
-    `- Inbox: \`${root}/Inbox.md\``,
+    `- Dashboard: \`${root}/Dashboard.md\``,
+    `- Pending questions (system→user): \`${root}/Pending-Questions.md\``,
     `- Role registry: \`${root}/Shared/Roles.md\``,
     `- Reusable role descriptions: \`${root}/<role>/Role.md\` and \`${root}/Roles/<custom-role>/Role.md\``,
     `- Project owner memory: \`${root}/Projects/<project>/\``,
-    `- Per-project pending questions (待补充资料): \`${root}/Projects/<project>/Pending-Questions.md\` — managed by \`rig crew pending\``,
+    `- Per-project pending questions (待补充资料): \`${root}/Projects/<project>/Pending-Questions.md\` — managed by \`rig orchestrate pending\``,
     `- Project-scoped agent tasks: \`${root}/Projects/<project>/Agents/<role>/Tasks.md\``,
     `- Large active task batches: \`${root}/Projects/<project>/Tasklists/active/*.md\` and \`${root}/Projects/<project>/Agents/<role>/Tasklists/active/*.md\`. Keep \`Tasks.md\` short; archived tasklists are not part of the active dashboard.`,
     '- Vault-local scratch projects belong under `tmp/<project>/`.',
@@ -286,14 +286,14 @@ function renderVaultAgentInstructions(crew: CrewEntry): string {
     '',
     'Default collaboration protocol for coding agents:',
     '',
-    '0. Do not treat `rig crew` as a human-facing command workflow. If you can run the command or update the Vault files yourself, do it instead of asking the human to run it.',
-    '1. If the user asks for planning, multi-agent coordination, PRD, research, testing strategy, project owner work, role routing, reports, or broad project changes, hand the request to Crew Lead first.',
-    `2. Preferred handoff: run \`rig crew "<user request>"\`, then read \`${root}/Team-Dashboard.md\`, \`${root}/Inbox.md\`, and \`${root}/Shared/Roles.md\`.`,
-    `3. Maintain status awareness before and after work by checking \`${root}/Team-Dashboard.md\`, \`${root}/Inbox.md\`, \`${root}/Shared/Roles.md\`, project \`Tasks.md\`, project agent \`Agents/<role>/Tasks.md\`, and active tasklists.`,
+    '0. Do not treat `rig orchestrate` as a human-facing command workflow. If you can run the command or update the Vault files yourself, do it instead of asking the human to run it.',
+    '1. If the user asks for planning, multi-agent coordination, PRD, research, testing strategy, project owner work, role routing, reports, or broad project changes, hand the request to the Orchestrator first.',
+    `2. Preferred handoff: run \`rig orchestrate "<user request>"\`, then read \`${root}/Dashboard.md\`, \`${root}/Pending-Questions.md\`, and \`${root}/Shared/Roles.md\`.`,
+    `3. Maintain status awareness before and after work by checking \`${root}/Dashboard.md\`, \`${root}/Pending-Questions.md\`, \`${root}/Shared/Roles.md\`, project \`Tasks.md\`, project agent \`Agents/<role>/Tasks.md\`, and active tasklists.`,
     `4. If the CLI is unavailable, append the request to \`${root}/Current-Goal.md\`; when a project is known, route small/current work to \`${root}/Projects/<project>/Tasks.md\` or \`${root}/Projects/<project>/Agents/<role>/Tasks.md\`, and route larger batches to \`Tasklists/active/<feature-or-iteration>.md\`; then refresh the dashboard when possible.`,
-    '5. Treat Crew Lead as the default orchestrator prompt/protocol, not as a required Claude/Codex subagent. Subagents may be used as optional executors for specific roles, but Vault files are the source of truth.',
-    '6. Lead communicates with other roles through Markdown tasks and delegation packets, not private chat state. Use `[role:: <role>]`, `[owner:: <owner>]`, `[project:: <project>]`, `[executor:: <executor>]`, and status fields in the relevant project-scoped `Tasks.md`.',
-    `7. Worker results must be written back to the relevant role/project files under \`${root}/\`; user-facing questions go to \`${root}/Inbox.md\` for Lead to surface.`,
+    '5. Treat the Orchestrator as the default orchestration prompt/protocol, not as a required Claude/Codex subagent. Subagents may be used as optional executors for specific roles, but Vault files are the source of truth.',
+    '6. The Orchestrator communicates with other roles through Markdown tasks and delegation packets, not private chat state. Use `[role:: <role>]`, `[owner:: <owner>]`, `[project:: <project>]`, `[executor:: <executor>]`, and status fields in the relevant project-scoped `Tasks.md`.',
+    `7. Worker results must be written back to the relevant role/project files under \`${root}/\`; user-facing questions go to \`${root}/Pending-Questions.md\` for the Orchestrator to surface.`,
     `8. Whenever a project is blocked by missing user-supplied material (API key, screenshot, vendor decision, sample data), record it with \`rig crew pending add ...\` rather than silently asking the human; when the user supplies it, the agent itself calls \`rig crew pending answer <id> --note "<summary>"\` and continues. Check \`rig crew pending --project <name>\` before starting any new tick on that project.`,
     '',
     AGENT_RULES_END,
