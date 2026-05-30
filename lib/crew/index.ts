@@ -5,6 +5,7 @@ import crewPendingQuestions from './pendingQuestions';
 import crewSync from './sync';
 import crewDoctor from './doctor';
 import crewEngine from './engine';
+import crewDispatch from './dispatchCommand';
 import crewAsk from './ask';
 import crewStub from './stub';
 import { projectAdd, projectList, projectStatus, projectSync } from './project';
@@ -67,6 +68,15 @@ export function registerCrewCommands(program: any): void {
     .option('--engine <engine>', 'explicit task-level engine override (claude | codex | pi)')
     .option('--json', 'machine-readable output')
     .action(crewEngine);
+
+  orchestrate.command('dispatch <project>')
+    .description('run a prompt via the resolved engine in a fresh task/<id> worktree of <project> (MVP runtime)')
+    .requiredOption('--prompt <text>', 'prompt for the engine')
+    .option('--engine <engine>', 'engine override (claude | codex | pi); else resolved from project/crew/host')
+    .option('--task <id>', 'task id for the worktree branch (default: adhoc-<ts>)')
+    .option('--timeout <ms>', 'timeout in ms (default 600000)')
+    .option('-c, --crew <name>', 'target crew name')
+    .action(crewDispatch);
 
   const project = orchestrate.command('project').description('manage project owners');
   project.command('add <name>')
