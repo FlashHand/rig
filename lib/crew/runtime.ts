@@ -15,6 +15,8 @@ export interface RunResult {
   code: number | null;
   signal: NodeJS.Signals | null;
   timedOut: boolean;
+  /** True when stdout or stderr hit maxOutputBytes and was truncated. */
+  truncated: boolean;
   durationMs: number;
 }
 
@@ -25,9 +27,12 @@ export interface RunOptions {
   /** Sent to stdin then closed. */
   input?: string;
   env?: NodeJS.ProcessEnv;
+  /** Per-stream capture cap in bytes (default 10MB). Guards against an agentic engine emitting unbounded output. */
+  maxOutputBytes?: number;
 }
 
 const KILL_GRACE_MS = 2000;
+const MAX_OUTPUT_BYTES_DEFAULT = 10_000_000;
 
 /**
  * Spawn a command, capture stdout/stderr, enforce an optional timeout.
@@ -41,8 +46,10 @@ export function runCommand(cmd: string, args: string[], opts: RunOptions = {}): 
     let stdout = '';
     let stderr = '';
     let timedOut = false;
+    let truncated = false;
     let killTimer: NodeJS.Timeout | undefined;
     let graceTimer: NodeJS.Timeout | undefined;
+    const maxBytes = opts.maxOutputBytes && opts.maxOutputBytes > 0 ? opts.maxOutputBytes : MAX_OUTPUT_BYTES_DEFAULT;
 
     const child = spawn(cmd, args, { cwd: opts.cwd, env: opts.env || process.env });
 
@@ -54,8 +61,16 @@ export function runCommand(cmd: string, args: string[], opts: RunOptions = {}): 
       }, opts.timeoutMs);
     }
 
-    child.stdout?.on('data', d => { stdout += d.toString(); });
-    child.stderr?.on('data', d => { stderr += d.toString(); });
+    child.stdout?.on('data', d => {
+      if (stdout.length >= maxBytes) { truncated = true; return; }
+      stdout += d.toString();
+      if (stdout.length > maxBytes) { stdout = stdout.slice(0, maxBytes); truncated = true; }
+    });
+    child.stderr?.on('data', d => {
+      if (stderr.length >= maxBytes) { truncated = true; return; }
+      stderr += d.toString();
+      if (stderr.length > maxBytes) { stderr = stderr.slice(0, maxBytes); truncated = true; }
+    });
 
     child.on('error', err => {
       if (settled) return;
@@ -70,7 +85,7 @@ export function runCommand(cmd: string, args: string[], opts: RunOptions = {}): 
       settled = true;
       if (killTimer) clearTimeout(killTimer);
       if (graceTimer) clearTimeout(graceTimer);
-      resolve({ stdout, stderr, code, signal, timedOut, durationMs: Date.now() - start });
+      resolve({ stdout, stderr, code, signal, timedOut, truncated, durationMs: Date.now() - start });
     });
 
     if (opts.input != null) {

@@ -45,6 +45,18 @@ describe('runCommand', () => {
   it('rejects when the binary does not exist', async () => {
     await expect(runCommand('definitely-not-a-real-binary-xyz', [])).rejects.toThrow();
   });
+
+  it('caps captured output at maxOutputBytes and flags truncated', async () => {
+    const r = await runCommand(NODE, ['-e', 'process.stdout.write("x".repeat(5000))'], { maxOutputBytes: 100 });
+    expect(r.truncated).toBe(true);
+    expect(r.stdout.length).toBe(100);
+    expect(r.code).toBe(0);
+  });
+
+  it('does not flag truncated for small output', async () => {
+    const r = await runCommand(NODE, ['-e', 'process.stdout.write("hi")']);
+    expect(r.truncated).toBe(false);
+  });
 });
 
 describe('buildEngineInvocation', () => {
