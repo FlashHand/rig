@@ -85,6 +85,16 @@ describe('buildEngineInvocation', () => {
   it('throws for unknown engine', () => {
     expect(() => buildEngineInvocation('gpt' as any, 'x')).toThrow(/unknown engine/);
   });
+  it('adds worktree-write flags in develop autonomy', () => {
+    expect(buildEngineInvocation('claude', 'go', { autonomy: 'develop' }))
+      .toEqual({ cmd: 'claude', args: ['-p', '--permission-mode', 'acceptEdits', 'go'] });
+    expect(buildEngineInvocation('codex', 'go', { autonomy: 'develop' }))
+      .toEqual({ cmd: 'codex', args: ['exec', '--sandbox', 'workspace-write', 'go'] });
+  });
+  it('read-only / default stays bare', () => {
+    expect(buildEngineInvocation('claude', 'go', { autonomy: 'read-only' })).toEqual({ cmd: 'claude', args: ['-p', 'go'] });
+    expect(buildEngineInvocation('codex', 'go')).toEqual({ cmd: 'codex', args: ['exec', 'go'] });
+  });
 });
 
 describe('worktree lifecycle', () => {

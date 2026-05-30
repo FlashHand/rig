@@ -99,14 +99,25 @@ export function runCommand(cmd: string, args: string[], opts: RunOptions = {}): 
 export interface Invocation { cmd: string; args: string[]; }
 
 /**
- * Map an engine + prompt to a one-shot, non-interactive CLI invocation (design §2.2).
- * Exact flags are verified against the real CLIs in the dual-engine smoke; keep the
- * mapping here so the dispatcher stays engine-agnostic.
+ * Autonomy level for a dispatched engine (om-approval, Ral's decision):
+ * - 'read-only'  : engine reads/answers, no file writes (default; safe for smoke/dispatch).
+ * - 'develop'    : engine may write/run **inside its worktree** (claude acceptEdits,
+ *                  codex workspace-write). Scoped to the isolated task worktree; safety
+ *                  rests on worktree isolation + no-secrets-in-submodule + the verify→merge gate.
  */
-export function buildEngineInvocation(engine: Engine, prompt: string): Invocation {
+export type Autonomy = 'read-only' | 'develop';
+
+/**
+ * Map an engine + prompt to a one-shot, non-interactive CLI invocation (design §2.2).
+ * Exact flags verified against the real CLIs in the dual-engine smoke.
+ */
+export function buildEngineInvocation(engine: Engine, prompt: string, opts: { autonomy?: Autonomy } = {}): Invocation {
+  const dev = opts.autonomy === 'develop';
   switch (engine) {
-    case 'claude': return { cmd: 'claude', args: ['-p', prompt] };
-    case 'codex': return { cmd: 'codex', args: ['exec', prompt] };
+    case 'claude':
+      return { cmd: 'claude', args: dev ? ['-p', '--permission-mode', 'acceptEdits', prompt] : ['-p', prompt] };
+    case 'codex':
+      return { cmd: 'codex', args: dev ? ['exec', '--sandbox', 'workspace-write', prompt] : ['exec', prompt] };
     case 'pi': throw new Error('pi engine invocation is not implemented yet');
     default: throw new Error(`unknown engine: ${engine as string}`);
   }
@@ -189,4 +200,48 @@ export async function dispatchTask(
     try { await removeTaskWorktree(repoDir, worktree.path, { force: true }); } catch { /* best-effort */ }
     throw err;
   }
+}
+
+// --- Commit / verify / merge (develop→verify→merge, om-loop) ---
+
+/** Stage + commit everything in a worktree. Returns false if there was nothing to commit. */
+export async function commitWorktree(worktreePath: string, message: string): Promise<boolean> {
+  await runCommand('git', ['add', '-A'], { cwd: worktreePath });
+  const st = await runCommand('git', ['status', '--porcelain'], { cwd: worktreePath });
+  if (!st.stdout.trim()) return false;
+  const r = await runCommand('git', ['-c', 'user.email=rig@local', '-c', 'user.name=rig', 'commit', '-m', message], { cwd: worktreePath });
+  if (r.code !== 0) throw new Error(`commit failed: ${(r.stderr || r.stdout).trim()}`);
+  return true;
+}
+
+/**
+ * True if the repo working tree is clean enough to merge into — i.e. no USER changes.
+ * Orchestrator-owned artifacts are ignored: `.worktrees/` (task worktrees live here) and
+ * `docs/plan/` (task status writebacks dirty the tracked task files). Neither is user work,
+ * and `git merge` never touches them. Real source/other changes still block the merge.
+ */
+export async function isRepoClean(repoDir: string): Promise<boolean> {
+  const r = await runCommand('git', ['status', '--porcelain'], { cwd: repoDir });
+  const dirty = r.stdout.split('\n').filter(Boolean).filter(line => {
+    const p = line.slice(3); // porcelain "XY <path>"
+    if (p === '.worktrees/' || p.startsWith('.worktrees/')) return false;
+    if (p.startsWith('docs/plan/')) return false;
+    return true;
+  });
+  return dirty.length === 0;
+}
+
+export interface MergeResult { merged: boolean; conflict: boolean; detail: string; }
+
+/** Merge `branch` into the repo's checked-out branch (--no-ff). Aborts cleanly on conflict. */
+export async function mergeTaskBranch(repoDir: string, branch: string): Promise<MergeResult> {
+  const r = await runCommand('git', ['-c', 'user.email=rig@local', '-c', 'user.name=rig', 'merge', '--no-ff', '-m', `merge ${branch}`, branch], { cwd: repoDir });
+  if (r.code === 0) return { merged: true, conflict: false, detail: '' };
+  await runCommand('git', ['merge', '--abort'], { cwd: repoDir });
+  return { merged: false, conflict: true, detail: (r.stderr || r.stdout).trim().slice(0, 200) };
+}
+
+/** Delete a (merged) branch; best-effort. */
+export async function deleteBranch(repoDir: string, branch: string): Promise<void> {
+  await runCommand('git', ['branch', '-D', branch], { cwd: repoDir });
 }

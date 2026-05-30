@@ -13,6 +13,8 @@ export interface PlanTask {
   engine?: string;
   dependsOn: string[];
   scope?: string;
+  /** Shell command run in the worktree after develop; exit 0 = the verify (Tester) gate passes. */
+  verify?: string;
   file: string;
   title: string;
   body: string;
@@ -38,6 +40,7 @@ export function parsePlanTask(file: string, content: string): PlanTask | null {
     engine: fm.engine != null ? String(fm.engine) : undefined,
     dependsOn,
     scope: fm.scope != null ? String(fm.scope) : undefined,
+    verify: fm.verify != null ? String(fm.verify) : undefined,
     file,
     title: titleMatch ? titleMatch[1].trim() : id,
     body,
