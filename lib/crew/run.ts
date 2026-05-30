@@ -5,7 +5,7 @@ import {
   buildEngineInvocation, dispatchTask, runParallel, runCommand,
   commitWorktree, isRepoClean, mergeTaskBranch, removeTaskWorktree, deleteBranch,
 } from './runtime';
-import { readPlanTasks, selectDispatchable, writeTaskStatus, buildTaskPrompt, PlanTask } from './planTask';
+import { readPlanTasks, selectDispatchable, writeTaskStatus, stampTaskDone, buildTaskPrompt, PlanTask } from './planTask';
 
 // om-loop (design §2.2 编排循环): read a project's docs/plan/tasks, select dispatchable
 // (status ready + deps done), then per task: develop (engine writes in an isolated worktree)
@@ -48,7 +48,7 @@ async function processTask(repoDir: string, task: PlanTask, engine: string, time
   const m = await mergeTaskBranch(repoDir, worktree.branch);
   if (!m.merged) return blocked(`merge conflict on ${worktree.branch}: ${m.detail}`);
   try { await removeTaskWorktree(repoDir, worktree.path, { force: true }); await deleteBranch(repoDir, worktree.branch); } catch { /* best-effort cleanup */ }
-  writeTaskStatus(task.file, 'done');
+  stampTaskDone(task.file, new Date().toISOString().slice(0, 10));
   return { id: task.id, status: 'done', ok: true, detail: `${engine} → verified + merged` };
 }
 

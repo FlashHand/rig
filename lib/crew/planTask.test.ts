@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { parsePlanTask, readPlanTasks, selectDispatchable, writeTaskStatus, buildTaskPrompt } from './planTask';
+import { parsePlanTask, readPlanTasks, selectDispatchable, writeTaskStatus, stampTaskDone, buildTaskPrompt } from './planTask';
 
 const TASK = (over: Record<string, string> = {}) => [
   '---',
@@ -81,6 +81,25 @@ describe('writeTaskStatus + readPlanTasks (fs)', () => {
     const f = path.join(dir, 'nofm.md');
     fs.writeFileSync(f, '---\nid: x\n---\nbody');
     expect(() => writeTaskStatus(f, 'done')).toThrow(/status field not found/);
+  });
+
+  it('stampTaskDone sets status done + inserts done-at', () => {
+    const f = path.join(dir, 'docs/plan/tasks/cic-007.md');
+    stampTaskDone(f, '2026-06-01');
+    const t = parsePlanTask(f, fs.readFileSync(f, 'utf8'))!;
+    expect(t.status).toBe('done');
+    expect(t.doneAt).toBe('2026-06-01');
+    // idempotent re-stamp updates the date in place (no duplicate field)
+    stampTaskDone(f, '2026-06-02');
+    const raw = fs.readFileSync(f, 'utf8');
+    expect((raw.match(/done-at:/g) || []).length).toBe(1);
+    expect(parsePlanTask(f, raw)!.doneAt).toBe('2026-06-02');
+  });
+
+  it('readPlanTasks includes archived only when asked', () => {
+    fs.writeFileSync(path.join(dir, 'docs/plan/tasks/archived/old-1.md'), TASK({ id: 'old-1', status: 'done' }));
+    expect(readPlanTasks(dir).map(t => t.id)).not.toContain('old-1');
+    expect(readPlanTasks(dir, { includeArchived: true }).map(t => t.id)).toContain('old-1');
   });
 });
 

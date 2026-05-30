@@ -15,6 +15,8 @@ export interface PlanTask {
   scope?: string;
   /** Shell command run in the worktree after develop; exit 0 = the verify (Tester) gate passes. */
   verify?: string;
+  /** Date (YYYY-MM-DD) the task reached `done`; stamped on merge, read by `rig om journal`. */
+  doneAt?: string;
   file: string;
   title: string;
   body: string;
@@ -22,6 +24,13 @@ export interface PlanTask {
 }
 
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/;
+
+/** Normalize a YAML date value to YYYY-MM-DD. js-yaml parses unquoted `2026-06-01` as a Date. */
+function asDateStr(v: unknown): string | undefined {
+  if (v == null) return undefined;
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  return String(v).slice(0, 10);
+}
 
 export function parsePlanTask(file: string, content: string): PlanTask | null {
   const m = content.match(FRONTMATTER_RE);
@@ -41,6 +50,7 @@ export function parsePlanTask(file: string, content: string): PlanTask | null {
     dependsOn,
     scope: fm.scope != null ? String(fm.scope) : undefined,
     verify: fm.verify != null ? String(fm.verify) : undefined,
+    doneAt: asDateStr(fm['done-at']),
     file,
     title: titleMatch ? titleMatch[1].trim() : id,
     body,
@@ -53,15 +63,18 @@ export function readPlanTask(file: string): PlanTask | null {
   return parsePlanTask(file, fs.readFileSync(file, 'utf8'));
 }
 
-/** All tasks under <projectDir>/docs/plan/tasks/*.md (archived/ is skipped). */
-export function readPlanTasks(projectDir: string): PlanTask[] {
-  const dir = path.join(projectDir, 'docs', 'plan', 'tasks');
-  if (!fs.existsSync(dir)) return [];
+/** Tasks under <projectDir>/docs/plan/tasks/*.md; archived/ included only when asked. */
+export function readPlanTasks(projectDir: string, opts: { includeArchived?: boolean } = {}): PlanTask[] {
+  const base = path.join(projectDir, 'docs', 'plan', 'tasks');
+  const dirs = opts.includeArchived ? [base, path.join(base, 'archived')] : [base];
   const out: PlanTask[] = [];
-  for (const name of fs.readdirSync(dir)) {
-    if (!name.endsWith('.md')) continue;
-    const t = readPlanTask(path.join(dir, name));
-    if (t) out.push(t);
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir)) {
+      if (!name.endsWith('.md')) continue;
+      const t = readPlanTask(path.join(dir, name));
+      if (t) out.push(t);
+    }
   }
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }
@@ -86,9 +99,23 @@ export function writeTaskStatus(file: string, newStatus: string): void {
   const m = src.match(/^(---\n[\s\S]*?\n---)/);
   if (!m) throw new Error(`no frontmatter in ${file}`);
   const fm = m[1];
+  if (!/^status:[ \t]*/m.test(fm)) throw new Error(`status field not found in frontmatter of ${file}`);
   const nextFm = fm.replace(/^(status:[ \t]*).*$/m, `$1${newStatus}`);
-  if (nextFm === fm) throw new Error(`status field not found in frontmatter of ${file}`);
   fs.writeFileSync(file, src.replace(fm, nextFm), 'utf8');
+}
+
+/** Mark a task done + stamp `done-at: <date>` in frontmatter (inserts the field if absent). */
+export function stampTaskDone(file: string, date: string): void {
+  const src = fs.readFileSync(file, 'utf8');
+  const m = src.match(/^(---\n[\s\S]*?\n---)/);
+  if (!m) throw new Error(`no frontmatter in ${file}`);
+  let fm = m[1];
+  if (!/^status:[ \t]*/m.test(fm)) throw new Error(`status field not found in frontmatter of ${file}`);
+  fm = fm.replace(/^(status:[ \t]*).*$/m, `$1done`);
+  fm = /^done-at:/m.test(fm)
+    ? fm.replace(/^(done-at:[ \t]*).*$/m, `$1${date}`)
+    : fm.replace(/^(status:[ \t]*done.*)$/m, `$1\ndone-at: ${date}`);
+  fs.writeFileSync(file, src.replace(m[1], fm), 'utf8');
 }
 
 /** Build the develop prompt for an engine from a task. */
