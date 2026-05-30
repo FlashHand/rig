@@ -57,6 +57,19 @@ describe('runCommand', () => {
     const r = await runCommand(NODE, ['-e', 'process.stdout.write("hi")']);
     expect(r.truncated).toBe(false);
   });
+
+  it('closes child stdin by default so stdin-reading children get EOF (no hang)', async () => {
+    // Without closing stdin, a child that reads until "end" never fires it and hangs
+    // (this is the codex-exec hang found in the dual-engine smoke).
+    const r = await runCommand(
+      NODE,
+      ['-e', 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>process.stdout.write("EOF:"+d.length))'],
+      { timeoutMs: 5000 },
+    );
+    expect(r.stdout).toBe('EOF:0');
+    expect(r.timedOut).toBe(false);
+    expect(r.code).toBe(0);
+  });
 });
 
 describe('buildEngineInvocation', () => {

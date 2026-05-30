@@ -88,10 +88,11 @@ export function runCommand(cmd: string, args: string[], opts: RunOptions = {}): 
       resolve({ stdout, stderr, code, signal, timedOut, truncated, durationMs: Date.now() - start });
     });
 
-    if (opts.input != null) {
-      child.stdin?.write(opts.input);
-      child.stdin?.end();
-    }
+    // Always close stdin (with input if given, empty otherwise). Engines like
+    // `codex exec` block forever waiting for stdin EOF if it's left open; closing
+    // it makes them proceed with the prompt arg. (Found in the dual-engine smoke.)
+    if (opts.input != null) child.stdin?.write(opts.input);
+    child.stdin?.end();
   });
 }
 
