@@ -1,7 +1,7 @@
 {
   "name": "rigjs",
   "version": "4.1.2",
-  "versionCode": 26053102,
+  "versionCode": 26053103,
   "description": "A multi-repos dev tool based on yarn and git.Rigjs is intended to be the simplest way to develop,share and deliver codes between different developers or different projects.",
   "keywords": [
     "modular",
