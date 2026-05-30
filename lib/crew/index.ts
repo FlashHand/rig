@@ -6,6 +6,7 @@ import crewSync from './sync';
 import crewDoctor from './doctor';
 import crewEngine from './engine';
 import crewDispatch from './dispatchCommand';
+import crewRun from './run';
 import crewAsk from './ask';
 import crewStub from './stub';
 import { projectAdd, projectList, projectStatus, projectSync } from './project';
@@ -160,7 +161,13 @@ export function registerCrewCommands(program: any): void {
   orchestrate.command('plan').description('planned: Orchestrator refine + decompose').action(crewStub('plan'));
   orchestrate.command('refine').description('planned: update Shared/Spec.md').action(crewStub('refine'));
   orchestrate.command('decompose').description('planned: split Spec into owner/role tasks').action(crewStub('decompose'));
-  orchestrate.command('run [target]').description('planned: run owner/role work').action(crewStub('run'));
+  orchestrate.command('run <project>')
+    .description('dispatch all ready docs/plan/tasks of <project> to their engines in task worktrees (MVP develop)')
+    .option('--concurrency <n>', 'max parallel dispatches (default 4)')
+    .option('--timeout <ms>', 'per-task timeout in ms (default 600000)')
+    .option('--dry-run', 'show what would dispatch without running')
+    .option('-c, --crew <name>', 'target crew name')
+    .action(crewRun);
   orchestrate.command('research <topic...>').description('planned: ask Researcher to write a report').action(crewStub('research'));
   orchestrate.command('report').description('planned: generate Orchestrator report').action(crewStub('report'));
 
