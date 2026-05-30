@@ -4,6 +4,7 @@ import crewBoard from './board';
 import crewPendingQuestions from './pendingQuestions';
 import crewSync from './sync';
 import crewDoctor from './doctor';
+import crewEngine from './engine';
 import crewAsk from './ask';
 import crewStub from './stub';
 import { projectAdd, projectList, projectStatus, projectSync } from './project';
@@ -58,6 +59,14 @@ export function registerCrewCommands(program: any): void {
     .description('check crew config, vault, rules, and project wiring')
     .option('-c, --crew <name>', 'target crew name')
     .action(crewDoctor);
+
+  orchestrate.command('engine')
+    .description('show which execution engine resolves and why (5-level order; debug)')
+    .option('-c, --crew <name>', 'target crew name')
+    .option('-p, --project <name>', 'resolve as if dispatching for this project')
+    .option('--engine <engine>', 'explicit task-level engine override (claude | codex | pi)')
+    .option('--json', 'machine-readable output')
+    .action(crewEngine);
 
   const project = orchestrate.command('project').description('manage project owners');
   project.command('add <name>')
