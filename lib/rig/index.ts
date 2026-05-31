@@ -89,9 +89,6 @@ registerWikiCommands(program);
 import { registerCrewCommands } from '../crew';
 registerCrewCommands(program);
 
-import { registerOvermindCommands } from '../overmind';
-registerOvermindCommands(program);
-
 import env from '../env';
 
 program.option('--env <env>', 'specify env').action(env.load);

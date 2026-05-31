@@ -9,6 +9,9 @@ import crewDispatch from './dispatchCommand';
 import crewRun from './run';
 import crewAsk from './ask';
 import crewStub from './stub';
+import { crewOverview } from '../overmind/rollup';
+import omJournal from '../overmind/journal';
+import omTaskNew from '../overmind/taskNew';
 import { projectAdd, projectList, projectStatus, projectSync } from './project';
 import { roleAdd, roleList, roleShow } from './roleCommand';
 import { pendingAdd, pendingAnswer, pendingList, pendingRemove } from './pending';
@@ -16,8 +19,8 @@ import { pendingAdd, pendingAnswer, pendingList, pendingRemove } from './pending
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function registerCrewCommands(program: any): void {
   const orchestrate = program.command('orchestrate [message...]')
-    .alias('crew')
-    .description('Orchestrator-first multi-agent workspace over an Obsidian vault (alias: crew)')
+    .aliases(['crew', 'om', 'overmind'])
+    .description('Orchestrator-first multi-agent workspace over an Obsidian vault (aliases: crew, om, overmind)')
     .option('--crew <name>', 'target crew name')
     .action((message: string[] | undefined, opts: { crew?: string }) => crewAsk(message, opts));
 
@@ -56,6 +59,26 @@ export function registerCrewCommands(program: any): void {
     .description('scan Markdown tasks and update crew state cache')
     .option('--crew <name>', 'target crew name')
     .action(crewSync);
+
+  // --- overmind aggregation (merged from the former `rig om`; see CLAUDE.md) ---
+  orchestrate.command('overview')
+    .description('cross-entity task-status rollup; --write (re)generates overmind.md')
+    .option('--write', 'also (re)generate overmind.md at the vault root')
+    .option('--crew <name>', 'target crew name')
+    .action(crewOverview);
+
+  orchestrate.command('journal [date]')
+    .description('roll completed tasks (status done + done-at; default today) into journal/<entity>/<YYMM>.md')
+    .option('--crew <name>', 'target crew name')
+    .action(omJournal);
+
+  orchestrate.command('task <project> <id>')
+    .description('scaffold a docs-sprint task file (docs/plan/tasks/<id>.md) for <project>')
+    .option('--role <role>', 'coder | designer | tester | researcher (default coder)')
+    .option('--engine <engine>', 'engine override (claude | codex | pi)')
+    .option('--status <status>', 'initial status (default draft)')
+    .option('--crew <name>', 'target crew name')
+    .action(omTaskNew);
 
   orchestrate.command('doctor')
     .description('check crew config, vault, rules, and project wiring')
