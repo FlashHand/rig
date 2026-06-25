@@ -2,6 +2,7 @@ import DirLevel from '@/classes/cicd/DirLevel';
 import Endpoint, {EndpointDict} from '@/classes/cicd/Endpoint';
 import fs from 'fs';
 import qs from 'querystring';
+import {redactParamsStr} from '@/utils/redact';
 
 const JSON5 = require('json5');
 
@@ -131,7 +132,7 @@ class CICD {
 		//replace params
 		let pkgStr = fs.readFileSync(`${process.cwd()}/package.rig.json5`).toString();
 		const paramsStr = cmd.params;
-		console.log('paramsStr',paramsStr)
+		console.log('paramsStr', redactParamsStr(paramsStr));
 		const params = qs.parse(paramsStr);
 		//替换动态变量
 		Object.keys(params).forEach(key => {

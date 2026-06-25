@@ -6,4 +6,6 @@ Agent-facing delivery plan, read by `rig orchestrate` (see the overmind workspac
 - `rig orchestrate task rig <id>` scaffolds a task; `rig orchestrate run rig` dispatches `ready` tasks (develop → verify → auto-merge); `rig orchestrate journal` rolls up `done`.
 - Verify command for this project: `yarn build`. Honor this project's `RIG.md` / `CLAUDE.md` conventions + guardrails. Promote a task to `status: ready` deliberately.
 
-_No active tasks yet. Add one with `rig orchestrate task rig <id>`._
+## Tasks
+
+- `tasks/sec-oss-cred-log-redaction.md` — **done** — redact OSS AccessKey ID/Secret from `rig build`/`deploy`/`publish` stdout (the `paramsStr` log leaked raw `ak`/`as`).
