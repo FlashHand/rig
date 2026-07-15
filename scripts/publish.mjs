@@ -65,11 +65,15 @@ writeFileSync(tmpRc, [
   '',
 ].join('\n'), { mode: 0o600 });
 
-// Scrub `npm_config_*` env vars before spawning npm. yarn injects
-// `npm_config_registry=https://registry.yarnpkg.com` when running scripts,
-// and that env wins over the registry= line in our temp .npmrc.
+// Scrub registry-affecting `npm_config_*` vars before spawning npm. yarn
+// injects npm_config_registry=https://registry.yarnpkg.com, which otherwise
+// wins over the registry= line in our temp .npmrc. Keep an explicit cache
+// override, and never pass the publish token to npm after writing the temp rc.
 const cleanEnv = Object.fromEntries(
-  Object.entries(process.env).filter(([k]) => !/^npm_config_/i.test(k))
+  Object.entries(process.env).filter(([k]) => {
+    if (k === 'NPM_TOKEN') return false;
+    return !/^npm_config_/i.test(k) || k.toLowerCase() === 'npm_config_cache';
+  })
 );
 
 let status = 1;
