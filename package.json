@@ -1,7 +1,7 @@
 {
   "name": "rigjs",
-  "version": "4.1.3",
-  "versionCode": 26053104,
+  "version": "4.1.4",
+  "versionCode": 26071501,
   "description": "A multi-repos dev tool based on yarn and git.Rigjs is intended to be the simplest way to develop,share and deliver codes between different developers or different projects.",
   "keywords": [
     "modular",
@@ -35,6 +35,7 @@
     "lib",
     "doc",
     "scripts",
+    "skills",
     ".claude/skills/rig-wiki",
     ".claude/skills/rig-package",
     ".claude/skills/rig-cicd",
@@ -60,7 +61,7 @@
     "t": "node lib/rig/index.js tag",
     "deliver": "node scripts/publish.mjs",
     "deliver:alpha": "rig tag && yarn build && node scripts/publish.mjs --tag alpha",
-    "build": "esbuild lib/rig/index.ts --platform=node --bundle --sourcemap=inline --minify --outfile=built/index.js --external:shelljs --external:better-sqlite3 --external:bindings --external:proxy-agent --external:@tobilu/qmd && yarn scan:built",
+    "build": "esbuild lib/rig/index.ts --platform=node --bundle --sourcemap=linked --sources-content=false --minify --outfile=built/index.js --external:shelljs --external:better-sqlite3 --external:bindings --external:proxy-agent --external:@tobilu/qmd && yarn scan:built",
     "scan:built": "GOMAXPROCS=2 gitleaks detect --source built --no-git --no-banner --redact --exit-code 1",
     "version:code": "node scripts/version-code.mjs",
     "version:code:peek": "node scripts/version-code.mjs --peek",

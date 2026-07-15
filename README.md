@@ -6,6 +6,7 @@
 - **Multi-repo workspace tooling** (the original purpose): `rig init / add / dev / install / build / deploy / publish / sync / tag`. See [Get started](#get-started) below.
 - **`rig wiki *`** — Karpathy-style LLM Wiki ops (scan / fetch / ingest / query / lint), with a launchd daemon for periodic runs. Backed by Claude Code as the executor. macOS only, Node ≥ 22. See [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) and [`doc/architecture/wiki.md`](./doc/architecture/wiki.md).
 - **`rig crew *`** — file-backed, Leader-first multi-agent coordination over an Obsidian vault. Supports project owners, a human dashboard, inbox, and mixed executors such as Claude Code and Codex. See [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md).
+- **`rig handoff *`** — zero-model-call Claude Code → Codex handoff for macOS. `/handoff` copies the current Claude JSONL path to the clipboard; Codex's `from-claude` skill pages through the transcript and resumes the task. Install explicitly with `rig handoff install`.
 - **Bundled Claude Code skill** — `rig-wiki`, registered as a Claude Code plugin via [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json). `rig-crew` is Vault-level guidance rather than a project-local plugin copy. See the skill index: [`skills.md`](./skills.md).
 
 ## Installing bundled skills (three paths)
@@ -17,6 +18,17 @@ Pick one — they all end with Claude Code seeing bundled skills under `~/.claud
 3. **Claude Code plugin marketplace** — once you (or anyone) host a `marketplace.json` pointing at `{ "source": "npm", "package": "rigjs" }`, users install via `/plugin install rig-wiki@<marketplace>` — Claude Code handles everything; postinstall does not run.
 
 Opt-out for path 1: `RIG_NO_AUTO_SKILL=1 npm i -g rigjs`. To remove: `rig wiki uninstall-skill`.
+
+The handoff feature is intentionally not enabled by npm `postinstall`, because it adds lifecycle hooks to Claude Code. Enable and verify it explicitly:
+
+```bash
+rig handoff install
+rig handoff doctor
+```
+
+Then type `/handoff` in Claude Code, switch to Codex, and paste. If Claude has no quota, the local slash-command hook still runs without a model request. `StopFailure` also copies a recovery handoff after quota, billing, output-limit, or authentication failures. The terminal-only fallback is `rig handoff copy --latest`; uninstall with `rig handoff uninstall`.
+
+The installer creates `~/.rig/bin/rig-handoff` and points both integrations at that absolute launcher, so Claude does not depend on shell startup files, npm's global prefix, or whichever older `rig` happens to appear first on `PATH`.
 
 ## Get started
 ### 0.Prerequisites

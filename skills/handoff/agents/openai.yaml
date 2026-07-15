@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude Handoff"
+  short_description: "Copy this Claude session for Codex takeover"
+  default_prompt: "Use $handoff to copy this Claude Code session into a Codex-ready handoff."

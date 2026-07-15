@@ -7,6 +7,7 @@
 - **多仓库 workspace 工具**(原始能力):`rig init / add / dev / install / build / deploy / publish / sync / tag`,详见下面 [快速开始](#快速开始)。
 - **`rig wiki *`** —— Karpathy 风格的 LLM Wiki 操作集合(scan / fetch / ingest / query / lint),配套 launchd daemon 做定时任务。底层用 Claude Code 当执行器。macOS only,Node ≥ 22。详见 [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) 和 [`doc/architecture/wiki.md`](./doc/architecture/wiki.md)。
 - **`rig crew *`** —— 基于文件状态的 Leader-first 多 Agent 协作,面向 Obsidian Vault,支持 Project Owner、人类看板、Inbox、Claude Code / Codex 混合 executor。详见 [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md)。
+- **`rig handoff *`** —— macOS 上不调用模型的 Claude Code → Codex 会话接管。Claude 中的 `/handoff` 只复制当前 JSONL 路径，Codex 的 `from-claude` Skill 分页读取会话并继续任务。使用 `rig handoff install` 显式安装。
 - **内置 Claude Code skill**(`rig-wiki`)—— 通过 [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) 注册为 Claude Code plugin。`rig-crew` 属于 Vault 级协作规则,不再维护项目内 plugin 副本。Skill 总览见 [`skills.md`](./skills.md)。
 
 ## 安装内置 skills(三条路任选)
@@ -18,6 +19,17 @@
 3. **Claude Code 官方 plugin marketplace** —— 别人(或你自己)把一份 `marketplace.json` 指向 `{ "source": "npm", "package": "rigjs" }`,然后用户走 `/plugin install rig-wiki@<marketplace>` —— 整条链路由 Claude Code 自己管,postinstall 不会跑。
 
 路径 1 的 opt-out:`RIG_NO_AUTO_SKILL=1 npm i -g rigjs`。卸载 skill:`rig wiki uninstall-skill`。
+
+Handoff 不会通过 npm `postinstall` 静默修改 Claude 生命周期 Hook，需显式安装并检查：
+
+```bash
+rig handoff install
+rig handoff doctor
+```
+
+安装后在 Claude Code 输入 `/handoff`，切换到 Codex 后粘贴即可。即使 Claude 已无额度，该命令仍由本地 Hook 截断，不产生模型请求；`StopFailure` 也会在额度、账单、输出上限或认证失败后自动复制接管信息。纯终端保底命令是 `rig handoff copy --latest`，卸载使用 `rig handoff uninstall`。
+
+安装器还会创建稳定入口 `~/.rig/bin/rig-handoff`，Claude 与 Codex 都调用这个绝对路径，因此不依赖 shell 启动配置、npm 全局前缀或 `PATH` 中排在前面的旧版 Rig。
 
 ## 快速开始
 

@@ -89,6 +89,9 @@ registerWikiCommands(program);
 import { registerCrewCommands } from '../crew';
 registerCrewCommands(program);
 
+import { registerHandoffCommands } from '../handoff';
+registerHandoffCommands(program);
+
 import env from '../env';
 
 program.option('--env <env>', 'specify env').action(env.load);

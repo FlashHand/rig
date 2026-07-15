@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude Session Handoff"
+  short_description: "Resume work from a Claude Code JSONL transcript"
+  default_prompt: "Use $from-claude to resume work from the provided Claude Code transcript."

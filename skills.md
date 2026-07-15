@@ -10,8 +10,32 @@ This page is the skill index for the `rigjs` package. The root `README.md` keeps
 | `rig-crew` | [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md) | (none — vault-level guidance) | `rig crew *` | File-backed, Leader-first multi-agent coordination over an Obsidian vault. |
 | `rig-package` | [`RIG_PACKAGE_SKILL.md`](./RIG_PACKAGE_SKILL.md) | [`.claude/skills/rig-package/SKILL.md`](./.claude/skills/rig-package/SKILL.md) | `rig init` / `install` / `add` / `dev` / `tag` | Git-tag + ssh package manager that replaces a private npm registry; documents every `package.rig.json5#dependencies` field. |
 | `rig-cicd` | [`RIG_CICD_SKILL.md`](./RIG_CICD_SKILL.md) | [`.claude/skills/rig-cicd/SKILL.md`](./.claude/skills/rig-cicd/SKILL.md) | `rig build` / `deploy` / `publish` | Aliyun OSS + CDN static-site CI/CD; one bucket → many sites via CDN URI rewrites set during `rig publish`. Supports hash, history, mpa, pre-built HTML dirs. |
+| `handoff` | [`skills/handoff/SKILL.md`](./skills/handoff/SKILL.md) | (standalone personal skill) | `rig handoff install` / `copy` | User-invoked Claude slash command intercepted locally before any model request. |
+| `from-claude` | [`skills/from-claude/SKILL.md`](./skills/from-claude/SKILL.md) | (Codex personal skill) | `rig handoff inspect` / `read` | Recovers a Claude JSONL transcript in bounded pages and reconciles it with current workspace state. |
 
 `rig-crew` is intentionally not copied into the rigjs package's own `.claude/skills/`. Its instructions belong at the Vault level (the project that uses crew), not at the tool level (rigjs itself).
+
+`handoff` and `from-claude` are installed together only by `rig handoff install`. They are excluded from npm `postinstall` because the feature also owns Claude lifecycle hooks and must be explicitly enabled.
+
+### Claude → Codex handoff
+
+```bash
+rig handoff install
+rig handoff doctor
+```
+
+The installer creates:
+
+- `~/.claude/skills/handoff` → `<rigjs-install>/skills/handoff`
+- `~/.codex/skills/from-claude` → `<rigjs-install>/skills/from-claude`
+- `~/.rig/bin/rig-handoff`, a small executable wrapper pinned to the absolute Node binary and `<rigjs-install>/bin/rig.js`, so GUI-launched hooks do not depend on shell `PATH`.
+
+It also atomically merges exact, removable entries into `~/.claude/settings.json`:
+
+- `UserPromptExpansion` for the bare `/handoff` command. The hook copies `transcript_path`, `cwd`, and `session_id`, then blocks expansion before a model request.
+- `StopFailure` for quota, billing, output-limit, and authentication failures. Its side effect copies the same handoff and sends a macOS notification.
+
+The installer backs up an existing settings file under `~/.rig/backups/handoff/`, preserves unrelated hooks and a dotfiles-managed `settings.json` symlink, and is idempotent. Remove only Rig-owned entries with `rig handoff uninstall`. If the Claude UI is unavailable, `rig handoff copy --latest` performs the same clipboard handoff directly from a terminal.
 
 ## Install
 
