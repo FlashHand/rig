@@ -1,175 +1,43 @@
-# rig
+# Rig
 
-- [dependencies配置](./doc/dependencies_cn.md)
+Rig 是面向 Agent 的 macOS CLI，用于基于 Git 的多仓库开发、本地 LLM Wiki、
+文件化 Agent 编排，以及 Claude Code → Codex 会话接管。
 
-## 这个包里有什么
+[English](./README.md)
 
-- **多仓库 workspace 工具**(原始能力):`rig init / add / dev / install / build / deploy / publish / sync / tag`,详见下面 [快速开始](#快速开始)。
-- **`rig wiki *`** —— Karpathy 风格的 LLM Wiki 操作集合(scan / fetch / ingest / query / lint),配套 launchd daemon 做定时任务。底层用 Claude Code 当执行器。macOS only,Node ≥ 22。详见 [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) 和 [`doc/architecture/wiki.md`](./doc/architecture/wiki.md)。
-- **`rig crew *`** —— 基于文件状态的 Leader-first 多 Agent 协作,面向 Obsidian Vault,支持 Project Owner、人类看板、Inbox、Claude Code / Codex 混合 executor。详见 [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md)。
-- **`rig handoff *`** —— macOS 上不调用模型的 Claude Code → Codex 会话接管。Claude 中的 `/handoff` 只复制当前 JSONL 路径，Codex 的 `from-claude` Skill 分页读取会话并继续任务。使用 `rig handoff install` 显式安装。
-- **内置 Claude Code skill**(`rig-wiki`)—— 通过 [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) 注册为 Claude Code plugin。`rig-crew` 属于 Vault 级协作规则,不再维护项目内 plugin 副本。Skill 总览见 [`skills.md`](./skills.md)。
+## 安装
 
-## 安装内置 skills(三条路任选)
-
-最终结果都一样:Claude Code 在 `~/.claude/skills/` 下看到内置 skills。
-
-1. **`npm i -g rigjs`** —— 包的 `postinstall` 脚本自动 symlink 到 `~/.claude/skills/`,装完即用,**重启 Claude Code** 生效。
-2. **`npm i -g rigjs --ignore-scripts`**(安全敏感用户)—— postinstall 被跳过,再手动跑一次 `rig wiki install-skill` 即可。
-3. **Claude Code 官方 plugin marketplace** —— 别人(或你自己)把一份 `marketplace.json` 指向 `{ "source": "npm", "package": "rigjs" }`,然后用户走 `/plugin install rig-wiki@<marketplace>` —— 整条链路由 Claude Code 自己管,postinstall 不会跑。
-
-路径 1 的 opt-out:`RIG_NO_AUTO_SKILL=1 npm i -g rigjs`。卸载 skill:`rig wiki uninstall-skill`。
-
-Handoff 不会通过 npm `postinstall` 静默修改 Claude 生命周期 Hook，需显式安装并检查：
+需要 macOS 与 Node.js 22–26。
 
 ```bash
-rig handoff install
-rig handoff doctor
+npm install --global rigjs
+rig --version
 ```
 
-安装后在 Claude Code 输入 `/handoff`，切换到 Codex 后粘贴即可。即使 Claude 已无额度，该命令仍由本地 Hook 截断，不产生模型请求；`StopFailure` 也会在额度、账单、输出上限或认证失败后自动复制接管信息。纯终端保底命令是 `rig handoff copy --latest`，卸载使用 `rig handoff uninstall`。
+## 让 Agent 学会使用 Rig
 
-安装器还会创建稳定入口 `~/.rig/bin/rig-handoff`，Claude 与 Codex 都调用这个绝对路径，因此不依赖 shell 启动配置、npm 全局前缀或 `PATH` 中排在前面的旧版 Rig。
+把内置操作指南复制到剪贴板，再粘贴给 Claude Code、Codex 或其他 Coding
+Agent 即可：
 
-## 快速开始
-
-### 0.前提准备
-
-1. 安装yarn.
-2. node版本高于16.
-3. 依赖库必须使用git+ssh链接,不支持http/https链接.
-4. 以下rig库统一指代在可以用rig管理的仓库.
-
-#### 安装yarn,
-
-```shell
-yarn global add rigjs
+```bash
+rig guide --copy
 ```
 
-rig采用yarn workspaces实现依赖晋升。[关于yarn workspaces](https://classic.yarnpkg.com/en/docs/workspaces)
+Guide 是写给 Agent 的，人不需要阅读或记住完整命令。也可以用 `rig guide`
+直接输出；`rig man` 是同一命令的别名。仓库版本见
+[`RIG_GUIDE.md`](./RIG_GUIDE.md)。
 
-#### NodeJS版本不低于16
+## 最简单的几个命令
 
-使用 [n](https://github.com/tj/n) 更新NodeJS
-
-```shell
-yarn global add n
-#更新到lts
-sudo n lts 
-#或指定版本
-sudo n 16.19.1
+```bash
+rig help                 # 命令索引
+rig guide                # 完整 Agent Guide
+rig init                 # 在项目中初始化 Git 依赖管理
+rig dev <dependency>     # 本地开发一个依赖
+rig handoff install      # 安装 Claude Code → Codex handoff
 ```
 
-### 1.在项目中初始化rig配置。
+查看细节时使用 `rig help <command>` 或
+`rig <command> <subcommand> --help`。
 
-```shell script
-#在你的项目根目录中（和package.json同级）执行：
-rig init
-```
-
-package.rig.json5 会被添加到工程根目录。
-
-通过yarn add新的依赖时需要增加-W参数,如:
-
-```shell
-yarn add axios -W
-```
-
-### 2.使用rig安装现有的代码库
-
-修改package.rig.json5:
-
-version是git的tag
-
-如下:
-
-```json5
-{
-  dependencies: {
-    'rig-demo-1': {
-      source: 'git@github.com:FlashHand/rig-demo-1.git',
-      version: '0.0.1',
-    }
-  }
-}
-```
-
-然后执行
-
-```shell
-yarn install
-```
-
-### 3. 前端开发工具配置
-
-#### 3.1 vite
-
-尽量使用最新的vite,在vite.config.ts中增加代码
-
-```typescript
-import {viteCommonjs} from '@originjs/vite-plugin-commonjs';
-import commonjs from '@rollup/plugin-commonjs';
-import rigHelper from "rig-helper";
-
-export default defineConfig((env: ConfigEnv) => {
-	//.....
-	return {
-		plugins: [//...
-			viteCommonjs({include: rig_helper.getPkgs()}),//commonjs to esm,serve时有效,
-			commonjs({include: rig_helper.getPkgs()}),//commonjs to esm,build时有效
-			//... 
-		],
-        optimizeDeps: {
-            exclude: rig_helper.getPkgs(),//vite小于4时,
-        },
-		server: {
-			watch: {
-				ignored: rig_helper.getRigGlobs(),//vite小于4时,监听rig_dev下的目录文件发生变化,触发hmr
-				followSymlinks: true,//followSymlinks不能为false
-			},
-		}
-	}
-})
-```
-
-#### 3.2 webpack
-
-
-#### 3.3 vue-cli
-
-### 4.开发一个新的rig库或改造现有仓库为rig库
-
-rig库指在rig管理下的仓库
-
-参考demo目录
-
-## 关于RigJS模块化开发功能的特点:
-
-1. RigJS功能基于yarn和git开发,无需私有npm.
-2. 及时的将代码库分享给任何JS项目使用.
-3. 支持快捷的rig库开发模式,支持自动npm link,可以在业务开发过程中调试rig库.
-4. 易扩展,专注于代码库集成组装和协作,不负责transpile,和JS项目框架无关.
-
-## 其他功能
-
-| 功能                 | 状态    |
-|:-------------------|:------|
-| 环境变量集成(减少环境变量文件数量) | 待编写文档 |
-| 静态资源分享             | 待编写文档 |
-| 基于OSS+CDN的ci/cd    | 待编写文档 |
-| Electron多进程协作开发    | 开发中   |
-| 微前端协作开发            | 开发中   |
-
-## 命令清单
-
-### rig init
-
-初始化rig管理工具,在项目根目录执行.
-
-### rig --env [mode]
-
-从env.rig.json5中指定一组环境变量,并覆盖到.env.rig文件中
-
-### rig tag
-
-在git仓库nothing to commit后执行,可以将package.json中的版本打为tag
+License: MIT

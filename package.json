@@ -44,6 +44,7 @@
     "RIG_CREW_SKILL.md",
     "RIG_PACKAGE_SKILL.md",
     "RIG_CICD_SKILL.md",
+    "RIG_GUIDE.md",
     "skills.md",
     "index.js",
     "README.md",
@@ -52,6 +53,7 @@
   ],
   "scripts": {
     "test": "jest",
+    "test:publish": "node --test scripts/publish.test.mjs",
     "test:init": "yarn build && cd demo && ts-node ../built/index.js init",
     "p": "cd demo && node ../lib/rig/index.js publish",
     "posti": "cd demo && node ../lib/rig/index.js postinstall",
