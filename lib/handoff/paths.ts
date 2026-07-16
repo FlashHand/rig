@@ -5,12 +5,14 @@ import path from 'path';
 export interface HandoffPaths {
   rigRoot: string;
   handoffSkillSource: string;
-  fromClaudeSkillSource: string;
+  rigFromClaudeSkillSource: string;
+  legacyFromClaudeSkillSource: string;
   claudeConfigDir: string;
   claudeSettings: string;
   claudeSkill: string;
   codexHome: string;
   codexSkill: string;
+  legacyCodexSkill: string;
   handoffExecutable: string;
   backups: string;
   claudeProjects: string;
@@ -43,12 +45,14 @@ export function resolveHandoffPaths(env: NodeJS.ProcessEnv = process.env): Hando
   return {
     rigRoot,
     handoffSkillSource: path.join(rigRoot, 'skills', 'handoff'),
-    fromClaudeSkillSource: path.join(rigRoot, 'skills', 'from-claude'),
+    rigFromClaudeSkillSource: path.join(rigRoot, 'skills', 'rig-from-claude'),
+    legacyFromClaudeSkillSource: path.join(rigRoot, 'skills', 'from-claude'),
     claudeConfigDir,
     claudeSettings: env.RIG_HANDOFF_CLAUDE_SETTINGS || path.join(claudeConfigDir, 'settings.json'),
     claudeSkill: path.join(claudeConfigDir, 'skills', 'handoff'),
     codexHome,
-    codexSkill: path.join(codexHome, 'skills', 'from-claude'),
+    codexSkill: path.join(codexHome, 'skills', 'rig-from-claude'),
+    legacyCodexSkill: path.join(codexHome, 'skills', 'from-claude'),
     handoffExecutable: path.join(rigHome, 'bin', 'rig-handoff'),
     backups: env.RIG_HANDOFF_BACKUP_DIR || path.join(rigHome, 'backups', 'handoff'),
     claudeProjects: path.join(claudeConfigDir, 'projects'),

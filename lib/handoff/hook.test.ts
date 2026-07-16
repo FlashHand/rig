@@ -28,7 +28,7 @@ describe('handoff hook', () => {
 
     expect(result.output).toEqual(expect.objectContaining({ decision: 'block' }));
     expect(copied).toHaveLength(1);
-    expect(copied[0]).toContain('$from-claude');
+    expect(copied[0]).toContain('$rig-from-claude');
     expect(copied[0]).toContain(`transcript_path: ${transcript}`);
     expect(copied[0]).toContain('session_id: abc123');
   });

@@ -40,7 +40,7 @@ export function inspectHandoffInstallation(options: DoctorOptions = {}): DoctorC
     { name: 'Claude Code', ok: !!claude, detail: claude ? `${claude} — ${(claudeVersion && claudeVersion.stdout || '').trim()}` : 'not found on PATH', fatal: true },
     { name: 'Codex', ok: !!codex || fs.existsSync(paths.codexHome), detail: codex || paths.codexHome, fatal: false },
     { name: 'Claude handoff skill', ok: isLinkTo(paths.claudeSkill, paths.handoffSkillSource), detail: shortPath(paths.claudeSkill, env), fatal: true },
-    { name: 'Codex from-claude skill', ok: isLinkTo(paths.codexSkill, paths.fromClaudeSkillSource), detail: shortPath(paths.codexSkill, env), fatal: true },
+    { name: 'Codex rig-from-claude skill', ok: isLinkTo(paths.codexSkill, paths.rigFromClaudeSkillSource), detail: shortPath(paths.codexSkill, env), fatal: true },
     { name: 'UserPromptExpansion hook', ok: hasInstalledHook(paths.claudeSettings, 'UserPromptExpansion'), detail: shortPath(paths.claudeSettings, env), fatal: true },
     { name: 'StopFailure hook', ok: hasInstalledHook(paths.claudeSettings, 'StopFailure'), detail: shortPath(paths.claudeSettings, env), fatal: false },
     { name: 'Claude transcript', ok: !!latest, detail: latest ? shortPath(latest, env) : 'no JSONL transcript found', fatal: true },

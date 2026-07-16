@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { findLatestTranscript, inspectTranscript, iterateTranscript, readTranscriptPage } from './transcript';
+import { findLatestTranscript, inspectTranscript, intakeTranscript, iterateTranscript, readTranscriptPage } from './transcript';
 
 describe('Claude transcript reader', () => {
   let root: string;
@@ -76,6 +76,49 @@ describe('Claude transcript reader', () => {
     expect(second.entries.find((entry: any) => entry.uuid === 'old1').branch).toBe('non-lineage');
     expect(second.entries.find((entry: any) => entry.uuid === 'u2b').branch).toBe('active');
     expect(second.entries.find((entry: any) => entry.uuid === 'u3').isCompactSummary).toBe(true);
+  });
+
+  test('intakes meaningful evidence newest-first without thinking or telemetry noise', () => {
+    fs.appendFileSync(transcript, [
+      { type: 'user', uuid: 'control-u', parentUuid: 'u3', message: { role: 'user', content: [{ type: 'text', text: 'Continue from where you left off.' }] } },
+      { type: 'assistant', uuid: 'control-a', parentUuid: 'control-u', message: { role: 'assistant', content: [{ type: 'text', text: 'No response requested.' }] } },
+      { type: 'system', uuid: 'control-s', parentUuid: 'control-a', subtype: 'informational', level: 'warning', content: 'UserPromptExpansion operation blocked by hook' },
+    ].map(row => JSON.stringify(row)).join('\n') + '\n');
+    const first = intakeTranscript(transcript, { limit: 2, maxChars: 256 });
+    expect(first.schemaVersion).toBe(2);
+    expect(first.lastPrompt).toBe('Continue publishing');
+    expect(first.checkpoint).toEqual(expect.objectContaining({
+      uuid: 'u3',
+      branch: 'active',
+      summary: 'Earlier context summary',
+    }));
+    expect(first.stats).toEqual(expect.objectContaining({
+      recoverableEntries: 5,
+      compactSummaries: 2,
+      omittedThinkingBlocks: 1,
+    }));
+    expect(first.page.direction).toBe('newest-to-oldest');
+    expect(first.page.entries.map((entry: any) => entry.uuid)).toEqual(['u2b', 'u2']);
+    expect(first.page.nextBeforeLine).toBe(6);
+    expect(first.branch.leafUuid).toBe('control-s');
+    expect(JSON.stringify(first)).not.toContain('private reasoning');
+    expect(JSON.stringify(first)).not.toContain('input_tokens');
+    expect(JSON.stringify(first)).not.toContain('No response requested');
+    expect(JSON.stringify(first)).not.toContain('operation blocked by hook');
+    expect(first.workspaceEvidence.editedFiles).toContainEqual({ path: '/repo/a.ts', line: 6 });
+
+    const second = intakeTranscript(transcript, { before: first.page.nextBeforeLine, limit: 2, maxChars: 256 });
+    expect(second.page.entries.map((entry: any) => entry.uuid)).toEqual(['a1b', 'a1']);
+    expect(second.page.nextBeforeLine).toBe(3);
+    const assistant = second.page.entries.find((entry: any) => entry.uuid === 'a1');
+    expect(assistant.content.map((block: any) => block.type)).toEqual(['text', 'tool_use']);
+    expect(assistant.model).toBeUndefined();
+    expect(assistant.usage).toBeUndefined();
+
+    const third = intakeTranscript(transcript, { before: second.page.nextBeforeLine, limit: 2 });
+    expect(third.page.entries.map((entry: any) => entry.uuid)).toEqual(['u1']);
+    expect(third.page.hasOlder).toBe(false);
+    expect(third.page.nextBeforeLine).toBeNull();
   });
 
   test('finds the latest transcript and filters by cwd', () => {

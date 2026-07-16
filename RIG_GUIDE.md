@@ -45,8 +45,8 @@ safe operating patterns; command help is authoritative for current flags.
 - Orchestration: `init`, natural-language `ask`, `status`, `pending-questions`,
   `board`, `sync`, `overview`, `journal`, `task`, `doctor`, `engine`, `dispatch`,
   `project`, `role`, `pending`, `run`, and the explicitly marked planned commands.
-- Handoff: `install`, `uninstall`, `doctor`, `copy`, `latest`, `inspect`, and
-  `read`; `hook` is an internal integration entrypoint.
+- Handoff: `install`, `uninstall`, `doctor`, `copy`, `latest`, `intake`,
+  `inspect`, and `read`; `hook` is an internal integration entrypoint.
 - Global environment selection: `rig --env <name>` materializes a selected
   environment from `env.rig.json5`.
 - Contributor/lifecycle commands: `install-local`, `preinstall`, and
@@ -168,8 +168,8 @@ rig handoff doctor
 
 Normal interaction: the human types `/handoff` in Claude Code, switches to
 Codex, and pastes. Rig copies a prompt containing the current local Claude JSONL
-path; the installed Codex `from-claude` skill reads it incrementally and resumes
-the unfinished task. The local hook does not require a Claude model call, and a
+path; the standalone Codex `rig-from-claude` skill reads useful evidence from
+newest to oldest and resumes the unfinished task. The local hook does not require a Claude model call, and a
 `StopFailure` hook provides recovery after quota/auth/output failures.
 
 Terminal recovery and diagnostics:
@@ -177,6 +177,8 @@ Terminal recovery and diagnostics:
 ```bash
 rig handoff copy
 rig handoff latest
+rig handoff intake <session.jsonl>
+rig handoff intake <session.jsonl> --before <nextBeforeLine>
 rig handoff inspect <session.jsonl>
 rig handoff read <session.jsonl> --from 1 --limit 80
 rig handoff doctor --json

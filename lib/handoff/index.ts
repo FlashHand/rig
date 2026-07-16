@@ -5,7 +5,7 @@ import uninstallHandoffCli from './uninstall';
 import doctorHandoffCli from './doctor';
 import { buildHandoffPrompt } from './prompt';
 import { copyToClipboard, notifyHandoff, requireMacOS } from './platform';
-import { findLatestTranscript, inspectTranscript, readTranscriptPage } from './transcript';
+import { findLatestTranscript, inspectTranscript, intakeTranscript, readTranscriptPage } from './transcript';
 import { readHookStdin, runHookCli } from './hook';
 import { resolveHandoffPaths, shortPath } from './paths';
 
@@ -13,13 +13,14 @@ interface CopyOptions { cwd?: string; notify?: boolean; }
 interface LatestOptions { cwd?: string; json?: boolean; }
 interface InspectOptions { recent?: number; maxChars?: number; }
 interface ReadOptions { from?: number; limit?: number; maxChars?: number; full?: boolean; }
+interface IntakeOptions { before?: number; limit?: number; maxChars?: number; full?: boolean; }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function registerHandoffCommands(program: any): void {
   const handoff = program.command('handoff').description('local Claude Code → Codex session handoff (macOS only)');
 
   handoff.command('install')
-    .description('install Claude /handoff, zero-token hooks, and the Codex from-claude skill')
+    .description('install Claude /handoff, zero-token hooks, and the Codex rig-from-claude skill')
     .option('-f, --force', 'back up and replace conflicting skill directories')
     .option('--no-stop-failure', 'do not auto-copy a handoff after Claude API quota/auth failures')
     .action(installHandoffCli);
@@ -50,6 +51,14 @@ export function registerHandoffCommands(program: any): void {
     .option('--recent <n>', 'recent normalized entries to include (default 20)', parseInteger)
     .option('--max-chars <n>', 'per-string preview cap (default 4000)', parseInteger)
     .action(inspectHandoffCli);
+
+  handoff.command('intake <transcript>')
+    .description('recover useful Claude transcript evidence from newest to oldest')
+    .option('--before <line>', 'exclusive raw-line cursor returned by the previous page', parseInteger)
+    .option('--limit <n>', 'meaningful entries per page (default 24, max 200)', parseInteger)
+    .option('--max-chars <n>', 'per-string cap with head and tail retained (default 4000)', parseInteger)
+    .option('--full', 'do not truncate text/tool output on this page')
+    .action(intakeHandoffCli);
 
   handoff.command('read <transcript>')
     .description('page through a Claude JSONL transcript as normalized JSON')
@@ -129,6 +138,15 @@ export function readHandoffCli(transcript: string, options: ReadOptions = {}): v
     process.stdout.write(JSON.stringify(readTranscriptPage(transcript, options), null, 2) + '\n');
   } catch (error) {
     process.stderr.write(`rig handoff read: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  }
+}
+
+export function intakeHandoffCli(transcript: string, options: IntakeOptions = {}): void {
+  try {
+    process.stdout.write(JSON.stringify(intakeTranscript(transcript, options), null, 2) + '\n');
+  } catch (error) {
+    process.stderr.write(`rig handoff intake: ${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
   }
 }

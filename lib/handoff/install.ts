@@ -17,6 +17,7 @@ export interface InstallOptions {
 export interface InstallResult {
   claudeSkillChanged: boolean;
   codexSkillChanged: boolean;
+  legacyCodexSkillRemoved: boolean;
   launcherChanged: boolean;
   settingsChanged: boolean;
   settingsBackup?: string;
@@ -47,11 +48,12 @@ export function installHandoff(options: InstallOptions = {}): InstallResult {
     options.force,
   );
   const codexSkillChanged = linkSkillDirectory(
-    paths.fromClaudeSkillSource,
+    paths.rigFromClaudeSkillSource,
     paths.codexSkill,
     paths.backups,
     options.force,
   );
+  const legacyCodexSkillRemoved = removeOwnedLegacySkillLink(paths);
   const settings = installHooks(
     paths.claudeSettings,
     paths.backups,
@@ -62,6 +64,7 @@ export function installHandoff(options: InstallOptions = {}): InstallResult {
   return {
     claudeSkillChanged,
     codexSkillChanged,
+    legacyCodexSkillRemoved,
     launcherChanged,
     settingsChanged: settings.changed,
     settingsBackup: settings.backupPath,
@@ -74,7 +77,8 @@ export default function installHandoffCli(options: InstallOptions = {}): void {
   try {
     const result = installHandoff(options);
     reportSkill('Claude /handoff', result.paths.claudeSkill, result.claudeSkillChanged);
-    reportSkill('Codex from-claude', result.paths.codexSkill, result.codexSkillChanged);
+    reportSkill('Codex rig-from-claude', result.paths.codexSkill, result.codexSkillChanged);
+    if (result.legacyCodexSkillRemoved) print.succeed(`removed legacy skill link: ${shortPath(result.paths.legacyCodexSkill)}`);
     reportLauncher(result.paths.handoffExecutable, result.launcherChanged);
     if (result.settingsChanged) print.succeed(`updated ${shortPath(result.paths.claudeSettings)}`);
     else print.info(`hooks already installed in ${shortPath(result.paths.claudeSettings)}`);
@@ -88,7 +92,7 @@ export default function installHandoffCli(options: InstallOptions = {}): void {
 
 function validateSources(paths: HandoffPaths): void {
   if (!paths.rigRoot) throw new Error('could not locate the rigjs package root.');
-  for (const source of [paths.handoffSkillSource, paths.fromClaudeSkillSource]) {
+  for (const source of [paths.handoffSkillSource, paths.rigFromClaudeSkillSource]) {
     if (!fs.existsSync(path.join(source, 'SKILL.md'))) {
       throw new Error(`bundled skill is missing: ${path.join(source, 'SKILL.md')}`);
     }
@@ -98,7 +102,7 @@ function validateSources(paths: HandoffPaths): void {
 function preflightInstall(paths: HandoffPaths, rigBin: string, force = false): void {
   preflightLauncher(paths.handoffExecutable, rigBin, force);
   preflightSkillDirectory(paths.handoffSkillSource, paths.claudeSkill, force);
-  preflightSkillDirectory(paths.fromClaudeSkillSource, paths.codexSkill, force);
+  preflightSkillDirectory(paths.rigFromClaudeSkillSource, paths.codexSkill, force);
   // Parse settings before creating any links, so a malformed dotfile cannot
   // leave a predictable partial installation behind.
   readSettings(paths.claudeSettings);
@@ -124,11 +128,21 @@ function linkSkillDirectory(source: string, target: string, backupDir: string, f
     } else {
       if (!force) throw new Error(`${target} already exists; pass --force to back it up and replace it.`);
       fs.mkdirSync(backupDir, { recursive: true });
-      const backup = uniqueBackupPath(backupDir, target.includes('from-claude') ? 'codex-from-claude-skill' : 'claude-handoff-skill');
+      const backup = uniqueBackupPath(backupDir, target.includes('from-claude') ? 'codex-rig-from-claude-skill' : 'claude-handoff-skill');
       fs.renameSync(target, backup);
     }
   }
   fs.symlinkSync(source, target, 'dir');
+  return true;
+}
+
+function removeOwnedLegacySkillLink(paths: HandoffPaths): boolean {
+  const existing = lstat(paths.legacyCodexSkill);
+  if (!existing || !existing.isSymbolicLink()) return false;
+  const resolved = path.resolve(path.dirname(paths.legacyCodexSkill), fs.readlinkSync(paths.legacyCodexSkill));
+  const ownedSources = [paths.legacyFromClaudeSkillSource, paths.rigFromClaudeSkillSource].map(source => path.resolve(source));
+  if (!ownedSources.includes(resolved)) return false;
+  fs.rmSync(paths.legacyCodexSkill, { force: true });
   return true;
 }
 
