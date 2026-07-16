@@ -5,50 +5,41 @@ Rig 是面向 Agent 的 macOS CLI，用于基于 Git 的多仓库开发、本地
 
 [English](./README.md)
 
-## 安装
+## 给人
 
-需要 macOS 与 Node.js 22–26。
+把下面这一行发给 Codex 或 Claude Code。执行完成后打开新终端、新建 Agent
+会话，直接描述你想完成的结果，不需要自己学习 Rig 命令。
 
 ```bash
 npx --yes rigjs@latest setup
 ```
 
-这一条命令会把用户级 `rig` CLI 持久安装到 `~/.rig`、加入新 zsh 会话的
-`PATH`，并把 Rig Skill 安装到检测到的 Codex 和 Claude Code。首次安装后
-打开新终端并新建 Agent 会话，即可使用。
+## 给 Agent
 
-如果只想使用开放 Agent Skills 生态的标准安装方式：
+当用户要求安装或使用 Rig 时：
+
+1. 确认系统为 macOS，Node.js 版本为 22–26。
+2. 执行 `npx --yes rigjs@latest setup`。它会把用户级 CLI 安装到 `~/.rig`，
+   将 `~/.rig/bin` 加入新 zsh 会话，并把 `rig` Skill 安装到检测到的 Codex
+   与 Claude Code。
+3. 用 `~/.rig/bin/rig --version` 和 `~/.rig/bin/rig help` 验证。
+4. 执行 `~/.rig/bin/rig guide` 读取完整 Agent 操作指南，不要让用户记 CLI。
+5. 如果用户要 Claude Code → Codex 接管，执行
+   `~/.rig/bin/rig handoff install`，再执行 `~/.rig/bin/rig handoff doctor`。
+6. 告知用户打开新终端、新建 Agent 会话，让 `PATH` 和 Skill 重新载入。
+
+存在时优先使用稳定入口 `~/.rig/bin/rig`。运行任何命令族前先查看
+`rig help <command>` 或下级 `--help`；除非用户请求明确授权，不要部署、
+发布、推 tag、覆盖 Skill 或大范围 ingest 文件。
+
+如果用户明确要求使用开放 Agent Skills 安装器，而不是 Rig 的组合安装，
+则分别安装 CLI 和 Skill：
 
 ```bash
 npm install --global rigjs
 npx --yes skills add https://github.com/FlashHand/rig/tree/main/skills/rig -g -a codex -a claude-code -y
 ```
 
-## 让 Agent 学会使用 Rig
-
-把内置操作指南复制到剪贴板，再粘贴给 Claude Code、Codex 或其他 Coding
-Agent 即可：
-
-```bash
-rig guide --copy
-```
-
-Guide 是写给 Agent 的，人不需要阅读或记住完整命令。也可以用 `rig guide`
-直接输出；`rig man` 是同一命令的别名。仓库版本见
-[`RIG_GUIDE.md`](./RIG_GUIDE.md)。
-
-## 最简单的几个命令
-
-```bash
-rig help                 # 命令索引
-rig guide                # 完整 Agent Guide
-rig setup                # 安装/更新 CLI 与 Rig Skill
-rig init                 # 在项目中初始化 Git 依赖管理
-rig dev <dependency>     # 本地开发一个依赖
-rig handoff install      # 安装 Claude Code → Codex handoff
-```
-
-查看细节时使用 `rig help <command>` 或
-`rig <command> <subcommand> --help`。
+仓库内完整指南见 [`RIG_GUIDE.md`](./RIG_GUIDE.md)。
 
 License: MIT
