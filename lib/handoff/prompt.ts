@@ -7,7 +7,7 @@ export interface HandoffContext {
 
 export function buildHandoffPrompt(context: HandoffContext): string {
   const lines = [
-    'Use the $from-claude Skill to take over this Claude Code session.',
+    'Use the $rig-from-claude Skill to take over this Claude Code session.',
     '',
     `transcript_path: ${context.transcriptPath}`,
     `cwd: ${context.cwd}`,

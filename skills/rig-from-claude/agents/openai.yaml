@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rig: Resume from Claude"
+  short_description: "Continue interrupted Claude work from local JSONL"
+  default_prompt: "Use $rig-from-claude to recover the provided Claude Code session and continue its unfinished work."

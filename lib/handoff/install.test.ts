@@ -116,7 +116,7 @@ describe('handoff installation', () => {
   });
 
   test('preflights conflicts before creating any handoff links', () => {
-    const codexSkill = path.join(home, '.codex', 'skills', 'from-claude');
+    const codexSkill = path.join(home, '.codex', 'skills', 'rig-from-claude');
     fs.mkdirSync(codexSkill, { recursive: true });
     fs.writeFileSync(path.join(codexSkill, 'KEEP.md'), 'user-owned');
 
@@ -124,6 +124,32 @@ describe('handoff installation', () => {
     expect(fs.existsSync(path.join(home, '.rig', 'bin', 'rig-handoff'))).toBe(false);
     expect(fs.existsSync(path.join(home, '.claude', 'skills', 'handoff'))).toBe(false);
     expect(fs.readFileSync(path.join(codexSkill, 'KEEP.md'), 'utf8')).toBe('user-owned');
+  });
+
+  test('migrates only the installer-owned legacy from-claude link', () => {
+    const legacyTarget = path.join(home, '.codex', 'skills', 'from-claude');
+    const legacySource = path.join(rigRoot, 'skills', 'from-claude');
+    fs.mkdirSync(path.dirname(legacyTarget), { recursive: true });
+    fs.symlinkSync(legacySource, legacyTarget, 'dir');
+
+    const result = installHandoff({ platform: 'darwin', env });
+
+    expect(result.legacyCodexSkillRemoved).toBe(true);
+    expect(() => fs.lstatSync(legacyTarget)).toThrow();
+    expect(fs.lstatSync(result.paths.codexSkill).isSymbolicLink()).toBe(true);
+  });
+
+  test('preserves an unrelated legacy from-claude link', () => {
+    const legacyTarget = path.join(home, '.codex', 'skills', 'from-claude');
+    const unrelatedSource = path.join(home, 'other-skill');
+    fs.mkdirSync(unrelatedSource, { recursive: true });
+    fs.mkdirSync(path.dirname(legacyTarget), { recursive: true });
+    fs.symlinkSync(unrelatedSource, legacyTarget, 'dir');
+
+    const result = installHandoff({ platform: 'darwin', env });
+
+    expect(result.legacyCodexSkillRemoved).toBe(false);
+    expect(path.resolve(path.dirname(legacyTarget), fs.readlinkSync(legacyTarget))).toBe(unrelatedSource);
   });
 
   test('rejects a dangling settings symlink before creating links', () => {

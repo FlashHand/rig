@@ -1,21 +1,25 @@
 # rig Skills
 
-This page is the skill index for the `rigjs` package. The root `README.md` keeps a one-line pointer here; everything skill-related — what ships, how to install, how to maintain — lives in this file.
+This page contains contributor and implementation details for Skills in the
+`rigjs` package. The root `README.md` presents the complete user-facing Skill
+catalog and copyable install routes; lower-level installation and maintenance
+behavior lives here.
 
 ## Bundled Skills
 
 | Skill | Canonical file | Plugin copy | CLI area | Purpose |
 |---|---|---|---|---|
+| `rig` | [`skills/rig/SKILL.md`](./skills/rig/SKILL.md) | (standalone cross-agent skill) | all Rig command families | Routes an agent to the appropriate Rig workflow and safety boundary. |
 | `rig-wiki` | [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md) | [`.claude/skills/rig-wiki/SKILL.md`](./.claude/skills/rig-wiki/SKILL.md) | `rig wiki *` | Karpathy-style LLM wiki operations: scan, fetch, ingest, query, lint, rebuild. |
 | `rig-crew` | [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md) | (none — vault-level guidance) | `rig crew *` | File-backed, Leader-first multi-agent coordination over an Obsidian vault. |
 | `rig-package` | [`RIG_PACKAGE_SKILL.md`](./RIG_PACKAGE_SKILL.md) | [`.claude/skills/rig-package/SKILL.md`](./.claude/skills/rig-package/SKILL.md) | `rig init` / `install` / `add` / `dev` / `tag` | Git-tag + ssh package manager that replaces a private npm registry; documents every `package.rig.json5#dependencies` field. |
 | `rig-cicd` | [`RIG_CICD_SKILL.md`](./RIG_CICD_SKILL.md) | [`.claude/skills/rig-cicd/SKILL.md`](./.claude/skills/rig-cicd/SKILL.md) | `rig build` / `deploy` / `publish` | Aliyun OSS + CDN static-site CI/CD; one bucket → many sites via CDN URI rewrites set during `rig publish`. Supports hash, history, mpa, pre-built HTML dirs. |
 | `handoff` | [`skills/handoff/SKILL.md`](./skills/handoff/SKILL.md) | (standalone personal skill) | `rig handoff install` / `copy` | User-invoked Claude slash command intercepted locally before any model request. |
-| `from-claude` | [`skills/from-claude/SKILL.md`](./skills/from-claude/SKILL.md) | (Codex personal skill) | `rig handoff inspect` / `read` | Recovers a Claude JSONL transcript in bounded pages and reconciles it with current workspace state. |
+| `rig-from-claude` | [`skills/rig-from-claude/SKILL.md`](./skills/rig-from-claude/SKILL.md) | (standalone Codex personal skill) | `rig handoff intake` | Recovers newest dialogue/tool evidence first, then reconciles it with current workspace state. |
 
 `rig-crew` is intentionally not copied into the rigjs package's own `.claude/skills/`. Its instructions belong at the Vault level (the project that uses crew), not at the tool level (rigjs itself).
 
-`handoff` and `from-claude` are installed together only by `rig handoff install`. They are excluded from npm `postinstall` because the feature also owns Claude lifecycle hooks and must be explicitly enabled.
+`handoff` and `rig-from-claude` are installed together only by `rig handoff install`. They are excluded from npm `postinstall` because the feature also owns Claude lifecycle hooks and must be explicitly enabled.
 
 ### Claude → Codex handoff
 
@@ -27,7 +31,7 @@ rig handoff doctor
 The installer creates:
 
 - `~/.claude/skills/handoff` → `<rigjs-install>/skills/handoff`
-- `~/.codex/skills/from-claude` → `<rigjs-install>/skills/from-claude`
+- `~/.codex/skills/rig-from-claude` → `<rigjs-install>/skills/rig-from-claude`
 - `~/.rig/bin/rig-handoff`, a small executable wrapper pinned to the absolute Node binary and `<rigjs-install>/bin/rig.js`, so GUI-launched hooks do not depend on shell `PATH`.
 
 It also atomically merges exact, removable entries into `~/.claude/settings.json`:
@@ -36,6 +40,20 @@ It also atomically merges exact, removable entries into `~/.claude/settings.json
 - `StopFailure` for quota, billing, output-limit, and authentication failures. Its side effect copies the same handoff and sends a macOS notification.
 
 The installer backs up an existing settings file under `~/.rig/backups/handoff/`, preserves unrelated hooks and a dotfiles-managed `settings.json` symlink, and is idempotent. Remove only Rig-owned entries with `rig handoff uninstall`. If the Claude UI is unavailable, `rig handoff copy --latest` performs the same clipboard handoff directly from a terminal.
+
+The Codex skill bundles `scripts/intake.mjs`. It invokes `rig handoff intake`
+without shell interpolation and pages meaningful entries newest-to-oldest.
+Private thinking, usage telemetry, and metadata-only JSONL rows are omitted from
+the model-facing view. A legacy `~/.codex/skills/from-claude` symlink is removed
+on install only when it points to Rig's old bundled skill source.
+
+`$rig-from-claude` is a continuation skill rather than a transcript summarizer.
+It recognizes pasted `transcript_path`, `cwd`, `session_id`, and optional
+`claude_stop_error` fields; recovers the task objective, constraints, decisions,
+edits, tool results, failures, and stopping point; then reconciles that evidence
+with the live Git working tree and continues the unfinished work. If a page is
+insufficient, it follows `nextBeforeLine` toward older evidence instead of
+loading the whole private transcript into context.
 
 ## Install
 
@@ -111,12 +129,18 @@ This makes edits in the submodule's `RIG_*_SKILL.md` immediately visible to the 
 
 ## Maintenance (rig contributors)
 
-Canonical skill files live at the package root:
+The older command-family canonical Skills live at the package root:
 
 - [`RIG_WIKI_SKILL.md`](./RIG_WIKI_SKILL.md)
 - [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md)
 - [`RIG_PACKAGE_SKILL.md`](./RIG_PACKAGE_SKILL.md)
 - [`RIG_CICD_SKILL.md`](./RIG_CICD_SKILL.md)
+
+Cross-agent setup and handoff canonical Skills use standard Skill directories:
+
+- [`skills/rig/SKILL.md`](./skills/rig/SKILL.md)
+- [`skills/handoff/SKILL.md`](./skills/handoff/SKILL.md)
+- [`skills/rig-from-claude/SKILL.md`](./skills/rig-from-claude/SKILL.md)
 
 A package-internal mirror lives under `.claude/skills/` so the rig package itself (when checked out by another agent) can read its own skills:
 
@@ -128,6 +152,6 @@ node scripts/sync-skill.mjs
 
 ## Documentation Policy
 
-- One-line skill visibility + high-level links in `README.md`.
+- Complete user-facing Skill catalog and copyable install routes in `README.md`.
 - All skill references, install variants, and maintenance notes in this file.
-- Each canonical `RIG_*_SKILL.md` stays self-contained — a user opening it should be able to read exactly what they're enabling, without needing this index.
+- Every canonical `SKILL.md` or `RIG_*_SKILL.md` stays self-contained — a user opening it should be able to read exactly what they're enabling, without needing this index.

@@ -8,4 +8,5 @@ Agent-facing delivery plan, read by `rig orchestrate` (see the overmind workspac
 
 ## Tasks
 
+- `tasks/handoff-jsonl-intake.md` — **done** — newest-first semantic JSONL intake, bundled `.mjs` runner, and standalone `rig-from-claude` naming.
 - `tasks/sec-oss-cred-log-redaction.md` — **done** — redact OSS AccessKey ID/Secret from `rig build`/`deploy`/`publish` stdout (the `paramsStr` log leaked raw `ak`/`as`).

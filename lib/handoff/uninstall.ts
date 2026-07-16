@@ -17,7 +17,9 @@ export function uninstallHandoff(options: UninstallOptions = {}): { removed: str
   const paths = resolveHandoffPaths(env);
   const removed: string[] = [];
   if (removeOwnedSkillLink(paths.claudeSkill, paths.handoffSkillSource)) removed.push(paths.claudeSkill);
-  if (removeOwnedSkillLink(paths.codexSkill, paths.fromClaudeSkillSource)) removed.push(paths.codexSkill);
+  if (removeOwnedSkillLink(paths.codexSkill, paths.rigFromClaudeSkillSource)) removed.push(paths.codexSkill);
+  if (removeOwnedSkillLink(paths.legacyCodexSkill, paths.legacyFromClaudeSkillSource)
+    || removeOwnedSkillLink(paths.legacyCodexSkill, paths.rigFromClaudeSkillSource)) removed.push(paths.legacyCodexSkill);
   if (removeOwnedLauncher(paths.handoffExecutable, path.join(paths.rigRoot, 'bin', 'rig.js'))) removed.push(paths.handoffExecutable);
   const settings = uninstallHooks(paths.claudeSettings, paths.backups);
   return { removed, settingsChanged: settings.changed, backupPath: settings.backupPath };
