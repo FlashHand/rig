@@ -21,7 +21,7 @@ To install the skill through the open Agent Skills ecosystem instead:
 
 ```bash
 npm install --global rigjs
-npx --yes skills add FlashHand/rig --skill rig -g -a codex -a claude-code -y
+npx --yes skills add https://github.com/FlashHand/rig/tree/main/skills/rig -g -a codex -a claude-code -y
 ```
 
 ## Teach your agent

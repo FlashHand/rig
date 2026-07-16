@@ -21,7 +21,7 @@ npx --yes rigjs@latest setup
 
 ```bash
 npm install --global rigjs
-npx --yes skills add FlashHand/rig --skill rig -g -a codex -a claude-code -y
+npx --yes skills add https://github.com/FlashHand/rig/tree/main/skills/rig -g -a codex -a claude-code -y
 ```
 
 ## 让 Agent 学会使用 Rig
