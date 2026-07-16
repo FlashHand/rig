@@ -52,7 +52,7 @@ export function handleHook(input: ClaudeHookInput, deps: HookDependencies = {}):
   (deps.copy || copyToClipboard)(prompt);
 
   if (event === 'StopFailure') {
-    (deps.notify || notifyHandoff)('Claude 已停止，Codex 接管信息已复制到剪贴板。');
+    (deps.notify || notifyHandoff)('Claude stopped. Codex handoff copied to clipboard.');
     return { event, prompt };
   }
 
@@ -61,7 +61,7 @@ export function handleHook(input: ClaudeHookInput, deps: HookDependencies = {}):
     prompt,
     output: {
       decision: 'block',
-      reason: 'Codex 接管信息已复制到剪贴板。切换到 Codex，按 ⌘V 后发送。',
+      reason: 'Codex handoff copied to clipboard. Switch to Codex, paste, and send.',
     },
   };
 }
@@ -102,7 +102,7 @@ export function runHookCli(raw: string): number {
     // Fail closed: never let a broken handoff command fall through to a model call.
     process.stdout.write(JSON.stringify({
       decision: 'block',
-      reason: `Rig handoff 失败，未调用 Claude：${message}`,
+      reason: `Rig handoff failed before calling Claude: ${message}`,
     }) + '\n');
     return 0;
   }

@@ -19,6 +19,12 @@ export function copyToClipboard(text: string, env: NodeJS.ProcessEnv = process.e
   const result = spawnSync('/usr/bin/pbcopy', [], {
     input: text,
     encoding: 'utf8',
+    env: {
+      ...process.env,
+      ...env,
+      LANG: env.LANG || process.env.LANG || 'en_US.UTF-8',
+      LC_CTYPE: env.LC_CTYPE || process.env.LC_CTYPE || 'UTF-8',
+    },
     stdio: ['pipe', 'ignore', 'pipe'],
   });
   if (result.error) throw result.error;

@@ -10,8 +10,18 @@ wikis, file-backed agent orchestration, and Claude Code → Codex handoff.
 Requires macOS and Node.js 22–26.
 
 ```bash
+npx --yes rigjs@latest setup
+```
+
+This one command installs a user-wide `rig` CLI under `~/.rig`, adds it to new
+zsh sessions, and installs the Rig skill for detected Codex and Claude Code
+installations. Open a new terminal and start a new agent task afterward.
+
+To install the skill through the open Agent Skills ecosystem instead:
+
+```bash
 npm install --global rigjs
-rig --version
+npx --yes skills add FlashHand/rig --skill rig -g -a codex -a claude-code -y
 ```
 
 ## Teach your agent
@@ -32,6 +42,7 @@ is [`RIG_GUIDE.md`](./RIG_GUIDE.md).
 ```bash
 rig help                 # command index
 rig guide                # full agent guide
+rig setup                # install/update CLI + Rig skill
 rig init                 # initialize git dependency management in a project
 rig dev <dependency>     # develop a dependency locally
 rig handoff install      # install Claude Code → Codex handoff

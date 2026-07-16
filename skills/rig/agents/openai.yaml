@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rig CLI"
+  short_description: "Operate Rig workspaces, wikis, delivery, and handoffs"
+  default_prompt: "Use $rig to choose and run the right Rig CLI workflow for this task."

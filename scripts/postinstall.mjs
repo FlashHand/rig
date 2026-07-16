@@ -28,6 +28,13 @@ if (process.env.RIG_NO_AUTO_SKILL === '1') {
   ok();
 }
 
+// `npx rigjs setup` performs a durable skill installation after the temporary
+// npx package starts. Avoid creating symlinks into npm's disposable exec cache.
+if (process.env.npm_command === 'exec') {
+  console.log('rig: postinstall deferring skill setup to `rigjs setup`');
+  ok();
+}
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const skills = [
   { name: 'rig-wiki', src: path.join(repoRoot, 'RIG_WIKI_SKILL.md') },

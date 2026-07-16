@@ -70,7 +70,7 @@ export function registerHandoffCommands(program: any): void {
         // the expanded skill to the model.
         process.stdout.write(JSON.stringify({
           decision: 'block',
-          reason: `Rig handoff 失败，未调用 Claude：${error instanceof Error ? error.message : String(error)}`,
+          reason: `Rig handoff failed before calling Claude: ${error instanceof Error ? error.message : String(error)}`,
         }) + '\n');
         code = 0;
       }
@@ -94,7 +94,7 @@ export function copyHandoffCli(transcript: string | undefined, options: CopyOpti
       sessionId: session.sessionId || path.basename(selected, '.jsonl'),
     });
     copyToClipboard(prompt);
-    if (options.notify) notifyHandoff('Codex 接管信息已复制到剪贴板。');
+    if (options.notify) notifyHandoff('Codex handoff copied to clipboard.');
     print.succeed(`copied handoff for ${shortPath(selected)}`);
   } catch (error) {
     print.error(error instanceof Error ? error.message : String(error));

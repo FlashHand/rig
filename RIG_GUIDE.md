@@ -15,6 +15,11 @@ rig --version
 rig --versioncode
 ```
 
+For a new macOS machine, install the user-wide CLI and Rig skill into detected
+Codex/Claude Code homes with `npx --yes rigjs@latest setup`. Use
+`rig setup --agents codex`, `rig setup --agents claude-code`, or
+`rig setup --agents all` when auto-detection is not desired.
+
 `rig help` is the authoritative command index. This guide explains intent and
 safe operating patterns; command help is authoritative for current flags.
 
@@ -28,6 +33,7 @@ safe operating patterns; command help is authoritative for current flags.
 | Coordinate file-backed project owners and agents | `rig orchestrate *` (`crew`, `om`, `overmind` aliases) |
 | Continue a Claude Code task in Codex | `rig handoff *` |
 | Teach another agent Rig | `rig guide`, `rig guide --copy`, or `rig man` |
+| Install/update Rig for an agent | `rig setup` (or `npx --yes rigjs@latest setup`) |
 
 ## Complete command-family index
 

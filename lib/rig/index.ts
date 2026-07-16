@@ -104,6 +104,9 @@ registerHandoffCommands(program);
 import { registerGuideCommands } from '../guide';
 registerGuideCommands(program);
 
+import { registerSetupCommands } from '../setup';
+registerSetupCommands(program);
+
 import env from '../env';
 
 program.option('--env <env>', 'specify env').action(env.load);
