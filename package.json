@@ -38,6 +38,7 @@
     "built",
     "lib",
     "doc",
+    "docs",
     "scripts",
     "skills",
     ".claude/skills/rig-wiki",

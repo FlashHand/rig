@@ -31,7 +31,7 @@ safe operating patterns; command help is authoritative for current flags.
 | Build or deploy configured web endpoints | `rig build/deploy/publish` |
 | Maintain or query a local LLM wiki | `rig wiki *` |
 | Coordinate file-backed project owners and agents | `rig orchestrate *` (`crew`, `om`, `overmind` aliases) |
-| Continue a Claude Code task in Codex | `rig handoff *` |
+| Continue a Claude Code task in Codex, or a Codex task in Claude Code | `rig handoff *` |
 | Teach another agent Rig | `rig guide`, `rig guide --copy`, or `rig man` |
 | Install/update Rig for an agent | `rig setup` (or `npx --yes rigjs@latest setup`) |
 
@@ -45,8 +45,9 @@ safe operating patterns; command help is authoritative for current flags.
 - Orchestration: `init`, natural-language `ask`, `status`, `pending-questions`,
   `board`, `sync`, `overview`, `journal`, `task`, `doctor`, `engine`, `dispatch`,
   `project`, `role`, `pending`, `run`, and the explicitly marked planned commands.
-- Handoff: `install`, `uninstall`, `doctor`, `copy`, `latest`, `intake`,
-  `inspect`, and `read`; `hook` is an internal integration entrypoint.
+- Handoff from Claude: `install`, `uninstall`, `doctor`, `copy`, `latest`,
+  `intake`, `inspect`, and `read`; `hook` is internal. Handoff from Codex:
+  `from-codex copy/latest/intake/inspect/read`; `from-codex hook` is internal.
 - Global environment selection: `rig --env <name>` materializes a selected
   environment from `env.rig.json5`.
 - Contributor/lifecycle commands: `install-local`, `preinstall`, and
@@ -157,7 +158,7 @@ Register or synchronize project owners before dispatching project work. Inspect
 `rig orchestrate --help` for role, pending, run, dispatch, journal, and overview
 operations.
 
-## Claude Code to Codex handoff
+## Bidirectional Claude Code and Codex handoff
 
 Install once on macOS:
 
@@ -166,11 +167,25 @@ rig handoff install
 rig handoff doctor
 ```
 
+The sender is one shared `handoff` Skill installed in both agents. Its Claude
+surface is `/handoff`; its Codex surface is `$handoff`. The receiver Skills stay
+separate because their JSONL adapters are format-specific. Rig also sets the
+Claude visibility override to `user-invocable-only`; handoff is always a human
+action, never an implicit model side effect.
+
 Normal interaction: the human types `/handoff` in Claude Code, switches to
 Codex, and pastes. Rig copies a prompt containing the current local Claude JSONL
 path; the standalone Codex `rig-from-claude` skill reads useful evidence from
 newest to oldest and resumes the unfinished task. The local hook does not require a Claude model call, and a
 `StopFailure` hook provides recovery after quota/auth/output failures.
+
+Reverse interaction: after installation, review and trust Rig once through
+Codex `/hooks`. The human types `$handoff` in Codex, switches to Claude
+Code, and pastes. A `UserPromptSubmit` hook records the exact rollout pointer,
+copies the handoff, and stops that prompt before a model request. Claude's
+`rig-from-codex` Skill reads the rollout newest-first through a separate
+privacy-filtered adapter. Codex reasoning, encrypted fields, runtime developer
+messages, world state, and token telemetry are never emitted by the adapter.
 
 Terminal recovery and diagnostics:
 
@@ -182,7 +197,21 @@ rig handoff intake <session.jsonl> --before <nextBeforeLine>
 rig handoff inspect <session.jsonl>
 rig handoff read <session.jsonl> --from 1 --limit 80
 rig handoff doctor --json
+
+rig handoff from-codex copy --latest --cwd "$PWD"
+rig handoff from-codex latest --cwd "$PWD" --json
+rig handoff from-codex intake <rollout.jsonl>
+rig handoff from-codex intake <rollout.jsonl> --before <nextBeforeLine>
+rig handoff from-codex inspect <rollout.jsonl>
+rig handoff from-codex read <rollout.jsonl> --from 1 --limit 80
 ```
+
+Codex currently has no quota/auth failure hook equivalent to Claude
+`StopFailure`. The local `$handoff` trigger still runs before a model request
+and writes `~/.rig/handoff/codex-latest.json`. Ordinary root and subagent
+prompts never replace that shared pointer. If the UI is unavailable, terminal
+`from-codex copy --latest` validates the saved pointer against the newest root
+rollouts and does not call a model.
 
 Transcripts may contain secrets and private tool output. Keep them local, page
 only what is needed, never paste the whole JSONL into chat, and never publish or

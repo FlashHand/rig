@@ -14,14 +14,18 @@ behavior lives here.
 | `rig-crew` | [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md) | (none — vault-level guidance) | `rig crew *` | File-backed, Leader-first multi-agent coordination over an Obsidian vault. |
 | `rig-package` | [`RIG_PACKAGE_SKILL.md`](./RIG_PACKAGE_SKILL.md) | [`.claude/skills/rig-package/SKILL.md`](./.claude/skills/rig-package/SKILL.md) | `rig init` / `install` / `add` / `dev` / `tag` | Git-tag + ssh package manager that replaces a private npm registry; documents every `package.rig.json5#dependencies` field. |
 | `rig-cicd` | [`RIG_CICD_SKILL.md`](./RIG_CICD_SKILL.md) | [`.claude/skills/rig-cicd/SKILL.md`](./.claude/skills/rig-cicd/SKILL.md) | `rig build` / `deploy` / `publish` | Aliyun OSS + CDN static-site CI/CD; one bucket → many sites via CDN URI rewrites set during `rig publish`. Supports hash, history, mpa, pre-built HTML dirs. |
-| `handoff` | [`skills/handoff/SKILL.md`](./skills/handoff/SKILL.md) | (standalone personal skill) | `rig handoff install` / `copy` | User-invoked Claude slash command intercepted locally before any model request. |
+| `handoff` | [`skills/handoff/SKILL.md`](./skills/handoff/SKILL.md) | (standalone personal skill) | `/handoff` / `$handoff` | Shared sender Skill: copies the current agent's JSONL pointer before a model request. |
 | `rig-from-claude` | [`skills/rig-from-claude/SKILL.md`](./skills/rig-from-claude/SKILL.md) | (standalone Codex personal skill) | `rig handoff intake` | Recovers newest dialogue/tool evidence first, then reconciles it with current workspace state. |
+| `rig-from-codex` | [`skills/rig-from-codex/SKILL.md`](./skills/rig-from-codex/SKILL.md) | (standalone Claude personal skill) | `rig handoff from-codex intake` | Recovers privacy-filtered Codex dialogue, tool, edit, and unfinished-turn evidence newest-first. |
 
 `rig-crew` is intentionally not copied into the rigjs package's own `.claude/skills/`. Its instructions belong at the Vault level (the project that uses crew), not at the tool level (rigjs itself).
 
-`handoff` and `rig-from-claude` are installed together only by `rig handoff install`. They are excluded from npm `postinstall` because the feature also owns Claude lifecycle hooks and must be explicitly enabled.
+The handoff surface is one shared sender Skill plus two format-specific receiver
+adapters, installed across four agent locations only by `rig handoff install`.
+They are excluded from npm `postinstall` because the feature owns Claude and
+Codex lifecycle hooks and must be explicitly enabled.
 
-### Claude → Codex handoff
+### Bidirectional Claude ↔ Codex handoff
 
 ```bash
 rig handoff install
@@ -31,13 +35,29 @@ rig handoff doctor
 The installer creates:
 
 - `~/.claude/skills/handoff` → `<rigjs-install>/skills/handoff`
+- `~/.codex/skills/handoff` → `<rigjs-install>/skills/handoff`
 - `~/.codex/skills/rig-from-claude` → `<rigjs-install>/skills/rig-from-claude`
+- `~/.claude/skills/rig-from-codex` → `<rigjs-install>/skills/rig-from-codex`
 - `~/.rig/bin/rig-handoff`, a small executable wrapper pinned to the absolute Node binary and `<rigjs-install>/bin/rig.js`, so GUI-launched hooks do not depend on shell `PATH`.
 
 It also atomically merges exact, removable entries into `~/.claude/settings.json`:
 
+- `skillOverrides.handoff = "user-invocable-only"`, with the prior value kept
+  in a private 0600 Rig state file for uninstall restoration. This mirrors the
+  Codex Skill's non-implicit policy without adding Claude-only frontmatter to
+  the shared canonical Skill.
 - `UserPromptExpansion` for the bare `/handoff` command. The hook copies `transcript_path`, `cwd`, and `session_id`, then blocks expansion before a model request.
 - `StopFailure` for quota, billing, output-limit, and authentication failures. Its side effect copies the same handoff and sends a macOS notification.
+
+It separately merges a Rig-owned `UserPromptSubmit` handler into
+`~/.codex/hooks.json`, preserving unrelated handlers such as session managers.
+Codex ignores a matcher for this event, so Rig uses it only as an ownership
+marker and checks for the exact `$handoff` prompt inside the handler. Only that
+explicit trigger updates the 0600 pointer
+`~/.rig/handoff/codex-latest.json`, copies a Claude-ready handoff, and stops
+before the model call. This prevents ordinary subagent prompts from replacing
+the root task's pointer. Users must review and trust this non-managed hook once
+through Codex `/hooks`.
 
 The installer backs up an existing settings file under `~/.rig/backups/handoff/`, preserves unrelated hooks and a dotfiles-managed `settings.json` symlink, and is idempotent. Remove only Rig-owned entries with `rig handoff uninstall`. If the Claude UI is unavailable, `rig handoff copy --latest` performs the same clipboard handoff directly from a terminal.
 
@@ -54,6 +74,21 @@ edits, tool results, failures, and stopping point; then reconciles that evidence
 with the live Git working tree and continues the unfinished work. If a page is
 insufficient, it follows `nextBeforeLine` toward older evidence instead of
 loading the whole private transcript into context.
+
+The reverse `rig-from-codex` Skill bundles its own `scripts/intake.mjs` and
+invokes `rig handoff from-codex intake`. Codex rollout JSONL is not the same
+schema as Claude JSONL, so its adapter is a separate whitelist parser. It pairs
+tool calls/results by `call_id`, preserves user/assistant dialogue, goals and
+edited-file paths, waits up to two seconds for the first JSONL flush, and
+explicitly omits private reasoning, encrypted content, runtime developer
+messages, world state, and token/rate-limit telemetry.
+
+Codex does not expose a quota-failure equivalent to Claude `StopFailure`.
+`$handoff` itself still executes locally before a model request. If the Codex
+UI is unavailable, run `rig handoff from-codex copy --latest --cwd "$PWD"`;
+it validates any explicit pointer against the newest root rollouts without a
+model call. `rig handoff uninstall` removes only the four owned links, the two
+owned hook families, the pointer, and the stable launcher.
 
 ## Install
 
@@ -141,6 +176,7 @@ Cross-agent setup and handoff canonical Skills use standard Skill directories:
 - [`skills/rig/SKILL.md`](./skills/rig/SKILL.md)
 - [`skills/handoff/SKILL.md`](./skills/handoff/SKILL.md)
 - [`skills/rig-from-claude/SKILL.md`](./skills/rig-from-claude/SKILL.md)
+- [`skills/rig-from-codex/SKILL.md`](./skills/rig-from-codex/SKILL.md)
 
 A package-internal mirror lives under `.claude/skills/` so the rig package itself (when checked out by another agent) can read its own skills:
 

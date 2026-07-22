@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rig: Resume from Codex"
+  short_description: "Continue interrupted Codex work from local JSONL"
+  default_prompt: "Use $rig-from-codex to recover this Codex task from its local JSONL and continue it."

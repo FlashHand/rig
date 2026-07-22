@@ -1,6 +1,6 @@
 ---
 name: rig
-description: Operate the Rig (`rigjs`) macOS CLI for git-based dependency workspaces, static-site CI/CD, local LLM wikis, file-backed agent orchestration, and Claude Code to Codex handoff. Use when the user asks to install or use Rig, work with package.rig.json5, run rig build/deploy/publish, manage a Rig wiki or crew, diagnose Rig, or configure Claude-to-Codex handoff.
+description: Operate the Rig (`rigjs`) macOS CLI for git-based dependency workspaces, static-site CI/CD, local LLM wikis, file-backed agent orchestration, and bidirectional Claude Code and Codex handoff. Use when the user asks to install or use Rig, work with package.rig.json5, run rig build/deploy/publish, manage a Rig wiki or crew, diagnose Rig, or configure Claude/Codex session handoff.
 ---
 
 # Operate Rig
@@ -38,7 +38,9 @@ Open a new terminal and start a new agent task after first-time installation. Ri
 - Static-site delivery: `rig build`, `rig deploy`, `rig publish`.
 - Local knowledge wiki: `rig wiki *`.
 - File-backed agent coordination: `rig orchestrate *` (`crew`, `om`, and `overmind` aliases).
-- Claude Code to Codex takeover: `rig handoff install`, then `/handoff` in Claude.
+- Bidirectional takeover: `rig handoff install`; use the same `handoff` Skill as
+  `/handoff` in Claude or `$handoff` in Codex. Trust the Rig Codex hook once
+  through `/hooks`.
 - Installation and discovery: `rig setup`, `rig help`, `rig guide`, `rig man`.
 
 Before guessing flags, run `rig help <command>` or `rig <command> <subcommand> --help`. For the complete bundled operating guide, run `rig guide`; locate it without loading it using `rig guide --path`.
@@ -51,4 +53,4 @@ Before guessing flags, run `rig help <command>` or `rig <command> <subcommand> -
 4. Verify exit status and changed files or external state.
 5. Report the outcome and any unresolved condition.
 
-Keep credentials out of CLI arguments, committed configs, logs, and chat. Treat Claude transcript JSONL files as private local evidence and page them with `rig handoff inspect/read`; never publish or paste an entire transcript.
+Keep credentials out of CLI arguments, committed configs, logs, and chat. Treat Claude and Codex transcript JSONL files as private local evidence and page them with `rig handoff intake/read` or `rig handoff from-codex intake/read`; never publish or paste an entire transcript.

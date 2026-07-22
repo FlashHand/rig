@@ -35,8 +35,6 @@ while (argv.length > 0) {
   passthrough.push(option, value);
 }
 
-// Skill defaults intentionally favor fast context intake. Callers can widen a
-// specific page, while the CLI itself retains a more generous diagnostic view.
 if (!hasLimit) passthrough.push('--limit', '12');
 if (!hasMaxChars) passthrough.push('--max-chars', '2000');
 
@@ -44,13 +42,11 @@ const invocation = resolveRig();
 const result = spawnSync(invocation.command, [
   ...invocation.prefix,
   'handoff',
+  'from-codex',
   'intake',
   transcript,
   ...passthrough,
-], {
-  env: process.env,
-  stdio: 'inherit',
-});
+], { env: process.env, stdio: 'inherit' });
 
 if (result.error) fail(result.error.message);
 process.exitCode = result.status == null ? 1 : result.status;
@@ -61,17 +57,13 @@ function resolveRig() {
     assertExecutable(explicit, 'RIG_HANDOFF_BIN');
     return { command: explicit, prefix: [] };
   }
-
   const stable = path.join(process.env.HOME || os.homedir(), '.rig', 'bin', 'rig-handoff');
   if (isExecutable(stable)) return { command: stable, prefix: [] };
-
   const rig = findOnPath('rig');
   if (rig) return { command: rig, prefix: [] };
-
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const sourceBin = path.resolve(scriptDir, '..', '..', '..', 'bin', 'rig.js');
   if (fs.existsSync(sourceBin)) return { command: process.execPath, prefix: [sourceBin] };
-
   fail('Rig handoff launcher not found; run `rig handoff install` first');
 }
 
@@ -88,9 +80,7 @@ function isExecutable(value) {
   try {
     fs.accessSync(value, fs.constants.X_OK);
     return fs.statSync(value).isFile();
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 function assertExecutable(value, label) {
@@ -109,6 +99,6 @@ async function waitForTranscript(value, timeoutMs) {
 }
 
 function fail(message) {
-  process.stderr.write(`rig-from-claude intake: ${message}\n${usage}\n`);
+  process.stderr.write(`rig-from-codex intake: ${message}\n${usage}\n`);
   process.exit(1);
 }

@@ -26,7 +26,7 @@ if (process.argv.some(a => a === '-c' || a === '--versioncode')) {
 }
 
 const program = new Command();
-program.name('rig').description('Agent-facing multi-repo, wiki, orchestration, and Claude-to-Codex tooling');
+program.name('rig').description('Agent-facing multi-repo, wiki, orchestration, and Claude/Codex handoff tooling');
 
 import check from '../check';
 

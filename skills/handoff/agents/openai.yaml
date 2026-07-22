@@ -1,4 +1,6 @@
 interface:
-  display_name: "Claude Handoff"
-  short_description: "Copy this Claude session for Codex takeover"
-  default_prompt: "Use $handoff to copy this Claude Code session into a Codex-ready handoff."
+  display_name: "Rig Handoff"
+  short_description: "Copy this session for the other coding agent"
+  default_prompt: "Use $handoff to copy this session for the other coding agent to continue."
+policy:
+  allow_implicit_invocation: false

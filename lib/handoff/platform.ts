@@ -1,6 +1,9 @@
 import fs from 'fs';
 import { spawnSync } from 'child_process';
 
+const CLIPBOARD_TIMEOUT_MS = 2500;
+const NOTIFICATION_TIMEOUT_MS = 1000;
+
 export function requireMacOS(platform: NodeJS.Platform = process.platform): void {
   if (platform !== 'darwin') {
     const error = new Error(`rig handoff supports macOS only (detected: ${platform}).`);
@@ -26,6 +29,7 @@ export function copyToClipboard(text: string, env: NodeJS.ProcessEnv = process.e
       LC_CTYPE: env.LC_CTYPE || process.env.LC_CTYPE || 'UTF-8',
     },
     stdio: ['pipe', 'ignore', 'pipe'],
+    timeout: CLIPBOARD_TIMEOUT_MS,
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {
@@ -38,5 +42,5 @@ export function notifyHandoff(message: string): void {
   spawnSync('/usr/bin/osascript', [
     '-e',
     `display notification "${escapeAppleScript(message)}" with title "Rig Handoff"`,
-  ], { stdio: 'ignore' });
+  ], { stdio: 'ignore', timeout: NOTIFICATION_TIMEOUT_MS });
 }
