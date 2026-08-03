@@ -29,8 +29,9 @@ export interface CodexHookResult {
 }
 
 const CODEX_HANDOFF_PROMPTS = new Set([
-  '$handoff',
   '/handoff',
+  // Backward compatibility for Codex's explicit Skill invocation surface.
+  '$handoff',
   'Use $handoff to copy this session for the other coding agent to continue.',
 ]);
 

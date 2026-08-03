@@ -34,12 +34,12 @@ describe('Codex to Claude handoff hook', () => {
     expect(readCodexLatestPointer(pointer)).toBeNull();
   });
 
-  test('exact skill trigger copies a UTF-8 Claude prompt and stops the model call', () => {
+  test('exact slash trigger copies a UTF-8 Claude prompt and stops the model call', () => {
     const copied: string[] = [];
     const notified: string[] = [];
     const result = handleCodexHook({
       hook_event_name: 'UserPromptSubmit',
-      prompt: '  $handoff\n',
+      prompt: '  /handoff\n',
       transcript_path: transcript,
       cwd: '/tmp/项目',
       session_id: 'thread-中文',
@@ -70,7 +70,7 @@ describe('Codex to Claude handoff hook', () => {
     const future = path.join(dir, 'future.jsonl');
     const result = handleCodexHook({
       hook_event_name: 'UserPromptSubmit',
-      prompt: '$handoff',
+      prompt: '/handoff',
       transcript_path: future,
       cwd: '/tmp/project',
       session_id: 'future',
@@ -94,12 +94,14 @@ describe('Codex to Claude handoff hook', () => {
   });
 
   test('trigger validation is exact and macOS-only', () => {
-    expect(isCodexHandoffPrompt('$handoff please')).toBe(false);
     expect(isCodexHandoffPrompt('/handoff')).toBe(true);
+    expect(isCodexHandoffPrompt('/handoff please')).toBe(false);
+    expect(isCodexHandoffPrompt('$handoff')).toBe(true);
+    expect(isCodexHandoffPrompt('$handoff please')).toBe(false);
     expect(isCodexHandoffPrompt('Use $handoff to copy this session for the other coding agent to continue.')).toBe(true);
     expect(() => handleCodexHook({
       hook_event_name: 'UserPromptSubmit',
-      prompt: '$handoff',
+      prompt: '/handoff',
       transcript_path: transcript,
       cwd: '/tmp',
       session_id: 'x',

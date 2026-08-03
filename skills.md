@@ -14,7 +14,7 @@ behavior lives here.
 | `rig-crew` | [`RIG_CREW_SKILL.md`](./RIG_CREW_SKILL.md) | (none — vault-level guidance) | `rig crew *` | File-backed, Leader-first multi-agent coordination over an Obsidian vault. |
 | `rig-package` | [`RIG_PACKAGE_SKILL.md`](./RIG_PACKAGE_SKILL.md) | [`.claude/skills/rig-package/SKILL.md`](./.claude/skills/rig-package/SKILL.md) | `rig init` / `install` / `add` / `dev` / `tag` | Git-tag + ssh package manager that replaces a private npm registry; documents every `package.rig.json5#dependencies` field. |
 | `rig-cicd` | [`RIG_CICD_SKILL.md`](./RIG_CICD_SKILL.md) | [`.claude/skills/rig-cicd/SKILL.md`](./.claude/skills/rig-cicd/SKILL.md) | `rig build` / `deploy` / `publish` | Aliyun OSS + CDN static-site CI/CD; one bucket → many sites via CDN URI rewrites set during `rig publish`. Supports hash, history, mpa, pre-built HTML dirs. |
-| `handoff` | [`skills/handoff/SKILL.md`](./skills/handoff/SKILL.md) | (standalone personal skill) | `/handoff` / `$handoff` | Shared sender Skill: copies the current agent's JSONL pointer before a model request. |
+| `handoff` | [`skills/handoff/SKILL.md`](./skills/handoff/SKILL.md) | (standalone personal skill) | `/handoff` (`$handoff` compatible in Codex) | Shared sender Skill: copies the current agent's JSONL pointer before a model request. |
 | `rig-from-claude` | [`skills/rig-from-claude/SKILL.md`](./skills/rig-from-claude/SKILL.md) | (standalone Codex personal skill) | `rig handoff intake` | Recovers newest dialogue/tool evidence first, then reconciles it with current workspace state. |
 | `rig-from-codex` | [`skills/rig-from-codex/SKILL.md`](./skills/rig-from-codex/SKILL.md) | (standalone Claude personal skill) | `rig handoff from-codex intake` | Recovers privacy-filtered Codex dialogue, tool, edit, and unfinished-turn evidence newest-first. |
 
@@ -52,8 +52,9 @@ It also atomically merges exact, removable entries into `~/.claude/settings.json
 It separately merges a Rig-owned `UserPromptSubmit` handler into
 `~/.codex/hooks.json`, preserving unrelated handlers such as session managers.
 Codex ignores a matcher for this event, so Rig uses it only as an ownership
-marker and checks for the exact `$handoff` prompt inside the handler. Only that
-explicit trigger updates the 0600 pointer
+marker and checks for the exact `/handoff` prompt inside the handler. The
+backward-compatible `$handoff` Skill prompt is also accepted. Only those
+explicit triggers update the 0600 pointer
 `~/.rig/handoff/codex-latest.json`, copies a Claude-ready handoff, and stops
 before the model call. This prevents ordinary subagent prompts from replacing
 the root task's pointer. Users must review and trust this non-managed hook once
@@ -84,7 +85,7 @@ explicitly omits private reasoning, encrypted content, runtime developer
 messages, world state, and token/rate-limit telemetry.
 
 Codex does not expose a quota-failure equivalent to Claude `StopFailure`.
-`$handoff` itself still executes locally before a model request. If the Codex
+`/handoff` itself still executes locally before a model request. If the Codex
 UI is unavailable, run `rig handoff from-codex copy --latest --cwd "$PWD"`;
 it validates any explicit pointer against the newest root rollouts without a
 model call. `rig handoff uninstall` removes only the four owned links, the two

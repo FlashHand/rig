@@ -75,8 +75,9 @@ rig handoff doctor
 ```
 
 `handoff` 是唯一面向用户的 canonical Skill，会同时链接到两个 Agent：Claude
-Code 使用 `/handoff`，Codex 使用 `$handoff`。两个内部 `rig-from-*` 接收适配器
-仍然分开，因为 Claude 与 Codex 的 JSONL schema 不同。安装器还会把 Claude 的
+Code 与 Codex 都使用 `/handoff`；Codex 仍兼容 `$handoff`。两个内部
+`rig-from-*` 接收适配器仍然分开，因为 Claude 与 Codex 的 JSONL schema
+不同。安装器还会把 Claude 的
 `skillOverrides.handoff` 设为 `user-invocable-only`，与 Codex 的禁止隐式调用策略
 一致，因此两个 Agent 都不能自行决定改写剪贴板。
 
@@ -111,13 +112,13 @@ JSONL 的最新有效内容开始读取，恢复目标、决策、文件修改�
 ### 把 Codex 的工作交给 Claude Code 继续
 
 安装后，先在 Codex 中打开一次 `/hooks` 并信任 Rig 的
-`UserPromptSubmit` Hook。以后在 Codex 输入 `$handoff`，再把自动复制的
+`UserPromptSubmit` Hook。以后在 Codex 输入 `/handoff`，再把自动复制的
 handoff 粘贴到 Claude Code。Hook 会直接复制精确的 rollout 路径、工作目录和
 session ID，并在模型调用前终止该条提示。Claude 的 `rig-from-codex` Skill 只
 读取最新的有效对话、工具结果、文件修改和未完成状态；私有 reasoning、加密
 字段、运行时指令、world state 与 token telemetry 都会被过滤。
 
-Codex 没有与 Claude `StopFailure` 等价的额度失败 Hook，但本地 `$handoff` Hook
+Codex 没有与 Claude `StopFailure` 等价的额度失败 Hook，但本地 `/handoff` Hook
 会在模型请求前执行并写入精确 rollout 指针。普通提示不会更新这个共享指针，
 因此子代理不会覆盖主任务。如果 Codex UI 已不可用，可在终端运行：
 

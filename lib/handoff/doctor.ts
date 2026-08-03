@@ -57,7 +57,7 @@ export function inspectHandoffInstallation(options: DoctorOptions = {}): DoctorC
     { name: 'Codex hook trust', ok: false, detail: 'trust state is not exposed to Rig; confirm once with /hooks', fatal: false },
     { name: 'Claude transcript', ok: !!latest, detail: latest ? shortPath(latest, env) : 'no JSONL transcript yet', fatal: false },
     { name: 'Codex transcript', ok: !!latestCodex && fs.existsSync(latestCodex), detail: latestCodex ? `${shortPath(latestCodex, env)}${fs.existsSync(latestCodex) ? '' : ' — waiting for first JSONL flush'}` : 'no root Codex rollout found', fatal: false },
-    { name: 'Codex latest pointer', ok: !!codexPointer, detail: codexPointer ? shortPath(codexPointer.transcriptPath, env) : 'created by the next $handoff trigger', fatal: false },
+    { name: 'Codex latest pointer', ok: !!codexPointer, detail: codexPointer ? shortPath(codexPointer.transcriptPath, env) : 'created by the next /handoff trigger', fatal: false },
   ];
 }
 

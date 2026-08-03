@@ -76,7 +76,8 @@ rig handoff doctor
 ```
 
 `handoff` is the one user-facing canonical Skill linked into both agents:
-invoke `/handoff` in Claude Code or `$handoff` in Codex. The two internal
+invoke `/handoff` in Claude Code or Codex. Codex `$handoff` remains compatible.
+The two internal
 `rig-from-*` receiver adapters remain separate because Claude and Codex use
 different JSONL schemas. The installer sets Claude's `skillOverrides.handoff`
 to `user-invocable-only`, matching Codex's non-implicit policy, so neither
@@ -113,7 +114,7 @@ terminal and paste the result into Codex.
 ### Continue Codex work in Claude Code
 
 After installation, open `/hooks` in Codex once and trust Rig's
-`UserPromptSubmit` hook. Enter `$handoff` in Codex, then paste the copied
+`UserPromptSubmit` hook. Enter `/handoff` in Codex, then paste the copied
 handoff into Claude Code. The hook copies the exact rollout path, working
 directory, and session ID and stops that prompt before a model call. Claude's
 `rig-from-codex` Skill reads only the newest useful dialogue, tool results, file
@@ -121,7 +122,7 @@ edits, and unfinished state; private reasoning, encrypted content, runtime
 instructions, world state, and token telemetry are omitted.
 
 Codex does not expose a `StopFailure` equivalent for quota failures, but the
-local `$handoff` hook still runs before a model request and writes the exact
+local `/handoff` hook still runs before a model request and writes the exact
 rollout pointer. Ordinary prompts do not update that shared pointer, so a
 subagent cannot replace the main task. If the Codex UI is unavailable, run:
 

@@ -168,10 +168,10 @@ rig handoff doctor
 ```
 
 The sender is one shared `handoff` Skill installed in both agents. Its Claude
-surface is `/handoff`; its Codex surface is `$handoff`. The receiver Skills stay
-separate because their JSONL adapters are format-specific. Rig also sets the
-Claude visibility override to `user-invocable-only`; handoff is always a human
-action, never an implicit model side effect.
+and Codex surface is `/handoff`; Codex `$handoff` remains compatible. The
+receiver Skills stay separate because their JSONL adapters are format-specific.
+Rig also sets the Claude visibility override to `user-invocable-only`; handoff
+is always a human action, never an implicit model side effect.
 
 Normal interaction: the human types `/handoff` in Claude Code, switches to
 Codex, and pastes. Rig copies a prompt containing the current local Claude JSONL
@@ -180,7 +180,7 @@ newest to oldest and resumes the unfinished task. The local hook does not requir
 `StopFailure` hook provides recovery after quota/auth/output failures.
 
 Reverse interaction: after installation, review and trust Rig once through
-Codex `/hooks`. The human types `$handoff` in Codex, switches to Claude
+Codex `/hooks`. The human types `/handoff` in Codex, switches to Claude
 Code, and pastes. A `UserPromptSubmit` hook records the exact rollout pointer,
 copies the handoff, and stops that prompt before a model request. Claude's
 `rig-from-codex` Skill reads the rollout newest-first through a separate
@@ -207,7 +207,7 @@ rig handoff from-codex read <rollout.jsonl> --from 1 --limit 80
 ```
 
 Codex currently has no quota/auth failure hook equivalent to Claude
-`StopFailure`. The local `$handoff` trigger still runs before a model request
+`StopFailure`. The local `/handoff` trigger still runs before a model request
 and writes `~/.rig/handoff/codex-latest.json`. Ordinary root and subagent
 prompts never replace that shared pointer. If the UI is unavailable, terminal
 `from-codex copy --latest` validates the saved pointer against the newest root

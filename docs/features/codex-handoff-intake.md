@@ -3,12 +3,13 @@
 ## Outcome
 
 Rig transfers an active local Codex task to Claude Code without asking Codex to
-summarize itself. The normal user action is `$handoff`; the same canonical
+summarize itself. The normal user action is `/handoff`; the same canonical
 `handoff` Skill is installed in both Codex and Claude Code, and a Codex
 `UserPromptSubmit` hook copies a small handoff containing `transcript_path`,
 `cwd`, and `session_id`, then stops the prompt before a model request. Claude's
 `rig-from-codex` Skill reads a bounded, newest-first recovery view and continues
-against the live workspace.
+against the live workspace. Codex `$handoff` remains accepted for backward
+compatibility.
 
 The shared Skill is side-effecting, so Rig also writes Claude's
 `skillOverrides.handoff = "user-invocable-only"`; Codex uses the equivalent
@@ -18,7 +19,7 @@ clipboard.
 ## Zero-quota recovery
 
 Codex has no documented quota/auth failure event equivalent to Claude Code's
-`StopFailure`. The local `$handoff` trigger nevertheless runs before a model
+`StopFailure`. The local `/handoff` trigger nevertheless runs before a model
 request and atomically updates `~/.rig/handoff/codex-latest.json`. Ordinary
 prompts never update the shared pointer because Codex also runs this hook for
 subagents. If the UI is unavailable, `rig handoff from-codex copy --latest

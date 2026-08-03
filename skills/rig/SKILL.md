@@ -39,8 +39,8 @@ Open a new terminal and start a new agent task after first-time installation. Ri
 - Local knowledge wiki: `rig wiki *`.
 - File-backed agent coordination: `rig orchestrate *` (`crew`, `om`, and `overmind` aliases).
 - Bidirectional takeover: `rig handoff install`; use the same `handoff` Skill as
-  `/handoff` in Claude or `$handoff` in Codex. Trust the Rig Codex hook once
-  through `/hooks`.
+  `/handoff` in Claude or Codex. Codex `$handoff` remains compatible. Trust the
+  Rig Codex hook once through `/hooks`.
 - Installation and discovery: `rig setup`, `rig help`, `rig guide`, `rig man`.
 
 Before guessing flags, run `rig help <command>` or `rig <command> <subcommand> --help`. For the complete bundled operating guide, run `rig guide`; locate it without loading it using `rig guide --path`.

@@ -105,7 +105,7 @@ export default function installHandoffCli(options: InstallOptions = {}): void {
     const result = installHandoff(options);
     reportSkill('Claude /handoff', result.paths.claudeSkill, result.claudeSkillChanged);
     reportSkill('Codex rig-from-claude adapter', result.paths.codexSkill, result.codexSkillChanged);
-    reportSkill('Codex $handoff', result.paths.codexHandoffSkill, result.codexHandoffSkillChanged);
+    reportSkill('Codex /handoff', result.paths.codexHandoffSkill, result.codexHandoffSkillChanged);
     reportSkill('Claude rig-from-codex adapter', result.paths.claudeFromCodexSkill, result.claudeFromCodexSkillChanged);
     if (result.legacyCodexSkillRemoved) print.succeed(`removed legacy skill link: ${shortPath(result.paths.legacyCodexSkill)}`);
     reportLauncher(result.paths.handoffExecutable, result.launcherChanged);
@@ -116,10 +116,10 @@ export default function installHandoffCli(options: InstallOptions = {}): void {
     else print.info(`hooks already installed in ${shortPath(result.paths.codexHooks)}`);
     if (result.codexHooksBackup) print.info(`Codex hooks backup: ${shortPath(result.codexHooksBackup)}`);
     if (isCodexHooksFeatureDisabled(result.paths.codexConfig)) {
-      print.warn(`Codex hooks are disabled in ${shortPath(result.paths.codexConfig)}; enable [features].hooks before using $handoff.`);
+      print.warn(`Codex hooks are disabled in ${shortPath(result.paths.codexConfig)}; enable [features].hooks before using /handoff.`);
     }
     print.warn('Codex trust cannot be verified by Rig: open /hooks once and trust the Rig UserPromptSubmit hook.');
-    print.succeed('installed: use /handoff in Claude, and $handoff in Codex after that trust step.');
+    print.succeed('installed: use /handoff in Claude or Codex after that trust step; Codex $handoff remains compatible.');
   } catch (error) {
     print.error(error instanceof Error ? error.message : String(error));
     process.exitCode = (error as Error & { exitCode?: number }).exitCode || 1;

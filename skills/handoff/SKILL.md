@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Copy the current Claude Code or Codex session JSONL path into a handoff for the other coding agent without asking the current model to summarize. Use only when the user explicitly invokes /handoff in Claude Code, $handoff in Codex, or asks to transfer the current task between them.
+description: Copy the current Claude Code or Codex session JSONL path into a handoff for the other coding agent without asking the current model to summarize. Use only when the user explicitly invokes /handoff in Claude Code or Codex, invokes the backward-compatible $handoff Codex Skill, or asks to transfer the current task between them.
 ---
 
 # Claude ↔ Codex handoff
@@ -17,6 +17,9 @@ into chat.
   user to paste the clipboard into Codex.
 - In Codex, run `rig handoff from-codex copy --latest --cwd "$PWD"` and tell
   the user to paste the clipboard into Claude Code.
+
+Use `/handoff` as the canonical human command in both agents. Keep `$handoff`
+only as a backward-compatible Codex Skill invocation.
 
 If the command fails, run `rig handoff doctor`, reinstall with `rig handoff
 install` if needed, and in Codex review/trust the Rig hook once through
