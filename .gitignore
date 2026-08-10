@@ -109,3 +109,6 @@ rig_dev/*
 !rig_dev/.gitkeep
 demo/rig_dev/*
 !demo/rig_dev/.gitkeep
+
+# Playwright CLI session dumps (page snapshots / screenshots / console logs)
+.playwright-cli/
