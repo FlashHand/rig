@@ -1,3 +1,5 @@
+
+
 # rig
 *[中文文档](./README_CN.md)*
 
@@ -25,14 +27,14 @@ Opt-out for path 1: `RIG_NO_AUTO_SKILL=1 npm i -g rigjs`. To remove: `rig wiki u
 yarn global add rigjs
 ```
 Rigjs use yarn workspaces to achieve module-hoisting. [About yarn workspaces](https://classic.yarnpkg.com/en/docs/workspaces).
-#### NodeJS version >= 14
+#### NodeJS version >= 22
 Use [n](https://github.com/tj/n) to update NodeJS.
 ```shell
 yarn global add n
 #upgrade to lts
 sudo n lts 
 #or specify the version.
-sudo n 14.19.1
+sudo n 22
 ```
 
 ### 1.Initialize rigjs configuration。
